@@ -82,7 +82,7 @@ const EventsSection: React.FC = () => {
 
         {/* Events Grid */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {events.map((event, index) => (
+          {events.map((event) => (
             <div
               key={event.id}
               className={`group relative ${event.featured ? 'lg:col-span-2 lg:row-span-2' : ''}`}

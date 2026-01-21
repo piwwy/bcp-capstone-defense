@@ -6,7 +6,6 @@ import {
   FileText,
   ClipboardCheck,
   GraduationCap,
-  Search,
   ChevronDown,
   ChevronRight,
   LogOut,
