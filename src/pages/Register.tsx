@@ -85,7 +85,6 @@ const Register: React.FC = () => {
                </div>
              ))}
           </div>
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-600 rounded-full blur-3xl opacity-20" />
         </div>
 
         {/* Right Side: Form Area */}
@@ -103,7 +102,9 @@ const Register: React.FC = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <ProgressBar />
+
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between space-y-4">
             
             {/* STEP 1: Personal Info (Expanded for Manual Check) */}
             {step === 1 && (
