@@ -7,7 +7,8 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register'; // <-- NEW IMPORT
 import Alumni2FA from './pages/Alumni2FA';
-
+import PendingApproval from './pages/PendingApproval';
+import AlumniDashboard from './components/dashboard/AlumniDashboard'; // Replace the old import if needed
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
 
@@ -115,6 +116,8 @@ function AppRoutes() {
                 <Route path="reports/exports" element={<PlaceholderDashboard title="Data Exports" />} />
                 <Route path="reports/certificates" element={<PlaceholderDashboard title="Certificates" />} />
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/pending-approval" element={<PendingApproval />} />
+                <Route path="dashboard" element={<AlumniDashboard />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>

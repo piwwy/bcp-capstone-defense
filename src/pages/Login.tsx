@@ -1,312 +1,208 @@
-import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import React, { useState } from 'react';
+import { AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import ApiService from '../services/api';
 
-const Login: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+interface LoginProps {
+  onLogin: (user: any) => void;
+}
+
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-      setIsLoading(false);
-
-      if (!res.ok || !data.success) {
-        setError(data.error || "Login failed.");
-        return;
+      const response = await ApiService.login(username, password);
+      
+      if (response.success) {
+        onLogin(response.user);
+      } else {
+        setError(response.error || 'Login failed');
       }
-
-      if (data.requires2FA) {
-        navigate("/alumni/2fa", {
-          state: { email, tempToken: data.tempToken },
-          replace: true,
-        });
-        return;
-      }
-
-      login(data.user, data.token);
-      const role = (data.user.role || "").toLowerCase();
-
-      if (role === "superadmin") navigate("/superadmin/dashboard");
-      else if (role === "admin") navigate("/admin/dashboard");
-      else if (role === "registrar") navigate("/registrar/dashboard");
-      else if (role === "alumni") navigate("/alumni/dashboard");
-      else navigate("/");
     } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
+      setError('Login failed. Please check your connection and try again.');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  // 🌌 Galaxy Animation (short butete-like trail)
-  const galaxyRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = galaxyRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const colors = [
-      "rgba(147, 51, 234, 1)", // violet
-      "rgba(59, 130, 246, 1)", // blue
-      "rgba(236, 72, 153, 1)", // pink
-      "rgba(255,255,255,1)",   // white
-    ];
-
-    interface Particle {
-      x: number;
-      y: number;
-      r: number;
-      angle: number;
-      radius: number;
-      speed: number;
-      color: string;
-      trail: { x: number; y: number }[];
-    }
-
-    const particles: Particle[] = [];
-
-    for (let i = 0; i < 400; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = Math.random() * (width * 0.5);
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const x = width / 2 + Math.cos(angle) * radius;
-      const y = height / 2 + Math.sin(angle) * radius;
-
-      particles.push({
-        x,
-        y,
-        r: Math.random() * 1.8 + 0.6,
-        angle,
-        radius,
-        speed: 0.0004 + Math.random() * 0.0008,
-        color,
-        trail: [],
-      });
-    }
-
-    const draw = () => {
-      if (!ctx) return;
-
-      // Slight fade to keep trails short
-      ctx.fillStyle = "rgba(5, 5, 25, 0.3)";
-      ctx.fillRect(0, 0, width, height);
-
-      for (const p of particles) {
-        // Update orbit
-        p.angle += p.speed;
-        p.x = width / 2 + Math.cos(p.angle) * p.radius;
-        p.y = height / 2 + Math.sin(p.angle) * p.radius;
-
-        // Save recent positions for trail
-        p.trail.push({ x: p.x, y: p.y });
-        if (p.trail.length > 5) p.trail.shift(); // only 5 short points (like butete tail)
-
-        // Draw trail following the star
-        ctx.beginPath();
-        for (let i = 0; i < p.trail.length - 1; i++) {
-          const opacity = i / p.trail.length; // fade effect
-          const c = p.color.replace("1)", `${0.2 + opacity * 0.5})`);
-          ctx.strokeStyle = c;
-          ctx.lineWidth = 1;
-          ctx.moveTo(p.trail[i].x, p.trail[i].y);
-          ctx.lineTo(p.trail[i + 1].x, p.trail[i + 1].y);
-        }
-        ctx.stroke();
-
-        // Draw glowing star
-        const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
-        glow.addColorStop(0, p.color.replace("1)", "0.9)"));
-        glow.addColorStop(1, p.color.replace("1)", "0)"));
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      requestAnimationFrame(draw);
+  const quickLogin = (userType: string) => {
+    const credentials = {
+      admin: { username: 'admin', password: 'admin123' },
+      alumni_head: { username: 'alumni_head', password: 'alumni123' },
+      staff: { username: 'staff', password: 'staff123' }
     };
-
-    draw();
-
-    const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    
+    const cred = credentials[userType as keyof typeof credentials];
+    setUsername(cred.username);
+    setPassword(cred.password);
+  };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden text-white">
-      {/* Galaxy Background */}
-      <canvas
-        ref={galaxyRef}
-        className="absolute inset-0 z-[0]"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, #0b001e 0%, #050011 100%)",
-        }}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-emerald-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      </div>
 
-      {/* Glass Card */}
-      <div className="max-w-md w-full relative z-[10]">
-        <div className="relative bg-white/10 backdrop-blur-[60px] rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] border border-white/20 p-10 pt-12 overflow-hidden">
-          {/* Logo */}
+      <div className="max-w-md w-full space-y-8 relative z-10">
+        {/* Logo and Header */}
+        <div className="text-center">
           <div className="flex justify-center mb-6">
-            <img
-              src="/bcplogo.png"
-              alt="BCP Logo"
-              className="w-20 h-20 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.25)]"
-            />
+            <div className="relative">
+             <div className="relative flex items-center justify-center">
+  <img 
+    src="/logosms.png" 
+    alt="AMS Logo" 
+    className="w-20 h-20 md:w-24 md:h-24 object-contain"
+  />
+  <Sparkles className="absolute bottom-2 right-2 w-6 h-6 text-yellow-400 animate-pulse" />
+</div>
+
+            </div>
           </div>
-
-          {/* Heading */}
-          <div className="relative text-center mb-2 overflow-hidden">
-            <h2 className="text-4xl font-extrabold bg-gradient-to-r from-gray-100 via-gray-400 to-gray-100 bg-clip-text text-transparent relative z-10">
-              BCP Alumni Login
-            </h2>
-            <div className="absolute inset-0 animate-[shine_4s_linear_infinite]" />
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+            Alumni Management
+          </h2>
+          <p className="text-gray-600 text-lg">Alumni Portal Access</p>
+          <div className="mt-4 flex items-center justify-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm text-gray-500">System Online</span>
           </div>
+        </div>
 
-          <p className="text-center text-gray-300 text-sm tracking-wide mb-8">
-            Stay Connected • Stay Informed • Stay Involved
-          </p>
+        {/* Login Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-xl animate-shake">
+                <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+                <span className="text-red-700">{error}</span>
+              </div>
+            )}
 
-          {/* Form */}
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-inner">
-            <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-              {error && (
-                <div className="flex items-center p-4 bg-red-100/20 border border-red-400/40 rounded-xl">
-                  <AlertCircle className="w-5 h-5 text-red-300 mr-3" />
-                  <span className="text-red-200">{error}</span>
-                </div>
-              )}
-
+            <div className="space-y-4">
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-semibold text-gray-200 mb-2"
-                >
-                  Email
+                <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Username
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-600 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none bg-white/10 text-white placeholder-gray-400"
-                  placeholder="Enter your email"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white/50 backdrop-blur-sm"
+                  placeholder="Enter your username"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-semibold text-gray-200 mb-2"
-                >
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
                   <input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 border border-gray-600 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none bg-white/10 text-white placeholder-gray-400"
+                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white/50 backdrop-blur-sm"
                     placeholder="Enter your password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white py-3 px-4 rounded-xl font-semibold hover:scale-[1.03] transition-all duration-300"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-300">
-              Don’t have an account yet?{" "}
-              <Link
-                to="/register"
-                className="text-violet-300 font-semibold hover:underline"
-              >
-                Register
-              </Link>
-            </p>
-            <Link
-              to="/"
-              className="text-blue-300 hover:underline text-xs font-medium"
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02] shadow-lg"
             >
-              ← Back to Home
-            </Link>
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+
+          {/* Quick Login Options */}
+          <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-100">
+            <p className="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+              <Sparkles className="w-4 h-4 mr-2 text-blue-500" />
+              Quick Demo Access
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              <button
+                onClick={() => quickLogin('admin')}
+                className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-gray-200 hover:border-blue-300"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900">Administrator</p>
+                  <p className="text-xs text-gray-500">Full system access</p>
+                </div>
+                <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                  admin
+                </div>
+              </button>
+              
+              <button
+                onClick={() => quickLogin('alumni_head')}
+                className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-emerald-50 transition-colors border border-gray-200 hover:border-emerald-300"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900">Alumni Head</p>
+                  <p className="text-xs text-gray-500">Manage alumni & events</p>
+                </div>
+                <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                  alumni_head
+                </div>
+              </button>
+              
+              <button
+                onClick={() => quickLogin('staff')}
+                className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-purple-50 transition-colors border border-gray-200 hover:border-purple-300"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900">Registrar Staff</p>
+                  <p className="text-xs text-gray-500">Support alumni requests</p>
+                </div>
+                <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                  staff
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="text-center mt-4">
-          <p className="text-xs text-gray-400">
-            © {new Date().getFullYear()} Bestlink College of the Philippines
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-sm text-gray-500">
+            Secure • Reliable • Modern Alumni Management
           </p>
         </div>
       </div>
-
-      <style>{`
-        @keyframes shine {
-          0% {
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
-            transform: translateX(-100%);
-          }
-          100% {
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
-            transform: translateX(100%);
-          }
-        }
-      `}</style>
     </div>
   );
 };

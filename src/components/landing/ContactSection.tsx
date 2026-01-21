@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, Facebook, Linkedin, Twitter, Clock } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Facebook, Linkedin, Twitter, Clock, Building2, Globe } from 'lucide-react';
 
 const ContactSection: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +12,7 @@ const ContactSection: React.FC = () => {
     e.preventDefault();
     // Handle form submission
     console.log('Form submitted:', formData);
+    alert("Message sent! (Demo only)");
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -20,6 +21,16 @@ const ContactSection: React.FC = () => {
       [e.target.name]: e.target.value,
     });
   };
+
+  // Listahan ng Partners (Demo Data based on common BCP linkages)
+  const partners = [
+    { name: "TESDA", type: "Government" },
+    { name: "Commission on Higher Education", type: "Government" },
+    { name: "Quezon City Government", type: "LGU" },
+    { name: "Accenture", type: "Industry Partner" },
+    { name: "Converge ICT", type: "Industry Partner" },
+    { name: "SM Supermalls", type: "Industry Partner" },
+  ];
 
   return (
     <section id="contact" className="relative py-24 bg-dark-800 overflow-hidden">
@@ -49,7 +60,7 @@ const ContactSection: React.FC = () => {
         </div>
 
         {/* Contact Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 mb-20">
           {/* Contact Form */}
           <div className="lg:col-span-2">
             <div className="p-8 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10">
@@ -66,7 +77,7 @@ const ContactSection: React.FC = () => {
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      placeholder="John Doe"
+                      placeholder="Juan Dela Cruz"
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                     />
@@ -80,7 +91,7 @@ const ContactSection: React.FC = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="john@example.com"
+                      placeholder="juan@example.com"
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                       required
                     />
@@ -117,7 +128,7 @@ const ContactSection: React.FC = () => {
           <div className="space-y-6">
             {/* Office Info Card */}
             <div className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
-              <h3 className="text-lg font-semibold text-white mb-4">BCP Alumni Office</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">BCP Main Campus</h3>
               
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -127,7 +138,7 @@ const ContactSection: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-white">Address</p>
                     <p className="text-sm text-blue-200/70">
-                      Quirino Highway, Novaliches, Quezon City
+                      1071 Brgy. Kaligayahan, Quirino Highway, Novaliches, Quezon City
                     </p>
                   </div>
                 </div>
@@ -139,7 +150,7 @@ const ContactSection: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-white">Office Hours</p>
                     <p className="text-sm text-blue-200/70">
-                      Monday – Friday, 8:00 AM – 5:00 PM
+                      Monday – Saturday, 8:00 AM – 5:00 PM
                     </p>
                   </div>
                 </div>
@@ -150,7 +161,7 @@ const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Email</p>
-                    <p className="text-sm text-blue-200/70">alumni@bestlink.edu.ph</p>
+                    <p className="text-sm text-blue-200/70">bcp.admission@gmail.com</p>
                   </div>
                 </div>
 
@@ -160,7 +171,7 @@ const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Phone</p>
-                    <p className="text-sm text-blue-200/70">(02) 1234-5678</p>
+                    <p className="text-sm text-blue-200/70">(02) 8417-4355</p>
                   </div>
                 </div>
               </div>
@@ -168,11 +179,13 @@ const ContactSection: React.FC = () => {
 
             {/* Social Links Card */}
             <div className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
-              <h3 className="text-lg font-semibold text-white mb-4">Connect With Us</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Follow Us</h3>
               
               <div className="flex gap-3">
                 <a
-                  href="#"
+                  href="https://www.facebook.com/bcpofficialpage"
+                  target="_blank"
+                  rel="noreferrer"
                   className="w-12 h-12 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl flex items-center justify-center transition-all duration-300 group"
                 >
                   <Facebook className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
@@ -194,20 +207,54 @@ const ContactSection: React.FC = () => {
 
             {/* Map Card */}
             <div className="p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-              <div className="aspect-video bg-dark-600 rounded-xl overflow-hidden">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.4!2d121.04!3d14.71!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTTCsDQyJzM2LjAiTiAxMjHCsDAyJzI0LjAiRQ!5e0!3m2!1sen!2sph!4v1600000000000!5m2!1sen!2sph"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
+              <div className="aspect-video bg-dark-600 rounded-xl overflow-hidden relative">
+                {/* Updated Google Maps Embed for BCP Novaliches */}
+                <iframe 
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.2292398435343!2d121.0423183143216!3d14.700140989736868!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397b0d8a1c5d369%3A0x66c729b760255309!2sBestlink%20College%20of%20the%20Philippines!5e0!3m2!1sen!2sph!4v1675234567890!5m2!1sen!2sph" 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
                   referrerPolicy="no-referrer-when-downgrade"
                   title="BCP Location"
                   className="grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-500"
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Partners Section (NEW) */}
+        <div className="border-t border-white/10 pt-16">
+          <div className="text-center mb-10">
+            <h3 className="text-2xl font-bold text-white mb-2">Our Industry Linkages & Partners</h3>
+            <p className="text-blue-200/60 text-sm">Working together to build better opportunities for our alumni</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {partners.map((partner, idx) => (
+              <div 
+                key={idx}
+                className="group p-4 bg-white/5 rounded-xl border border-white/5 hover:border-blue-500/30 hover:bg-white/10 transition-all duration-300 flex flex-col items-center justify-center text-center gap-3"
+              >
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  {partner.type === 'Government' ? (
+                    <Globe className="w-6 h-6 text-blue-400" />
+                  ) : (
+                    <Building2 className="w-6 h-6 text-purple-400" />
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-white group-hover:text-blue-300 transition-colors">
+                    {partner.name}
+                  </h4>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">
+                    {partner.type}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
