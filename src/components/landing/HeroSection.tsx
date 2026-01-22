@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Play, Users, Briefcase, Calendar } from 'lucide-react';
+import { ChevronDown, Play, Users, Briefcase, Calendar, X } from 'lucide-react'; // Added 'X' icon
 
 const HeroSection: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showVideo, setShowVideo] = useState(false); // New state for video modal
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Hero images for carousel
@@ -12,7 +13,6 @@ const HeroSection: React.FC = () => {
     '/images/g2.png',
     '/images/g3.png',
     '/images/g4.png',
-
   ];
 
   // Particle animation effect
@@ -160,7 +160,12 @@ const HeroSection: React.FC = () => {
                 Get Started
                 <ChevronDown className="w-5 h-5 rotate-[-90deg] group-hover:translate-x-1 transition-transform" />
               </Link>
-              <button className="px-8 py-4 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
+              
+              {/* UPDATED: Watch Video Button triggers Modal */}
+              <button 
+                onClick={() => setShowVideo(true)}
+                className="px-8 py-4 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+              >
                 <Play className="w-5 h-5" />
                 Watch Video
               </button>
@@ -223,7 +228,6 @@ const HeroSection: React.FC = () => {
                         alt={`BCP Campus ${index + 1}`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          // Fallback gradient if image fails
                           e.currentTarget.style.display = 'none';
                         }}
                       />
@@ -271,6 +275,37 @@ const HeroSection: React.FC = () => {
         <span className="text-sm font-medium">Scroll Down</span>
         <ChevronDown className="w-5 h-5 animate-bounce" />
       </button>
+
+      {/* NEW: Video Modal Overlay */}
+      {showVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowVideo(false)}
+              className="absolute top-4 right-4 z-20 p-2 bg-black/50 hover:bg-white/10 text-white/70 hover:text-white rounded-full transition-all duration-200 backdrop-blur-sm"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            {/* Video Player */}
+            <video
+              src="/videos/intro.mp4" // Make sure to save your generated video here!
+              controls
+              autoPlay
+              className="w-full h-full object-cover"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          
+          {/* Close on background click */}
+          <div 
+            className="absolute inset-0 -z-10" 
+            onClick={() => setShowVideo(false)}
+          />
+        </div>
+      )}
     </section>
   );
 };

@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-6">
               <img
-                src="/images/bcplogo.png"
+                src="/images/Linker College Of The Philippines.png"
                 alt="LCP Logo"
                 className="w-12 h-12 object-contain"
               />
