@@ -41,7 +41,7 @@ const alumniStories: AlumniStory[] = [
     name: 'Sto. Domingo, James Robert Delos Santos',
     course: 'Bachelor of Science in Information Technology',
     year: 'Class of 2025',
-    quote: 'BCP molded me to serve with integrity, humility, and passion.',
+    quote: 'LCP molded me to serve with integrity, humility, and passion.',
     position: 'Systems Analyst',
     company: 'Enterprise Systems Corp.',
     image: '/images/alumni/4.jpg',
@@ -51,7 +51,7 @@ const alumniStories: AlumniStory[] = [
     name: 'Magsadia, John Cedric Roco',
     course: 'Bachelor of Science in Information Technology',
     year: 'Class of 2025',
-    quote: 'Proud to carry the values and legacy of Bestlink wherever I go.',
+    quote: 'Proud to carry the values and legacy of Linker wherever I go.',
     position: 'IT Consultant',
     company: 'Global Tech Partners',
     image: '/images/alumni/5.jpg',
@@ -95,7 +95,7 @@ const AlumniSection: React.FC = () => {
           </h2>
           
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            Celebrating Bestlink graduates who exemplify dedication, excellence, 
+            Celebrating Linker graduates who exemplify dedication, excellence, 
             and service in their chosen fields.
           </p>
         </div>

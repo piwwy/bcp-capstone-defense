@@ -39,11 +39,11 @@ const Footer: React.FC = () => {
             <Link to="/" className="flex items-center gap-3 mb-6">
               <img
                 src="/images/bcplogo.png"
-                alt="BCP Logo"
+                alt="LCP Logo"
                 className="w-12 h-12 object-contain"
               />
               <div>
-                <h3 className="text-lg font-bold text-white">BCP Alumni</h3>
+                <h3 className="text-lg font-bold text-white">LCP Alumni</h3>
                 <p className="text-xs text-blue-300/70">Portal</p>
               </div>
             </Link>
@@ -54,7 +54,7 @@ const Footer: React.FC = () => {
             <div className="flex items-center gap-2 text-sm text-blue-200/60">
               <span>Made with</span>
               <Heart className="w-4 h-4 text-red-400 fill-red-400" />
-              <span>for BCP Alumni</span>
+              <span>for LCP Alumni</span>
             </div>
           </div>
 

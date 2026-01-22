@@ -62,7 +62,7 @@ const latestJobs: Job[] = [
   {
     id: 6,
     title: 'Software Engineer Intern',
-    company: 'BCP Innovation Lab',
+    company: 'LCP Innovation Lab',
     location: 'Quezon City',
     type: 'Part-time',
     postedDate: 'Oct 18, 2025',
@@ -100,7 +100,7 @@ const JobsSection: React.FC = () => {
           </h2>
           
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            Explore job openings shared through the BCP Alumni Network 
+            Explore job openings shared through the LCP Alumni Network 
             and partner companies.
           </p>
         </div>

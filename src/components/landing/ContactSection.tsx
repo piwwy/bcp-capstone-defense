@@ -22,7 +22,7 @@ const ContactSection: React.FC = () => {
     });
   };
 
-  // Listahan ng Partners (Demo Data based on common BCP linkages)
+  // Listahan ng Partners (Demo Data based on common LCP linkages)
   const partners = [
     { name: "TESDA", type: "Government" },
     { name: "Commission on Higher Education", type: "Government" },
@@ -54,7 +54,7 @@ const ContactSection: React.FC = () => {
           </h2>
           
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            We'd love to hear from you! Connect with the BCP Alumni Office for questions,
+            We'd love to hear from you! Connect with the LCP Alumni Office for questions,
             collaborations, or event participation.
           </p>
         </div>
@@ -128,7 +128,7 @@ const ContactSection: React.FC = () => {
           <div className="space-y-6">
             {/* Office Info Card */}
             <div className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
-              <h3 className="text-lg font-semibold text-white mb-4">BCP Main Campus</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">LCP Main Campus</h3>
               
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -161,7 +161,7 @@ const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Email</p>
-                    <p className="text-sm text-blue-200/70">bcp.admission@gmail.com</p>
+                    <p className="text-sm text-blue-200/70">lcp.admission@gmail.com</p>
                   </div>
                 </div>
 
@@ -183,7 +183,7 @@ const ContactSection: React.FC = () => {
               
               <div className="flex gap-3">
                 <a
-                  href="https://www.facebook.com/bcpofficialpage"
+                  href="https://www.facebook.com/lcpofficialpage"
                   target="_blank"
                   rel="noreferrer"
                   className="w-12 h-12 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl flex items-center justify-center transition-all duration-300 group"
@@ -208,7 +208,7 @@ const ContactSection: React.FC = () => {
             {/* Map Card */}
             <div className="p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
               <div className="aspect-video bg-dark-600 rounded-xl overflow-hidden relative">
-                {/* Updated Google Maps Embed for BCP Novaliches */}
+                {/* Updated Google Maps Embed for LCP Novaliches */}
                 <iframe 
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.2292398435343!2d121.0423183143216!3d14.700140989736868!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397b0d8a1c5d369%3A0x66c729b760255309!2sBestlink%20College%20of%20the%20Philippines!5e0!3m2!1sen!2sph!4v1675234567890!5m2!1sen!2sph" 
                   width="100%" 
@@ -217,7 +217,7 @@ const ContactSection: React.FC = () => {
                   allowFullScreen 
                   loading="lazy" 
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="BCP Location"
+                  title="LCP Location"
                   className="grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-500"
                 />
               </div>

@@ -8,12 +8,11 @@ const HeroSection: React.FC = () => {
 
   // Hero images for carousel
   const heroImages = [
-    '/images/2.jpg',
-    '/images/3.jpg',
-    '/images/4.jpg',
-    '/images/5.jpg',
-    '/images/6.jpg',
-    '/images/7.jpg',
+    '/images/g1.png',
+    '/images/g2.png',
+    '/images/g3.png',
+    '/images/g4.png',
+
   ];
 
   // Particle animation effect
@@ -149,7 +148,7 @@ const HeroSection: React.FC = () => {
 
             {/* Subtext */}
             <p className="text-lg sm:text-xl text-blue-100/80 mb-8 max-w-xl mx-auto lg:mx-0">
-              Learn from Bestlink alumni and build your own career path.
+              Learn from Linker alumni and build your own career path.
             </p>
 
             {/* CTA Buttons */}
@@ -230,9 +229,9 @@ const HeroSection: React.FC = () => {
                       />
                       <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
                         <h3 className="text-white font-semibold text-lg">
-                          BCP Campus Life
+                          LCP Campus Life
                         </h3>
-                        <p className="text-white/70 text-sm">
+                        <p className="text-blue-200/70 text-sm">
                           Building futures together
                         </p>
                       </div>

@@ -19,7 +19,7 @@ const events: Event[] = [
     title: 'Grand Alumni Homecoming 2025',
     date: 'December 15, 2025',
     time: '4:00 PM',
-    location: 'BCP Quadrangle',
+    location: 'LCP Quadrangle',
     attendees: 1500,
     type: 'homecoming',
     featured: true,
@@ -29,7 +29,7 @@ const events: Event[] = [
     title: 'Career & Job Fair 2025',
     date: 'March 10-12, 2025',
     time: '9:00 AM',
-    location: 'BCP Main Building',
+    location: 'LCP Main Building',
     attendees: 500,
     type: 'career',
   },
@@ -76,7 +76,7 @@ const EventsSection: React.FC = () => {
           
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
             Celebrate milestones, reunite with classmates, and join upcoming events at
-            Bestlink College of the Philippines.
+            Linker College of the Philippines.
           </p>
         </div>
 
@@ -163,9 +163,9 @@ const EventsSection: React.FC = () => {
             {/* Timeline Items */}
             <div className="space-y-8">
               {[
-                { title: 'BCP Alumni Sportsfest 2024', date: 'October 2024', desc: 'An exciting weekend of sports and camaraderie.' },
+                { title: 'LCP Alumni Sportsfest 2024', date: 'October 2024', desc: 'An exciting weekend of sports and camaraderie.' },
                 { title: 'Alumni Mentorship Program Launch', date: 'June 2024', desc: 'Pairing 50 graduates with current students.' },
-                { title: 'BCP Donation Drive for Scholars', date: 'February 2024', desc: 'Funding scholarships for deserving students.' },
+                { title: 'LCP Donation Drive for Scholars', date: 'February 2024', desc: 'Funding scholarships for deserving students.' },
               ].map((item, index) => (
                 <div key={index} className="flex gap-6 ml-4">
                   <div className="relative">

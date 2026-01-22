@@ -51,8 +51,8 @@ const Navbar: React.FC = () => {
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
               <img
-                src="/images/bcplogo.png"
-                alt="BCP Logo"
+                src="/images/Linker College Of The Philippines.png"
+                alt="LCP Logo"
                 className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -62,7 +62,7 @@ const Navbar: React.FC = () => {
                 ALUMNI PORTAL
               </h1>
               <p className="text-xs text-blue-300/80">
-                Bestlink College Of The Philippines
+                Linker College Of The Philippines
               </p>
             </div>
           </Link>
