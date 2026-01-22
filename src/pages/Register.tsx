@@ -59,11 +59,11 @@ const Register: React.FC = () => {
       <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
         {/* Left Side: Context */}
-        <div className="md:w-1/3 bg-blue-900 p-8 text-white flex flex-col justify-between relative overflow-hidden">
+        <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col justify-between relative overflow-hidden">
           <div className="relative z-10">
             <Link to="/" className="flex items-center gap-3 mb-10">
-              <img src="/images/bcplogo.png" alt="BCP Logo" className="w-10 h-10" />
-              <span className="font-bold text-lg tracking-wide">BCP ALUMNI</span>
+              <img src="/images/Linker College Of The Philippines.png" alt="LCP Logo" className="w-10 h-10" />
+              <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
             </Link>
             <h2 className="text-3xl font-bold mb-4">Welcome Home, Alumni.</h2>
             <p className="text-blue-200 text-sm leading-relaxed">

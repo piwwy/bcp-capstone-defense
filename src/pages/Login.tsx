@@ -167,8 +167,8 @@ const Login: React.FC = () => {
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img
-              src="/images/bcplogo.png"
-              alt="BCP Logo"
+              src="/images/Linker College Of The Philippines.png"
+              alt="LCP Logo"
               className="w-20 h-20 object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.25)]"
             />
           </div>
@@ -176,7 +176,7 @@ const Login: React.FC = () => {
           {/* Heading */}
           <div className="relative text-center mb-2 overflow-hidden">
             <h2 className="text-4xl font-extrabold bg-gradient-to-r from-gray-100 via-gray-400 to-gray-100 bg-clip-text text-transparent relative z-10">
-              BCP Alumni Login
+              LCP Alumni Login
             </h2>
             <div className="absolute inset-0 animate-[shine_4s_linear_infinite]" />
           </div>
