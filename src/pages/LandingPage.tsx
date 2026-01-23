@@ -8,6 +8,7 @@ import EventsSection from '../components/landing/EventsSection';
 import JobsSection from '../components/landing/JobsSection';
 import ContactSection from '../components/landing/ContactSection';
 import Footer from '../components/landing/Footer';
+import NewsSection from '../components/landing/NewsSection';
 
 const LandingPage: React.FC = () => {
   return (
@@ -19,6 +20,7 @@ const LandingPage: React.FC = () => {
         <CoursesSection />
         <AlumniSection />
         <EventsSection />
+        <NewsSection />
         <JobsSection />
         <ContactSection />
       </main>

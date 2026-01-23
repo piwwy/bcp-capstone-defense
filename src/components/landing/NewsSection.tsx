@@ -10,7 +10,8 @@ const newsItems = [
     date: 'Jan 20, 2026',
     author: 'Alumni Board',
     category: 'Community',
-    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&auto=format&fit=crop'
+    // AI/3D Style: Abstract Golden/Glowing Flow (Symbolizing Value & Future)
+    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=90&w=1920&auto=format&fit=crop'
   },
   {
     id: 2,
@@ -19,7 +20,8 @@ const newsItems = [
     date: 'Jan 15, 2026',
     author: 'Sarah Jenkins',
     category: 'Technology',
-    image: 'https://images.unsplash.com/photo-1544531696-9348411888a9?q=80&w=800&auto=format&fit=crop'
+    // AI/3D Style: Abstract Digital Connections/Neural Network (Symbolizing Tech/AI)
+    image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=90&w=1920&auto=format&fit=crop'
   },
   {
     id: 3,
@@ -28,7 +30,8 @@ const newsItems = [
     date: 'Jan 10, 2026',
     author: 'Campus News',
     category: 'Campus Life',
-    image: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=800&auto=format&fit=crop'
+    // AI/3D Style: Futuristic Abstract Architecture (Symbolizing Innovation)
+    image: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?q=90&w=1920&auto=format&fit=crop'
   }
 ];
 
@@ -45,7 +48,7 @@ const NewsSection: React.FC = () => {
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Alumni
             <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-              {' '}News & Stories
+              {' '}News
             </span>
           </h2>
         </div>
