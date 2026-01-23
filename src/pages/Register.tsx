@@ -3,19 +3,87 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient'; 
 import { 
   User, BookOpen, Lock, ChevronRight, ChevronLeft, 
-  CheckCircle, HelpCircle, X, AlertCircle, Shield 
+  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, Check 
 } from 'lucide-react';
-import ReCAPTCHA from "react-google-recaptcha";
 
 // Types for validation errors
 type Errors = { [key: string]: string };
+
+// --- REUSABLE INPUT COMPONENT ---
+interface InputFieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: { value: string | number; label: string | number }[];
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  error?: string;
+}
+
+const InputField: React.FC<InputFieldProps> = ({ 
+  label, name, type = "text", placeholder, required = false, options = [], value, onChange, error 
+}) => {
+  const isError = !!error;
+  
+  return (
+    <div className="space-y-1.5 min-h-[85px]"> 
+      <label className="text-sm font-semibold text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      
+      {type === 'select' ? (
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          className={`w-full p-3 border rounded-lg outline-none transition-all ${
+            isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+          }`}
+        >
+          <option value="">Select {label}</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          maxLength={name === 'mobile' ? 11 : undefined}
+          className={`w-full p-3 border rounded-lg outline-none transition-all ${
+            isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+          }`}
+        />
+      )}
+      
+      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
+         <AlertCircle className="w-3 h-3" /> {error || "Error"} 
+      </div>
+    </div>
+  );
+};
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
+  
+  // State for Floating Google Prompt
+  const [showGooglePrompt, setShowGooglePrompt] = useState(false);
+
+  // Trigger floating prompt after 1.5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowGooglePrompt(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -36,35 +104,57 @@ const Register: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Errors>({});
-  const [passwordStrength, setPasswordStrength] = useState(0);
+  
+  const [passChecks, setPassChecks] = useState({
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false
+  });
 
-  // Calculate Password Strength
   useEffect(() => {
-    const pass = formData.password;
-    let score = 0;
-    if (!pass) {
-      setPasswordStrength(0);
-      return;
-    }
-    if (pass.length > 7) score += 1;
-    if (/[A-Z]/.test(pass)) score += 1;
-    if (/[0-9]/.test(pass)) score += 1;
-    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
-    setPasswordStrength(score);
+    const p = formData.password;
+    setPassChecks({
+      length: p.length >= 8,
+      upper: /[A-Z]/.test(p),
+      lower: /[a-z]/.test(p),
+      number: /[0-9]/.test(p),
+      special: /[^A-Za-z0-9]/.test(p)
+    });
   }, [formData.password]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    
+    if (['firstName', 'lastName', 'middleName', 'maidenName'].includes(name)) {
+      if (value !== '' && !/^[a-zA-Z\s.-]*$/.test(value)) return;
+    }
+    if (name === 'mobile') {
+      if (value !== '' && !/^[0-9]*$/.test(value)) return;
+    }
+
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     
-    setFormData({ ...formData, [name]: val });
+    setFormData(prev => ({ ...prev, [name]: val }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
 
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
+  // --- GOOGLE LOGIN LOGIC ---
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/onboarding`, 
+        },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      alert(error.message);
     }
   };
 
-  // VALIDATION LOGIC
   const validateStep = (currentStep: number): boolean => {
     const newErrors: Errors = {};
     let isValid = true;
@@ -74,6 +164,7 @@ const Register: React.FC = () => {
       if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
       if (!formData.birthday) newErrors.birthday = 'Birthday is required';
       if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
+      else if (formData.mobile.length !== 11) newErrors.mobile = 'Mobile number must be 11 digits';
     }
 
     if (currentStep === 2) {
@@ -87,7 +178,7 @@ const Register: React.FC = () => {
       else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
       
       if (!formData.password) newErrors.password = 'Password is required';
-      else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+      else if (!Object.values(passChecks).every(Boolean)) newErrors.password = 'Please meet all password requirements';
       
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
       
@@ -102,157 +193,147 @@ const Register: React.FC = () => {
     return isValid;
   };
 
-  const handleNext = () => {
-    if (validateStep(step)) {
-      setStep((prev) => prev + 1);
-    }
-  };
-
+  const handleNext = () => { if (validateStep(step)) setStep((prev) => prev + 1); };
   const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep(3)) return;
-
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            role: 'alumni'
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              role: 'alumni'
+            }
           }
+        });
+  
+        if (authError) throw authError;
+  
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: authData.user.id,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              middle_name: formData.middleName,
+              maiden_name: formData.maidenName,
+              birthday: formData.birthday,
+              mobile_number: formData.mobile,
+              batch_year: formData.batchYear,
+              course: formData.course,
+              student_id: formData.studentId || null,
+              verification_answer: formData.verificationAnswer,
+              role: 'alumni',
+              status: 'pending_approval'
+            }] as any);
+  
+          if (profileError) throw profileError;
+          navigate('/pending-approval'); 
         }
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            middle_name: formData.middleName,
-            maiden_name: formData.maidenName,
-            birthday: formData.birthday,
-            mobile_number: formData.mobile,
-            batch_year: formData.batchYear,
-            course: formData.course,
-            student_id: formData.studentId || null,
-            verification_answer: formData.verificationAnswer,
-            role: 'alumni',
-            status: 'pending_approval'
-          }] as any);
-
-        if (profileError) throw profileError;
-        navigate('/pending-approval'); 
+      } catch (error: any) {
+        console.error(error);
+        alert(error.message || "Registration failed");
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      console.error(error);
-      alert(error.message || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reusable Input Component
-  const InputField = ({ label, name, type = "text", placeholder, required = false, options = [] }: any) => {
-    const isError = !!errors[name];
-    
-    return (
-      <div className="space-y-1.5 min-h-[85px]"> {/* FIX: Added min-height to prevent jumping when error appears */}
-        <label className="text-sm font-semibold text-gray-700">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-        
-        {type === 'select' ? (
-          <select
-            name={name}
-            value={formData[name as keyof typeof formData] as string}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg outline-none transition-all ${
-              isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
-            }`}
-          >
-            <option value="">Select {label}</option>
-            {options.map((opt: any) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type={type}
-            name={name}
-            value={formData[name as keyof typeof formData] as string}
-            onChange={handleChange}
-            placeholder={placeholder}
-            className={`w-full p-3 border rounded-lg outline-none transition-all ${
-              isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
-            }`}
-          />
-        )}
-        
-        {/* Error message takes up space but doesn't push if we reserve height */}
-        <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
-           <AlertCircle className="w-3 h-3" /> {errors[name] || "Error"} 
-        </div>
-      </div>
-    );
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       
-      {/* FIX: Added 'min-h-[700px]' to fix the card height. 
-         Now it won't shrink/grow when switching steps.
-      */}
-      <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+      {/* --- FLOATING GOOGLE LOGIN PROMPT (Top Right) --- */}
+      {showGooglePrompt && (
+        <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50 animate-in slide-in-from-right duration-700 fade-in">
+          <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 w-80 relative transform hover:scale-105 transition-transform duration-300">
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowGooglePrompt(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+                 {/* Google Icon */}
+                 <svg className="w-6 h-6" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                  </svg>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900 text-sm">Quick Registration</h4>
+                <p className="text-xs text-gray-500">Sign in with Google to skip filling forms.</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleGoogleLogin}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              Continue as User
+            </button>
+          </div>
+        </div>
+      )}
+      {/* ------------------------------------------------ */}
+
+      <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
         
-        {/* Left Side */}
-        <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col justify-between relative overflow-hidden">
-          <div className="relative z-10">
-            {/* FIX: Added '/' to src to point to public root correctly */}
+        {/* Left Side (Dark Blue Card) */}
+        <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
+           <div className="relative z-10 flex-1">
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-10">
               <img 
                 src="/images/Linker College Of The Philippines.png" 
                 alt="LCP Logo" 
-                className="w-12 h-12 object-contain" // Slightly larger for better visibility
+                className="w-12 h-12 object-contain"
               />
               <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
             </Link>
             
-            <div className="hidden md:block">
-              <h2 className="text-3xl font-bold mb-4">Welcome Home.</h2>
+            <div className="mb-8 md:mb-0">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Welcome Home.</h2>
               <p className="text-blue-200 text-sm leading-relaxed">
                 Join the official alumni network. Verify your records securely.
               </p>
             </div>
+            
+            <div className="relative z-10 mt-6 md:mt-16 flex md:flex-col justify-between md:justify-start gap-0 md:gap-8">
+               <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-800 -z-10 md:w-0.5 md:h-full md:left-5 md:top-0 md:right-auto"></div>
+               {[
+                 { id: 1, title: 'Personal', icon: User },
+                 { id: 2, title: 'Academic', icon: BookOpen },
+                 { id: 3, title: 'Security', icon: Lock },
+               ].map((s) => {
+                 const isActive = step === s.id;
+                 const isCompleted = step > s.id;
+                 return (
+                   <div key={s.id} className={`flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 transition-all duration-300 ${isActive ? 'md:translate-x-2' : ''}`}>
+                     <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 relative z-10 bg-gray-900 
+                       ${isActive ? 'border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-110' : isCompleted ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-700 text-gray-500'}`}>
+                       {isCompleted ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                     </div>
+                     <div className={`flex flex-col items-center md:items-start ${isActive ? 'opacity-100' : 'opacity-60'} hidden md:flex`}>
+                        <span className="text-sm font-bold uppercase tracking-wider">{s.title}</span>
+                        <span className="text-xs text-gray-400">Step {s.id}</span>
+                     </div>
+                   </div>
+                 );
+               })}
+            </div>
           </div>
-          
-          <div className="relative z-10 mt-4 md:mt-10 flex md:flex-col gap-6">
-             {[
-               { id: 1, title: 'Personal', icon: User },
-               { id: 2, title: 'Academic', icon: BookOpen },
-               { id: 3, title: 'Security', icon: Lock },
-             ].map((s) => (
-               <div key={s.id} className={`flex items-center gap-4 transition-all duration-300 ${step === s.id ? 'translate-x-2' : ''}`}>
-                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${step >= s.id ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/50' : 'border-gray-700 text-gray-500'}`}>
-                   {step > s.id ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
-                 </div>
-                 <div className={`flex flex-col ${step === s.id ? 'opacity-100' : 'opacity-60'}`}>
-                    <span className="text-sm font-bold uppercase tracking-wider">{s.title}</span>
-                    <span className="text-xs text-gray-400">Step {s.id}</span>
-                 </div>
-               </div>
-             ))}
-          </div>
-          
           <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20" />
         </div>
 
@@ -272,22 +353,22 @@ const Register: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
-            <div className="space-y-4"> {/* Container for inputs */}
+            <div className="space-y-4"> 
             
               {/* STEP 1 */}
               {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField label="First Name" name="firstName" required />
-                    <InputField label="Last Name" name="lastName" required />
+                    <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} error={errors.firstName} required />
+                    <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} error={errors.lastName} required />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                     <InputField label="Middle Name" name="middleName" placeholder="Optional" />
-                     <InputField label="Maiden Name" name="maidenName" placeholder="If married (Female)" />
+                     <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Optional" />
+                     <InputField label="Maiden Name" name="maidenName" value={formData.maidenName} onChange={handleChange} placeholder="If married (Female)" />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField type="date" label="Birthday" name="birthday" required />
-                    <InputField type="tel" label="Mobile Number" name="mobile" required placeholder="09xxxxxxxxx" />
+                    <InputField type="date" label="Birthday" name="birthday" value={formData.birthday} onChange={handleChange} error={errors.birthday} required />
+                    <InputField type="tel" label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} error={errors.mobile} required placeholder="09xxxxxxxxx" />
                   </div>
                 </div>
               )}
@@ -308,6 +389,9 @@ const Register: React.FC = () => {
                       label="Course" 
                       name="course" 
                       required 
+                      value={formData.course}
+                      onChange={handleChange}
+                      error={errors.course}
                       options={[
                         { value: 'BSIT', label: 'BS Information Technology' },
                         { value: 'BSCS', label: 'BS Computer Science' },
@@ -320,44 +404,47 @@ const Register: React.FC = () => {
                       label="Year Graduated" 
                       name="batchYear" 
                       required 
+                      value={formData.batchYear}
+                      onChange={handleChange}
+                      error={errors.batchYear}
                       options={Array.from({length: 30}, (_, i) => ({ value: 2025 - i, label: 2025 - i }))} 
                     />
                   </div>
-                  <InputField label="Student Number" name="studentId" placeholder="Optional (e.g. 1900123)" />
-                  <InputField label="Challenge: Thesis Adviser / Section" name="verificationAnswer" required placeholder="e.g. Sir Pontillas / Section 4101" />
+                  <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} placeholder="Optional (e.g. 1900123)" />
+                  <InputField label="Challenge: Thesis Adviser / Section" name="verificationAnswer" value={formData.verificationAnswer} onChange={handleChange} error={errors.verificationAnswer} required placeholder="e.g. Sir Pontillas / Section 4101" />
                 </div>
               )}
 
               {/* STEP 3 */}
               {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
-                  <InputField type="email" label="Email Address" name="email" required placeholder="active@email.com" />
+                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} error={errors.email} required placeholder="active@email.com" />
                   
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField type="password" label="Password" name="password" required />
-                    <InputField type="password" label="Confirm Password" name="confirmPassword" required />
+                    <InputField type="password" label="Password" name="password" value={formData.password} onChange={handleChange} error={errors.password} required />
+                    <InputField type="password" label="Confirm Password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required />
                   </div>
 
-                  {formData.password && (
-                    <div className="bg-gray-100 p-3 rounded-lg -mt-2 mb-2">
-                      <div className="flex justify-between text-xs mb-1 font-semibold text-gray-500">
-                        <span>Strength</span>
-                        <span className={`${passwordStrength > 2 ? 'text-green-600' : 'text-orange-500'}`}>
-                          {passwordStrength === 0 && "Weak"}
-                          {passwordStrength === 1 && "Fair"}
-                          {passwordStrength === 2 && "Good"}
-                          {passwordStrength >= 3 && "Strong"}
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full bg-gray-300 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-500 ease-out ${
-                            passwordStrength <= 1 ? 'bg-red-500' :
-                            passwordStrength === 2 ? 'bg-yellow-500' :
-                            passwordStrength === 3 ? 'bg-blue-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${(passwordStrength / 4) * 100}%` }}
-                        />
+                  {/* PASSWORD REQUIREMENTS CHECKLIST */}
+                  {step === 3 && (
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <p className="text-xs font-semibold text-gray-500 mb-2">Password Requirements:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.length ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                           {passChecks.length ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} 8+ Characters
+                         </div>
+                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.upper ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                           {passChecks.upper ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Uppercase (A-Z)
+                         </div>
+                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.lower ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                           {passChecks.lower ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Lowercase (a-z)
+                         </div>
+                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.number ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                           {passChecks.number ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Number (0-9)
+                         </div>
+                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.special ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                           {passChecks.special ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Symbol (!@#$)
+                         </div>
                       </div>
                     </div>
                   )}
@@ -387,23 +474,39 @@ const Register: React.FC = () => {
               )}
             </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-auto">
-              {step > 1 ? (
-                <button type="button" onClick={handleBack} className="flex items-center gap-2 text-gray-600 font-medium hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
-                  <ChevronLeft className="w-4 h-4" /> Back
-                </button>
-              ) : <div />}
+            {/* BUTTONS AND FOOTER LINKS */}
+            <div className="mt-auto">
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                {step > 1 ? (
+                  <button type="button" onClick={handleBack} className="flex items-center gap-2 text-gray-600 font-medium hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                ) : <div />}
 
-              {step < 3 ? (
-                <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-blue-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                  Next Step <ChevronRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <button type="submit" disabled={loading} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed">
-                  {loading ? 'Submitting...' : 'Submit Application'} <CheckCircle className="w-4 h-4" />
-                </button>
-              )}
+                {step < 3 ? (
+                  <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-blue-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    Next Step <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button type="submit" disabled={loading} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {loading ? 'Submitting...' : 'Submit Application'} <CheckCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              
+              <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+                 <div className="flex items-center gap-1">
+                   Already have an account? 
+                   <Link to="/login" className="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                     Log in <LogIn className="w-3 h-3" />
+                   </Link>
+                 </div>
+                 
+                 <Link to="/" className="text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors">
+                   <Home className="w-3 h-3" /> Back to Home
+                 </Link>
+              </div>
+
             </div>
           </form>
         </div>

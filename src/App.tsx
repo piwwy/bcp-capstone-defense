@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Alumni2FA from './pages/Alumni2FA';
 import PendingApproval from './pages/PendingApproval';
+import Onboarding from './pages/Onboarding';
 
 // Dashboards (Imported from components)
 // Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
@@ -120,6 +121,7 @@ function AppRoutes() {
                 <Route path="reports/exports" element={<PlaceholderDashboard title="Data Exports" />} />
                 <Route path="reports/certificates" element={<PlaceholderDashboard title="Certificates" />} />
                 <Route path="/pending-approval" element={<PendingApproval />} />
+                <Route path="/onboarding" element={<Onboarding />} />
                 
                 {/* Catch all for Admin */}
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
