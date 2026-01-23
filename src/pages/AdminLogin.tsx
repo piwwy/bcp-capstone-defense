@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Added Link
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
-import { ArrowLeft } from 'lucide-react'; // Added Icon
+import { ArrowLeft, Eye, EyeOff, ShieldAlert, Loader2 } from 'lucide-react';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,112 +17,133 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      // 1. Sign In
+      // 1. Attempt Login
       const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) throw authError;
-      if (!user) throw new Error('No user found');
+      if (authError) {
+        throw new Error("Invalid email or password.");
+      }
 
-      // 2. Security Check: Admin Role Only
-      const { data: profile } = await supabase
+      if (!user) throw new Error("User not found.");
+
+      // 2. Check Role in Database
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      if (!['admin', 'superadmin', 'registrar'].includes(profile?.role)) {
-        await supabase.auth.signOut();
-        throw new Error('Access Denied: Administrative privileges required.');
+      if (profileError || !profile) {
+        throw new Error("Profile error. Please contact IT support.");
       }
 
-      // 3. Success Redirect
+      // 3. Validate Admin Access
+      const allowedRoles = ['admin', 'superadmin', 'registrar'];
+      if (!allowedRoles.includes(profile.role)) {
+        await supabase.auth.signOut();
+        throw new Error("Access Denied: You are not an administrator.");
+      }
+
+      // 4. Redirect to Dashboard
       navigate('/admin/dashboard');
 
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
-      await supabase.auth.signOut(); 
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 font-sans">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-white/50">
           
-          {/* Header Section */}
+          {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <img 
                 src="/images/logosmss.png" 
-                alt="Linker College Logo" 
-                className="h-24 w-24 object-contain" 
+                alt="Logo" 
+                className="h-20 w-20 object-contain drop-shadow-sm hover:scale-105 transition-transform" 
               />
             </div>
-            <p className="text-lg font-semibold text-blue-700 mt-1">Alumni Management System</p>
-            <p className="text-gray-500 text-sm mt-2 uppercase tracking-wide">Administrator Portal</p>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Alumni Management System</h1>
+            <div className="mt-2 inline-block px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-widest rounded-full border border-blue-100">
+              Administrator Portal
+            </div>
           </div>
 
-          {/* Error Message */}
+          {/* Error Alert */}
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 text-sm rounded">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+              <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email Address</label>
               <input
                 type="email"
-                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-800"
                 placeholder="admin@linker.edu.ph"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                placeholder="Enter your password"
-              />
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-800 pr-10"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors p-1"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-all duration-300 transform hover:-translate-y-0.5"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
             >
-              {loading ? 'Verifying Access...' : 'Sign In'}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Secure Sign In'
+              )}
             </button>
           </form>
 
-          {/* Footer & Back Link */}
-          <div className="mt-8 text-center space-y-4">
-            <p className="text-xs text-gray-400 border-b border-gray-100 pb-4">
-              Authorized personnel only. <br/> IP address is logged for security purposes.
+          {/* Footer */}
+          <div className="mt-8 text-center space-y-6">
+            <p className="text-[10px] text-gray-400 leading-tight">
+              Access is restricted to authorized personnel only.<br/>
+              Your IP address is being logged for security.
             </p>
             
-            {/* --- BACK TO HOME LINK --- */}
-            <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors font-medium">
-               <ArrowLeft className="w-4 h-4" /> Back to Home Page
+            <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors font-medium group">
+               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Home Page
             </Link>
           </div>
           

@@ -16,6 +16,7 @@ export default function Login() {
     setError('');
 
     try {
+      // 1. Authenticate User
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -24,23 +25,42 @@ export default function Login() {
       if (error) throw error;
 
       if (data.user) {
-        // Check Role
+        // 2. Fetch Profile Role & Status
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, status') // IMPORTANT: Kunin din ang status
           .eq('id', data.user.id)
           .single();
 
+        // 3. Logic for Redirection
         if (profile?.role === 'alumni') {
-           navigate('/alumni/dashboard');
+           
+           if (profile.status === 'verified') {
+             // SUCCESS: Go to Dashboard
+             navigate('/alumni/dashboard');
+           } else if (profile.status === 'pending_approval') {
+             // PENDING: Go to Waiting Room
+             navigate('/pending-approval');
+           } else if (profile.status === 'rejected') {
+             // REJECTED: Show Error & Logout
+             await supabase.auth.signOut();
+             throw new Error("Your application was declined. Please contact the registrar.");
+           } else {
+             // NEW/UNKNOWN: Fallback to Onboarding
+             navigate('/onboarding');
+           }
+
         } else {
-           // If user tries to login here but is an admin, redirect them or show error?
-           // Usually better to redirect to appropriate dashboard
+           // Admins, Registrar, etc. (Direct access)
            navigate(`/${profile?.role}/dashboard`);
         }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
+      // If error (like rejected), sign out immediately
+      if (err.message.includes("declined")) {
+        await supabase.auth.signOut();
+      }
     } finally {
       setLoading(false);
     }
@@ -57,7 +77,7 @@ export default function Login() {
 
       <div className="bg-white w-full max-w-4xl min-h-[600px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
         
-        {/* Left Side (Dark Blue Card) - Same style as Register */}
+        {/* Left Side (Dark Blue Card) */}
         <div className="md:w-1/2 bg-gray-900 p-10 text-white flex flex-col relative overflow-hidden justify-between">
            <div className="relative z-10">
               <Link to="/" className="flex items-center gap-3 mb-10">
