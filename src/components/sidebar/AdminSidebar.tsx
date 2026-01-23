@@ -6,16 +6,13 @@ import {
   BarChart3,
   Briefcase,
   Calendar,
-  PiggyBank,
   FileText,
   Mail,
   ClipboardList,
   ChevronDown,
   ChevronRight,
   LogOut,
-  User2,
-  GraduationCap, // Icon for Registrar Tools
-  BookOpen       // Icon for Records
+  User2
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 

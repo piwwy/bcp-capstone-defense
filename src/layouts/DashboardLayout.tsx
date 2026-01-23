@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Search, Bell, Settings, Sun, Moon } from "lucide-react";
+
 
 // Updated Imports: Tinanggal na si RegistrarSidebar
 import AdminSidebar from "../components/sidebar/AdminSidebar";
@@ -9,7 +9,7 @@ import SuperAdminSidebar from "../components/sidebar/SuperAdminSidebar";
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode] = useState(false);
 
   const getHeaderTitle = () => {
     switch (user?.role) {

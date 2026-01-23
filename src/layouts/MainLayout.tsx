@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // Assuming meron ka nito base sa code mo
+
 import AdminSidebar from '../components/sidebar/AdminSidebar';
 import AlumniSidebar from '../components/sidebar/AlumniSidebar';
 import SuperAdminSidebar from '../components/sidebar/SuperAdminSidebar';

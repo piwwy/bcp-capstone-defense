@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient'; // Ensure this path is correct
+import { supabase } from '../services/supabaseClient'; 
 import { 
   User, BookOpen, Lock, ChevronRight, ChevronLeft, 
   CheckCircle, HelpCircle, X, AlertCircle, Shield 
@@ -31,10 +31,10 @@ const Register: React.FC = () => {
     batchYear: '',
     course: '',
     verificationAnswer: '',
+    studentId: '',
     agreedToPrivacy: false,
   });
 
-  // Validation State
   const [errors, setErrors] = useState<Errors>({});
   const [passwordStrength, setPasswordStrength] = useState(0);
 
@@ -47,20 +47,18 @@ const Register: React.FC = () => {
       return;
     }
     if (pass.length > 7) score += 1;
-    if (/[A-Z]/.test(pass)) score += 1; // Has Uppercase
-    if (/[0-9]/.test(pass)) score += 1; // Has Number
-    if (/[^A-Za-z0-9]/.test(pass)) score += 1; // Has Symbol
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
     setPasswordStrength(score);
   }, [formData.password]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    // Handle Checkbox vs Text
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     
     setFormData({ ...formData, [name]: val });
 
-    // Clear error when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -94,9 +92,6 @@ const Register: React.FC = () => {
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
       
       if (!formData.agreedToPrivacy) newErrors.agreedToPrivacy = 'You must agree to the Data Privacy Policy';
-      
-      // Captcha Validation (Optional: Remove if not testing yet)
-      // if (!captchaValue) newErrors.captcha = "Please verify you are human";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -117,13 +112,11 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateStep(3)) return;
 
     setLoading(true);
 
     try {
-      // --- SUPABASE INTEGRATION START ---
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -139,7 +132,6 @@ const Register: React.FC = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Save profile
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -159,10 +151,8 @@ const Register: React.FC = () => {
           }] as any);
 
         if (profileError) throw profileError;
-
         navigate('/pending-approval'); 
       }
-      // --- SUPABASE INTEGRATION END ---
     } catch (error: any) {
       console.error(error);
       alert(error.message || "Registration failed");
@@ -171,12 +161,12 @@ const Register: React.FC = () => {
     }
   };
 
-  // Reusable Input Component with Validation Styles
+  // Reusable Input Component
   const InputField = ({ label, name, type = "text", placeholder, required = false, options = [] }: any) => {
     const isError = !!errors[name];
     
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 min-h-[85px]"> {/* FIX: Added min-height to prevent jumping when error appears */}
         <label className="text-sm font-semibold text-gray-700">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
@@ -208,11 +198,10 @@ const Register: React.FC = () => {
           />
         )}
         
-        {isError && (
-          <div className="flex items-center gap-1 text-red-500 text-xs animate-pulse">
-            <AlertCircle className="w-3 h-3" /> {errors[name]}
-          </div>
-        )}
+        {/* Error message takes up space but doesn't push if we reserve height */}
+        <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
+           <AlertCircle className="w-3 h-3" /> {errors[name] || "Error"} 
+        </div>
       </div>
     );
   };
@@ -220,14 +209,21 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       
-      {/* Main Card: Flex-col for mobile (Top/Bottom), Flex-row for desktop (Left/Right) */}
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+      {/* FIX: Added 'min-h-[700px]' to fix the card height. 
+         Now it won't shrink/grow when switching steps.
+      */}
+      <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Side (Header on Mobile) */}
-        <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col justify-between relative overflow-hidden min-h-[200px] md:min-h-auto">
+        {/* Left Side */}
+        <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col justify-between relative overflow-hidden">
           <div className="relative z-10">
+            {/* FIX: Added '/' to src to point to public root correctly */}
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-10">
-              <img src="/logosms.png" alt="LCP Logo" className="w-10 h-10 object-contain" />
+              <img 
+                src="/images/Linker College Of The Philippines.png" 
+                alt="LCP Logo" 
+                className="w-12 h-12 object-contain" // Slightly larger for better visibility
+              />
               <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
             </Link>
             
@@ -239,29 +235,30 @@ const Register: React.FC = () => {
             </div>
           </div>
           
-          {/* Progress Indicators (Horizontal on Mobile, Vertical on Desktop) */}
-          <div className="relative z-10 mt-4 md:mt-10 flex md:flex-col gap-4 overflow-x-auto pb-2 md:pb-0">
+          <div className="relative z-10 mt-4 md:mt-10 flex md:flex-col gap-6">
              {[
                { id: 1, title: 'Personal', icon: User },
                { id: 2, title: 'Academic', icon: BookOpen },
                { id: 3, title: 'Security', icon: Lock },
              ].map((s) => (
-               <div key={s.id} className={`flex items-center gap-3 flex-shrink-0 ${step === s.id ? 'text-white' : 'text-gray-500'}`}>
-                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${step >= s.id ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-600'}`}>
-                   {step > s.id ? <CheckCircle className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
+               <div key={s.id} className={`flex items-center gap-4 transition-all duration-300 ${step === s.id ? 'translate-x-2' : ''}`}>
+                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${step >= s.id ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/50' : 'border-gray-700 text-gray-500'}`}>
+                   {step > s.id ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
                  </div>
-                 <span className={`text-sm font-medium ${step === s.id ? 'block' : 'hidden md:block'}`}>{s.title}</span>
+                 <div className={`flex flex-col ${step === s.id ? 'opacity-100' : 'opacity-60'}`}>
+                    <span className="text-sm font-bold uppercase tracking-wider">{s.title}</span>
+                    <span className="text-xs text-gray-400">Step {s.id}</span>
+                 </div>
                </div>
              ))}
           </div>
           
-          {/* Decoration */}
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-600 rounded-full blur-3xl opacity-20" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20" />
         </div>
 
         {/* Right Side: Form Area */}
-        <div className="md:w-2/3 p-6 md:p-12 bg-gray-50 flex flex-col justify-center">
-          <div className="mb-6">
+        <div className="md:w-2/3 p-6 md:p-12 bg-gray-50 flex flex-col">
+          <div className="mb-8">
             <h3 className="text-2xl font-bold text-gray-900">
               {step === 1 && "Basic Information"}
               {step === 2 && "Verification Details"}
@@ -274,138 +271,124 @@ const Register: React.FC = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
+            <div className="space-y-4"> {/* Container for inputs */}
             
-            {/* STEP 1: Personal Info */}
-            {step === 1 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField label="First Name" name="firstName" required />
-                  <InputField label="Last Name" name="lastName" required />
+              {/* STEP 1 */}
+              {step === 1 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="First Name" name="firstName" required />
+                    <InputField label="Last Name" name="lastName" required />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                     <InputField label="Middle Name" name="middleName" placeholder="Optional" />
+                     <InputField label="Maiden Name" name="maidenName" placeholder="If married (Female)" />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField type="date" label="Birthday" name="birthday" required />
+                    <InputField type="tel" label="Mobile Number" name="mobile" required placeholder="09xxxxxxxxx" />
+                  </div>
                 </div>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                   <InputField label="Middle Name" name="middleName" placeholder="Optional" />
-                   <InputField label="Maiden Name" name="maidenName" placeholder="If married (Female)" />
-                </div>
+              )}
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField type="date" label="Birthday" name="birthday" required />
-                  <InputField type="tel" label="Mobile Number" name="mobile" required placeholder="09xxxxxxxxx" />
-                </div>
-              </div>
-            )}
-
-            {/* STEP 2: Academic Info */}
-            {step === 2 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex gap-3 mb-4">
-                  <HelpCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    <strong>Manual Verification:</strong> Our Registrar will check your Thesis Adviser or Section to confirm your identity.
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField 
-                    type="select" 
-                    label="Course" 
-                    name="course" 
-                    required 
-                    options={[
-                      { value: 'BSIT', label: 'BS Information Technology' },
-                      { value: 'BSCS', label: 'BS Computer Science' },
-                      { value: 'BSBA', label: 'BS Business Administration' },
-                      { value: 'BSED', label: 'Bachelor of Secondary Education' },
-                    ]} 
-                  />
-                  <InputField 
-                    type="select" 
-                    label="Year Graduated" 
-                    name="batchYear" 
-                    required 
-                    options={Array.from({length: 30}, (_, i) => ({ value: 2025 - i, label: 2025 - i }))} 
-                  />
-                </div>
-
-                <InputField label="Student Number" name="studentId" placeholder="Optional (e.g. 1900123)" />
-                <InputField label="Challenge: Thesis Adviser / Section" name="verificationAnswer" required placeholder="e.g. Sir Pontillas / Section 4101" />
-              </div>
-            )}
-
-            {/* STEP 3: Security */}
-            {step === 3 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                <InputField type="email" label="Email Address" name="email" required placeholder="active@email.com" />
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField type="password" label="Password" name="password" required />
-                  <InputField type="password" label="Confirm Password" name="confirmPassword" required />
-                </div>
-
-                {/* Password Strength Meter */}
-                {formData.password && (
-                  <div className="bg-gray-100 p-3 rounded-lg">
-                    <div className="flex justify-between text-xs mb-1 font-semibold text-gray-500">
-                      <span>Strength</span>
-                      <span>
-                        {passwordStrength === 0 && "Weak"}
-                        {passwordStrength === 1 && "Fair"}
-                        {passwordStrength === 2 && "Good"}
-                        {passwordStrength >= 3 && "Strong"}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full bg-gray-300 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-500 ease-out ${
-                          passwordStrength <= 1 ? 'bg-red-500' :
-                          passwordStrength === 2 ? 'bg-yellow-500' :
-                          passwordStrength === 3 ? 'bg-blue-500' : 'bg-green-500'
-                        }`}
-                        style={{ width: `${(passwordStrength / 4) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-2">
-                      Must contain: 8+ chars, Uppercase, Number, Symbol
+              {/* STEP 2 */}
+              {step === 2 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex gap-3 mb-2">
+                    <HelpCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <p className="text-xs text-blue-800 leading-relaxed">
+                      <strong>Manual Verification:</strong> Our Registrar will check your details against the physical records.
                     </p>
                   </div>
-                )}
-                
-                {/* Terms Checkbox */}
-                <div className="pt-2">
-                  <div className="flex items-start gap-3">
-                    <input 
-                      type="checkbox" 
-                      id="terms" 
-                      name="agreedToPrivacy"
-                      checked={formData.agreedToPrivacy}
-                      onChange={(e) => {
-                        setFormData({...formData, agreedToPrivacy: e.target.checked});
-                        setErrors({...errors, agreedToPrivacy: ''});
-                      }}
-                      className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" 
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField 
+                      type="select" 
+                      label="Course" 
+                      name="course" 
+                      required 
+                      options={[
+                        { value: 'BSIT', label: 'BS Information Technology' },
+                        { value: 'BSCS', label: 'BS Computer Science' },
+                        { value: 'BSBA', label: 'BS Business Administration' },
+                        { value: 'BSED', label: 'Bachelor of Secondary Education' },
+                      ]} 
                     />
-                    <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
-                      I have read and agree to the <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-blue-600 font-semibold hover:underline">Data Privacy Policy</button>.
-                    </label>
+                    <InputField 
+                      type="select" 
+                      label="Year Graduated" 
+                      name="batchYear" 
+                      required 
+                      options={Array.from({length: 30}, (_, i) => ({ value: 2025 - i, label: 2025 - i }))} 
+                    />
                   </div>
-                  {errors.agreedToPrivacy && (
-                    <div className="flex items-center gap-1 text-red-500 text-xs mt-1 ml-7">
-                      <AlertCircle className="w-3 h-3" /> {errors.agreedToPrivacy}
+                  <InputField label="Student Number" name="studentId" placeholder="Optional (e.g. 1900123)" />
+                  <InputField label="Challenge: Thesis Adviser / Section" name="verificationAnswer" required placeholder="e.g. Sir Pontillas / Section 4101" />
+                </div>
+              )}
+
+              {/* STEP 3 */}
+              {step === 3 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <InputField type="email" label="Email Address" name="email" required placeholder="active@email.com" />
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField type="password" label="Password" name="password" required />
+                    <InputField type="password" label="Confirm Password" name="confirmPassword" required />
+                  </div>
+
+                  {formData.password && (
+                    <div className="bg-gray-100 p-3 rounded-lg -mt-2 mb-2">
+                      <div className="flex justify-between text-xs mb-1 font-semibold text-gray-500">
+                        <span>Strength</span>
+                        <span className={`${passwordStrength > 2 ? 'text-green-600' : 'text-orange-500'}`}>
+                          {passwordStrength === 0 && "Weak"}
+                          {passwordStrength === 1 && "Fair"}
+                          {passwordStrength === 2 && "Good"}
+                          {passwordStrength >= 3 && "Strong"}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-gray-300 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 ease-out ${
+                            passwordStrength <= 1 ? 'bg-red-500' :
+                            passwordStrength === 2 ? 'bg-yellow-500' :
+                            passwordStrength === 3 ? 'bg-blue-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${(passwordStrength / 4) * 100}%` }}
+                        />
+                      </div>
                     </div>
                   )}
+                  
+                  <div className="pt-2 min-h-[50px]">
+                    <div className="flex items-start gap-3">
+                      <input 
+                        type="checkbox" 
+                        id="terms" 
+                        name="agreedToPrivacy"
+                        checked={formData.agreedToPrivacy}
+                        onChange={(e) => {
+                          setFormData({...formData, agreedToPrivacy: e.target.checked});
+                          setErrors({...errors, agreedToPrivacy: ''});
+                        }}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" 
+                      />
+                      <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
+                        I have read and agree to the <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-blue-600 font-semibold hover:underline">Data Privacy Policy</button>.
+                      </label>
+                    </div>
+                    <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
+                      {errors.agreedToPrivacy || "Required"}
+                    </div>
+                  </div>
                 </div>
-
-                {/* Recaptcha Placeholder */}
-                <div className="flex justify-center pt-2">
-                   {/* Uncomment when you have Site Key */}
-                   {/* <ReCAPTCHA sitekey="YOUR_KEY" onChange={(val) => setCaptchaValue(val)} /> */}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
+            <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-auto">
               {step > 1 ? (
                 <button type="button" onClick={handleBack} className="flex items-center gap-2 text-gray-600 font-medium hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
                   <ChevronLeft className="w-4 h-4" /> Back
@@ -452,9 +435,6 @@ const Register: React.FC = () => {
                 <li>Communication regarding alumni events and career opportunities.</li>
                 <li>Statistical analysis and tracer studies.</li>
               </ul>
-              <p>
-                Your information will be kept strictly confidential and will not be shared with third parties without your consent, except as required by law.
-              </p>
             </div>
 
             <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
@@ -472,7 +452,6 @@ const Register: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
