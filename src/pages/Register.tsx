@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient'; 
 import { 
   User, BookOpen, Lock, ChevronRight, ChevronLeft, 
-  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, Check 
+  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, 
 } from 'lucide-react';
 
 // Types for validation errors
@@ -73,15 +73,10 @@ const Register: React.FC = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  
-  // State for Floating Google Prompt
   const [showGooglePrompt, setShowGooglePrompt] = useState(false);
 
-  // Trigger floating prompt after 1.5 seconds
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowGooglePrompt(true);
-    }, 1500);
+    const timer = setTimeout(() => setShowGooglePrompt(true), 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -90,7 +85,7 @@ const Register: React.FC = () => {
     firstName: '',
     lastName: '',
     middleName: '',
-    maidenName: '',
+    suffix: '', // Changed from maidenName
     birthday: '',
     email: '',
     mobile: '',
@@ -98,39 +93,45 @@ const Register: React.FC = () => {
     confirmPassword: '',
     batchYear: '',
     course: '',
-    verificationAnswer: '',
+    // SPLIT CHALLENGE QUESTION
+    adviserName: '',
+    section: '',
     studentId: '',
     agreedToPrivacy: false,
   });
 
   const [errors, setErrors] = useState<Errors>({});
   
-  const [passChecks, setPassChecks] = useState({
-    length: false,
-    upper: false,
-    lower: false,
-    number: false,
-    special: false
-  });
+  // PASSWORD STRENGTH LOGIC
+  const [passStrength, setPassStrength] = useState(0);
+  const [passFeedback, setPassFeedback] = useState('');
 
   useEffect(() => {
     const p = formData.password;
-    setPassChecks({
-      length: p.length >= 8,
-      upper: /[A-Z]/.test(p),
-      lower: /[a-z]/.test(p),
-      number: /[0-9]/.test(p),
-      special: /[^A-Za-z0-9]/.test(p)
-    });
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    
+    setPassStrength(score);
+
+    if (score === 0) setPassFeedback('');
+    else if (score <= 2) setPassFeedback('Weak');
+    else if (score === 3) setPassFeedback('Fair');
+    else setPassFeedback('Strong');
+
   }, [formData.password]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    if (['firstName', 'lastName', 'middleName', 'maidenName'].includes(name)) {
+    // VALIDATION: Letters Only for Names
+    if (['firstName', 'lastName', 'middleName', 'suffix', 'adviserName'].includes(name)) {
       if (value !== '' && !/^[a-zA-Z\s.-]*$/.test(value)) return;
     }
-    if (name === 'mobile') {
+    // VALIDATION: Numbers Only for Mobile, StudentID, Section
+    if (['mobile', 'studentId', 'section'].includes(name)) {
       if (value !== '' && !/^[0-9]*$/.test(value)) return;
     }
 
@@ -140,14 +141,11 @@ const Register: React.FC = () => {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  // --- GOOGLE LOGIN LOGIC ---
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/onboarding`, 
-        },
+        options: { redirectTo: `${window.location.origin}/onboarding` },
       });
       if (error) throw error;
     } catch (error: any) {
@@ -170,7 +168,9 @@ const Register: React.FC = () => {
     if (currentStep === 2) {
       if (!formData.course) newErrors.course = 'Please select a course';
       if (!formData.batchYear) newErrors.batchYear = 'Please select a batch year';
-      if (!formData.verificationAnswer.trim()) newErrors.verificationAnswer = 'This verification answer is required';
+      // SPLIT VALIDATION
+      if (!formData.adviserName.trim()) newErrors.adviserName = 'Adviser name is required';
+      if (!formData.section.trim()) newErrors.section = 'Section is required';
     }
 
     if (currentStep === 3) {
@@ -178,7 +178,7 @@ const Register: React.FC = () => {
       else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
       
       if (!formData.password) newErrors.password = 'Password is required';
-      else if (!Object.values(passChecks).every(Boolean)) newErrors.password = 'Please meet all password requirements';
+      else if (passStrength < 3) newErrors.password = 'Password is too weak';
       
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
       
@@ -217,6 +217,9 @@ const Register: React.FC = () => {
         if (authError) throw authError;
   
         if (authData.user) {
+          // Combined Answer
+          const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
+
           const { error: profileError } = await supabase
             .from('profiles')
             .insert([{
@@ -224,13 +227,18 @@ const Register: React.FC = () => {
               first_name: formData.firstName,
               last_name: formData.lastName,
               middle_name: formData.middleName,
-              maiden_name: formData.maidenName,
+              // Note: Assuming you have a 'suffix' column, or append to last_name
+              // For now, let's append to last_name for simpler DB structure unless you added a column
+              // last_name: `${formData.lastName} ${formData.suffix}`.trim(), 
+              // Better if you have suffix column:
+              // suffix: formData.suffix, 
+              
               birthday: formData.birthday,
               mobile_number: formData.mobile,
               batch_year: formData.batchYear,
               course: formData.course,
               student_id: formData.studentId || null,
-              verification_answer: formData.verificationAnswer,
+              verification_answer: combinedVerification, // SAVED AS COMBINED STRING
               role: 'alumni',
               status: 'pending_approval'
             }] as any);
@@ -249,65 +257,42 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       
-      {/* --- FLOATING GOOGLE LOGIN PROMPT (Top Right) --- */}
+      {/* --- FLOATING GOOGLE LOGIN PROMPT --- */}
       {showGooglePrompt && (
         <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50 animate-in slide-in-from-right duration-700 fade-in">
           <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 w-80 relative transform hover:scale-105 transition-transform duration-300">
-            
-            {/* Close Button */}
-            <button 
-              onClick={() => setShowGooglePrompt(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-            >
+            <button onClick={() => setShowGooglePrompt(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
               <X className="w-4 h-4" />
             </button>
-
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
-                 {/* Google Icon */}
-                 <svg className="w-6 h-6" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
+                 <svg className="w-6 h-6" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
               </div>
               <div>
                 <h4 className="font-bold text-gray-900 text-sm">Quick Registration</h4>
-                <p className="text-xs text-gray-500">Sign in with Google to skip filling forms.</p>
+                <p className="text-xs text-gray-500">Sign in with Google to skip forms.</p>
               </div>
             </div>
-
-            <button 
-              onClick={handleGoogleLogin}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
+            <button onClick={handleGoogleLogin} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
               Continue as User
             </button>
           </div>
         </div>
       )}
-      {/* ------------------------------------------------ */}
 
       <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
         
         {/* Left Side (Dark Blue Card) */}
         <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
+           {/* ... (Same Left Side Content as before) ... */}
            <div className="relative z-10 flex-1">
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-10">
-              <img 
-                src="/images/Linker College Of The Philippines.png" 
-                alt="LCP Logo" 
-                className="w-12 h-12 object-contain"
-              />
+              <img src="/images/Linker College Of The Philippines.png" alt="LCP Logo" className="w-12 h-12 object-contain"/>
               <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
             </Link>
-            
             <div className="mb-8 md:mb-0">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Welcome Home.</h2>
-              <p className="text-blue-200 text-sm leading-relaxed">
-                Join the official alumni network. Verify your records securely.
-              </p>
+              <p className="text-blue-200 text-sm leading-relaxed">Join the official alumni network. Verify your records securely.</p>
             </div>
             
             <div className="relative z-10 mt-6 md:mt-16 flex md:flex-col justify-between md:justify-start gap-0 md:gap-8">
@@ -345,11 +330,6 @@ const Register: React.FC = () => {
               {step === 2 && "Verification Details"}
               {step === 3 && "Account Security"}
             </h3>
-            <p className="text-gray-500 text-sm mt-1">
-              {step === 1 && "Please use your legal name as it appears in school records."}
-              {step === 2 && "We compare this with the Alumni Logbook manually."}
-              {step === 3 && "Create a strong password to protect your data."}
-            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
@@ -364,7 +344,8 @@ const Register: React.FC = () => {
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                      <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Optional" />
-                     <InputField label="Maiden Name" name="maidenName" value={formData.maidenName} onChange={handleChange} placeholder="If married (Female)" />
+                     {/* CHANGED FROM MAIDEN NAME TO SUFFIX */}
+                     <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} placeholder="Jr., III, etc." />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <InputField type="date" label="Birthday" name="birthday" value={formData.birthday} onChange={handleChange} error={errors.birthday} required />
@@ -411,7 +392,12 @@ const Register: React.FC = () => {
                     />
                   </div>
                   <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} placeholder="Optional (e.g. 1900123)" />
-                  <InputField label="Challenge: Thesis Adviser / Section" name="verificationAnswer" value={formData.verificationAnswer} onChange={handleChange} error={errors.verificationAnswer} required placeholder="e.g. Sir Pontillas / Section 4101" />
+                  
+                  {/* SPLIT CHALLENGE QUESTION */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                     <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
+                     <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} error={errors.section} required placeholder="e.g. 4101" />
+                  </div>
                 </div>
               )}
 
@@ -425,29 +411,20 @@ const Register: React.FC = () => {
                     <InputField type="password" label="Confirm Password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required />
                   </div>
 
-                  {/* PASSWORD REQUIREMENTS CHECKLIST */}
-                  {step === 3 && (
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                      <p className="text-xs font-semibold text-gray-500 mb-2">Password Requirements:</p>
-                      <div className="grid grid-cols-2 gap-2">
-                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.length ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                           {passChecks.length ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} 8+ Characters
-                         </div>
-                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.upper ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                           {passChecks.upper ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Uppercase (A-Z)
-                         </div>
-                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.lower ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                           {passChecks.lower ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Lowercase (a-z)
-                         </div>
-                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.number ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                           {passChecks.number ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Number (0-9)
-                         </div>
-                         <div className={`flex items-center gap-1.5 text-xs ${passChecks.special ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                           {passChecks.special ? <Check className="w-3 h-3"/> : <div className="w-1.5 h-1.5 rounded-full bg-gray-300"/>} Symbol (!@#$)
-                         </div>
-                      </div>
+                  {/* PROGRESS BAR STRENGTH METER */}
+                  <div className="space-y-1 mt-1">
+                    <div className="flex justify-between text-xs">
+                       <span className="text-gray-500 font-semibold">Password Strength</span>
+                       <span className={`font-bold ${passFeedback === 'Strong' ? 'text-green-600' : passFeedback === 'Weak' ? 'text-red-500' : 'text-yellow-600'}`}>
+                         {passFeedback}
+                       </span>
                     </div>
-                  )}
+                    <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                       <div 
+                         className={`h-full transition-all duration-300 ${passStrength === 0 ? 'w-0' : passStrength <= 2 ? 'w-1/3 bg-red-500' : passStrength === 3 ? 'w-2/3 bg-yellow-500' : 'w-full bg-green-500'}`}
+                       />
+                    </div>
+                  </div>
                   
                   <div className="pt-2 min-h-[50px]">
                     <div className="flex items-start gap-3">

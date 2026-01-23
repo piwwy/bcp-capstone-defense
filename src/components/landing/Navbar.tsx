@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 import { Menu, X } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate(); // Hook for navigation
 
   // Handle scroll effect
   useEffect(() => {
@@ -38,7 +39,6 @@ const Navbar: React.FC = () => {
 
   return (
     <header
-      // UPDATED: Added '|| isMobileMenuOpen' to ensure background stays solid/blurred when menu is open
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled || isMobileMenuOpen
           ? 'bg-dark-800/95 backdrop-blur-xl shadow-2xl border-b border-white/10'
@@ -47,27 +47,30 @@ const Navbar: React.FC = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo Section */}
-          <Link to="/" className="flex items-center gap-3 group">
+          
+          {/* --- LOGO SECTION (WITH SECRET ADMIN TRIGGER) --- */}
+          <div className="flex items-center gap-3 group cursor-pointer">
             <div className="relative">
               <img
                 src="/images/Linker College Of The Philippines.png"
                 alt="LCP Logo"
-                className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-110"
+                // SECRET TRIGGER: Double click to go to Admin Login
+                onDoubleClick={() => navigate('/admin/login')}
+                title="Double click for Admin Access"
+                className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-110 select-none"
               />
-              <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </div>
             
-            {/* UPDATED: Removed 'hidden sm:block' to show text on mobile. Added responsive text sizing. */}
-            <div className="block">
+            <Link to="/" className="block">
               <h1 className="text-lg sm:text-xl font-bold text-white leading-tight">
                 ALUMNI PORTAL
               </h1>
               <p className="text-[10px] sm:text-xs text-blue-300/80">
                 Linker College Of The Philippines
               </p>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
@@ -75,7 +78,7 @@ const Navbar: React.FC = () => {
               <button
                 key={link.name}
                 onClick={() => scrollToSection(link.href)}
-                className="nav-link px-4 py-2 text-sm font-medium"
+                className="nav-link px-4 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
               >
                 {link.name}
               </button>
@@ -114,8 +117,7 @@ const Navbar: React.FC = () => {
 
       {/* Mobile Menu */}
       <div
-        // UPDATED: Changed bg-dark-800/98 to /95 to match the header blur style better
-        className={`lg:hidden absolute top-full left-0 right-0 bg-dark-800/95 backdrop-blur-xl border-b border-white/10 transition-all duration-300 ${
+        className={`lg:hidden absolute top-full left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-b border-white/10 transition-all duration-300 ${
           isMobileMenuOpen
             ? 'opacity-100 translate-y-0'
             : 'opacity-0 -translate-y-4 pointer-events-none'

@@ -10,6 +10,8 @@ import Register from './pages/Register';
 import Alumni2FA from './pages/Alumni2FA';
 import PendingApproval from './pages/PendingApproval';
 import Onboarding from './pages/Onboarding';
+import VerificationPage from './pages/admin/VerificationPage';
+import AdminLogin from './pages/AdminLogin';
 
 // Dashboards (Imported from components)
 // Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
@@ -78,6 +80,8 @@ function AppRoutes() {
       <Route path="/alumni/2fa" element={<Alumni2FA />} />
       <Route path="/pending-approval" element={<PendingApproval />} />
       <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+
       {/* --- ADMIN ROUTES --- */}
       <Route
         path="/admin/*"
@@ -94,7 +98,7 @@ function AppRoutes() {
                 <Route path="alumni/profiles" element={<PlaceholderDashboard title="Alumni Profiles" />} />
                 <Route path="alumni/requests" element={<PlaceholderDashboard title="Alumni Requests" />} />
                 <Route path="alumni/records" element={<PlaceholderDashboard title="All Alumni Records" />} />
-                <Route path="alumni/verify" element={<PlaceholderDashboard title="Verifications" />} />
+                <Route path="alumni/verify" element={<VerificationPage />} />
                 <Route path="tracking/career" element={<PlaceholderDashboard title="Career Tracking" />} />
                 <Route path="tracking/outcomes" element={<PlaceholderDashboard title="Employment Outcomes" />} />
                 <Route path="tracking/cohorts" element={<PlaceholderDashboard title="Grad Cohorts" />} />
