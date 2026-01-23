@@ -1,3 +1,4 @@
+// src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -5,15 +6,17 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 // Pages
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
-import Register from './pages/Register'; // <-- NEW IMPORT
+import Register from './pages/Register';
 import Alumni2FA from './pages/Alumni2FA';
 import PendingApproval from './pages/PendingApproval';
-import AlumniDashboard from './components/dashboard/AlumniDashboard'; // Replace the old import if needed
+
+// Dashboards (Imported from components)
+// Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
+import AlumniDashboard from './components/dashboard/AlumniDashboard';
+import DashboardAdmin from './components/dashboard/DashboardAdmin';
+
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
-
-// Dashboard Components
-import DashboardAdmin from './components/dashboard/DashboardAdmin';
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -37,7 +40,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect to appropriate dashboard based on role
     switch (user.role) {
       case 'superadmin':
         return <Navigate to="/superadmin/dashboard" replace />;
@@ -55,11 +57,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   return <>{children}</>;
 };
 
-// Placeholder Dashboard Components (to be replaced later)
+// Placeholder for other pages
 const PlaceholderDashboard: React.FC<{ title: string }> = ({ title }) => (
   <div className="p-6">
-    <h1 className="text-2xl font-bold text-gray-900 mb-4">{title}</h1>
-    <p className="text-gray-600">This page is under development.</p>
+    <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+      <h1 className="text-2xl font-bold text-gray-400 mb-2">{title}</h1>
+      <p className="text-gray-500">🚧 Module Under Construction 🚧</p>
+    </div>
   </div>
 );
 
@@ -69,20 +73,20 @@ function AppRoutes() {
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
-      
-      {/* UPDATE: Connected the actual Register Component here */}
       <Route path="/register" element={<Register />} />
-      
       <Route path="/alumni/2fa" element={<Alumni2FA />} />
 
-      {/* Admin Routes */}
+      {/* --- ADMIN ROUTES --- */}
       <Route
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
+            {/* DashboardLayout will now show AdminSidebar because user.role is admin */}
             <DashboardLayout>
               <Routes>
+                {/* Fixed: Use the REAL DashboardAdmin component */}
                 <Route path="dashboard" element={<DashboardAdmin />} />
+                
                 <Route path="alumni/approvals" element={<PlaceholderDashboard title="Registration Approvals" />} />
                 <Route path="alumni/directory" element={<PlaceholderDashboard title="Alumni Directory" />} />
                 <Route path="alumni/profiles" element={<PlaceholderDashboard title="Alumni Profiles" />} />
@@ -115,16 +119,17 @@ function AppRoutes() {
                 <Route path="reports/analytics" element={<PlaceholderDashboard title="Tracking Analytics" />} />
                 <Route path="reports/exports" element={<PlaceholderDashboard title="Data Exports" />} />
                 <Route path="reports/certificates" element={<PlaceholderDashboard title="Certificates" />} />
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="/pending-approval" element={<PendingApproval />} />
-                <Route path="dashboard" element={<AlumniDashboard />} />
+                
+                {/* Catch all for Admin */}
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* Super Admin Routes */}
+      {/* --- SUPER ADMIN ROUTES --- */}
       <Route
         path="/superadmin/*"
         element={
@@ -150,7 +155,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Registrar Routes */}
+      {/* --- REGISTRAR ROUTES --- */}
       <Route
         path="/registrar/*"
         element={
@@ -176,14 +181,17 @@ function AppRoutes() {
         }
       />
 
-      {/* Alumni Routes */}
+      {/* --- ALUMNI ROUTES --- */}
       <Route
         path="/alumni/*"
         element={
           <ProtectedRoute allowedRoles={['alumni']}>
+            {/* DashboardLayout will now show AlumniSidebar */}
             <DashboardLayout>
               <Routes>
-                <Route path="dashboard" element={<PlaceholderDashboard title="Alumni Dashboard" />} />
+                {/* Fixed: Use the REAL AlumniDashboard component */}
+                <Route path="dashboard" element={<AlumniDashboard />} />
+                
                 <Route path="profile" element={<PlaceholderDashboard title="View Profile" />} />
                 <Route path="profile/update" element={<PlaceholderDashboard title="Update Request" />} />
                 <Route path="jobs" element={<PlaceholderDashboard title="Job Board" />} />

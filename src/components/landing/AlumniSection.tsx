@@ -1,6 +1,6 @@
 import React from 'react';
 import { Quote, Linkedin, Twitter } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Import Link
+import { Link } from 'react-router-dom';
 
 interface AlumniStory {
   id: number;
@@ -60,7 +60,7 @@ const AlumniSection: React.FC = () => {
   return (
     <section id="alumni" className="relative py-24 bg-gradient-to-b from-dark-800 to-dark-900 overflow-hidden">
       
-      {/* CSS Animation para sa Panning Effect (Left to Right Loop) */}
+      {/* CSS Animation for Panning Effect (Left to Right Loop) */}
       <style>{`
         @keyframes pan-image {
           0% { background-position: 0% 50%; }
@@ -68,8 +68,8 @@ const AlumniSection: React.FC = () => {
           100% { background-position: 0% 50%; }
         }
         .animate-pan {
-          background-size: 200% auto;
-          animation: pan-image 10s ease-in-out infinite;
+          background-size: 150% auto; /* Zoomed in slightly for better pan effect */
+          animation: pan-image 10s ease-in-out infinite; /* Slower, continuous animation */
         }
       `}</style>
 
@@ -108,29 +108,25 @@ const AlumniSection: React.FC = () => {
             >
               <div className="relative w-full h-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500 flex flex-col hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]">
                 
-                {/* 1. HOVER BACKGROUND IMAGE (The Panning Effect) */}
+                {/* 1. AUTOMATIC BACKGROUND ANIMATION */}
+                {/* Updated: Opacity is now 20% by default (visible) and runs continuously */}
                 <div 
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-in-out z-0 animate-pan"
+                  className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 ease-in-out z-0 animate-pan"
                   style={{ 
                     backgroundImage: `url(${alumni.image})`,
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
                 
-                {/* Dark Overlay on Hover */}
-                <div className="absolute inset-0 bg-dark-900/80 opacity-0 group-hover:opacity-90 transition-opacity duration-500 z-0" />
+                {/* Dark Overlay (Keeps text readable) */}
+                <div className="absolute inset-0 bg-dark-900/60 group-hover:bg-dark-900/80 transition-all duration-500 z-0" />
 
                 {/* Card Content Wrapper */}
                 <div className="relative z-10 p-6 flex flex-col h-full">
                   
-                  {/* Quote Icon */}
-                  <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
-                    <Quote className="w-4 h-4 text-white" />
-                  </div>
-
-                  {/* 2. STATIC IMAGE (Thumbnail) */}
+                  {/* 2. STATIC IMAGE (Thumbnail) with OVERLAPPING ICON */}
                   <div className="relative w-full h-32 mb-6 group-hover:scale-105 transition-transform duration-500">
-                     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 group-hover:border-green-400/50">
+                     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 group-hover:border-green-400/50 shadow-2xl relative">
                         {alumni.image ? (
                           <img
                             src={alumni.image}
@@ -142,6 +138,12 @@ const AlumniSection: React.FC = () => {
                             <span className="text-2xl font-bold text-white/30">{alumni.name.charAt(0)}</span>
                           </div>
                         )}
+                     </div>
+
+                     {/* UPDATED: Green Icon Overlap Logic */}
+                     {/* Positioned absolute relative to the image container to overlap the corner */}
+                     <div className="absolute -bottom-3 -right-3 w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg scale-0 group-hover:scale-100 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) z-20">
+                        <Quote className="w-5 h-5 text-white" />
                      </div>
                   </div>
 
@@ -189,7 +191,7 @@ const AlumniSection: React.FC = () => {
           ))}
         </div>
 
-        {/* View All Button - Updated to Link */}
+        {/* View All Button */}
         <div className="text-center mt-12">
           <Link 
             to="/register" 

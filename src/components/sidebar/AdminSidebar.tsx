@@ -1,4 +1,3 @@
-// src/components/admin/AdminSidebar.tsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -15,6 +14,8 @@ import {
   ChevronRight,
   LogOut,
   User2,
+  GraduationCap, // Icon for Registrar Tools
+  BookOpen       // Icon for Records
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -32,18 +33,27 @@ const AdminSidebar: React.FC = () => {
       icon: LayoutDashboard,
       subItems: [{ name: "Dashboard", path: "/admin/dashboard" }],
     },
+    // --- COMBINED REGISTRAR & ALUMNI TOOLS ---
     {
-      name: "Alumni Information",
+      name: "Alumni & Records", 
       icon: Users,
       subItems: [
-        { name: "Registration Approvals", path: "/admin/alumni/approvals" },
-        { name: "Directory", path: "/admin/alumni/directory" },
-        { name: "Profiles", path: "/admin/alumni/profiles" },
-        { name: "Requests", path: "/admin/alumni/requests" },
-        { name: "All Alumni", path: "/admin/alumni/records" },
+        { name: "Registration Approvals", path: "/admin/alumni/approvals" }, // Critical for "Pending" users
+        { name: "Master List (Student Records)", path: "/admin/alumni/records" }, // Dating nasa Registrar
+        { name: "Alumni Directory", path: "/admin/alumni/directory" },
         { name: "Verifications", path: "/admin/alumni/verify" },
       ],
     },
+    {
+      name: "Document Requests", // Dating nasa Registrar
+      icon: FileText,
+      subItems: [
+        { name: "Transcript Requests", path: "/admin/documents/transcripts" },
+        { name: "Certificate Requests", path: "/admin/documents/certificates" },
+        { name: "History & Logs", path: "/admin/documents/history" },
+      ],
+    },
+    // ----------------------------------------
     {
       name: "Graduate Tracking",
       icon: BarChart3,
@@ -54,67 +64,40 @@ const AdminSidebar: React.FC = () => {
       ],
     },
     {
-      name: "Job Posting & Placement",
+      name: "Job Board",
       icon: Briefcase,
       subItems: [
-        { name: "Job Board", path: "/admin/jobs/board" },
-        { name: "Post a Job", path: "/admin/jobs/post" },
+        { name: "Active Job Posts", path: "/admin/jobs/board" },
+        { name: "Post a New Job", path: "/admin/jobs/post" },
         { name: "Placement Logs", path: "/admin/jobs/logs" },
       ],
     },
     {
-      name: "Event Management",
+      name: "Events",
       icon: Calendar,
       subItems: [
         { name: "Events Calendar", path: "/admin/events/calendar" },
-        { name: "Create Event", path: "/admin/events/create" },
-        { name: "Attendance", path: "/admin/events/attendance" },
-        { name: "Upcoming Events", path: "/admin/events/upcoming" },
-        { name: "Attendance Logs", path: "/admin/events/attendance-logs" },
+        { name: "Attendance Sheets", path: "/admin/events/attendance" },
       ],
     },
     {
-      name: "Donor & Campaign Tools",
-      icon: PiggyBank,
-      subItems: [
-        { name: "Campaigns", path: "/admin/campaigns" },
-        { name: "Donations", path: "/admin/donations" },
-        { name: "Donor Ledger", path: "/admin/donor/ledger" },
-      ],
-    },
-    {
-      name: "Newsletter & Announcements",
+      name: "Communication",
       icon: Mail,
       subItems: [
-        { name: "Newsletter", path: "/admin/newsletter" },
-        { name: "Mailing Lists", path: "/admin/mailinglists" },
         { name: "Announcements", path: "/admin/announcements" },
-        { name: "Email Alumni", path: "/admin/email" },
-        { name: "Bulk Notifications", path: "/admin/notifications" },
+        { name: "Bulk Email", path: "/admin/email" },
       ],
     },
     {
-      name: "Feedback & Surveys",
+      name: "System Reports",
       icon: ClipboardList,
       subItems: [
-        { name: "Surveys", path: "/admin/surveys" },
-        { name: "Responses", path: "/admin/surveys/responses" },
-        { name: "Insights", path: "/admin/surveys/insights" },
-      ],
-    },
-    {
-      name: "Reports & Analytics",
-      icon: FileText,
-      subItems: [
-        { name: "Alumni Reports", path: "/admin/reports/alumni" },
-        { name: "Tracking Analytics", path: "/admin/reports/analytics" },
+        { name: "Generated Reports", path: "/admin/reports/alumni" },
         { name: "Data Exports", path: "/admin/reports/exports" },
-        { name: "Certificates", path: "/admin/reports/certificates" },
       ],
     },
   ];
 
-  // ✅ Auto-keep expanded if route matches
   useEffect(() => {
     const activeParent = menuItems.find((item) =>
       item.subItems?.some((s) => location.pathname.startsWith(s.path))
@@ -127,48 +110,26 @@ const AdminSidebar: React.FC = () => {
     navigate("/login");
   };
 
-  // ✅ When collapsed, clicking icon auto-opens and navigates to 1st submodule
   const handleClickCollapsed = (item: any) => {
     if (collapsed && item.subItems?.length) {
       setCollapsed(false);
       setExpanded(item.name);
       navigate(item.subItems[0].path);
     } else {
-      toggleExpand(item.name);
+      setExpanded(expanded === item.name ? null : item.name);
     }
   };
 
-  const toggleExpand = (name: string) => {
-    setExpanded(expanded === name ? null : name);
-  };
-
   return (
-    <div
-  className={`h-screen flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ${
-    collapsed ? "w-[60px]" : "w-[250px]"
-  }`}
->
+    <div className={`h-screen flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ${collapsed ? "w-[60px]" : "w-[250px]"}`}>
       {/* Header */}
-      <div
-        className={`flex items-center border-b border-gray-300 h-[80px] ${
-          collapsed ? "justify-center" : "justify-between px-4"
-        }`}
-      >
-        <div
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-2 cursor-pointer"
-        >
-         <img
-  src="/logosms.png"
-  alt="AMS Logo"
-  className={`object-contain transition-all duration-300 ${
-    collapsed ? "w-8 h-8" : "w-9 h-9 ml-[2px]"
-  }`}
-/>
+      <div className={`flex items-center border-b border-gray-300 h-[80px] ${collapsed ? "justify-center" : "justify-between px-4"}`}>
+        <div onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-2 cursor-pointer">
+          <img src="/logosms.png" alt="AMS Logo" className={`object-contain transition-all duration-300 ${collapsed ? "w-8 h-8" : "w-9 h-9 ml-[2px]"}`} />
           {!collapsed && (
             <div className="flex flex-col leading-tight whitespace-nowrap">
-              <h1 className="text-base font-bold text-gray-900">AMS</h1>
-              <p className="text-xs text-gray-500">Admin Panel</p>
+              <h1 className="text-base font-bold text-gray-900">LCP Admin</h1>
+              <p className="text-xs text-gray-500">System Management</p>
             </div>
           )}
         </div>
@@ -179,53 +140,37 @@ const AdminSidebar: React.FC = () => {
         {menuItems.map((item, i) => {
           const Icon = item.icon;
           const isExpanded = expanded === item.name;
-          const isSectionActive =
-            item.subItems &&
-            item.subItems.some((s) => location.pathname.startsWith(s.path));
+          const isActive = item.subItems?.some((s) => location.pathname.startsWith(s.path));
 
           return (
             <div key={i}>
-              {/* Parent Item */}
               <div
                 onClick={() => handleClickCollapsed(item)}
-                className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer select-none transition-all ${
-                  isSectionActive
-                    ? "text-blue-600 font-semibold"
-                    : "text-gray-500 hover:text-gray-700"
+                className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer select-none transition-all mb-1 ${
+                  isActive ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
-                  {!collapsed && (
-                    <span className="text-xs tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
-                      {item.name}
-                    </span>
-                  )}
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-gray-500"}`} />
+                  {!collapsed && <span className="text-sm font-medium">{item.name}</span>}
                 </div>
                 {!collapsed && (
                   <div className="text-gray-400">
-                    {isExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    )}
+                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </div>
                 )}
               </div>
 
-              {/* Submodules */}
               {item.subItems && isExpanded && !collapsed && (
-                <div className="ml-6 mt-1 space-y-0.5">
+                <div className="ml-9 mt-1 space-y-1 mb-2 border-l-2 border-gray-100 pl-2">
                   {item.subItems.map((sub, j) => {
                     const isSubActive = location.pathname === sub.path;
                     return (
                       <Link
                         key={j}
                         to={sub.path}
-                        className={`block px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 whitespace-nowrap overflow-hidden text-ellipsis ${
-                          isSubActive
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow"
-                            : "hover:bg-gray-100 text-gray-700"
+                        className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 ${
+                          isSubActive ? "text-blue-700 font-semibold bg-blue-50/50" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                         }`}
                       >
                         {sub.name}
@@ -240,38 +185,18 @@ const AdminSidebar: React.FC = () => {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-100 px-4 py-3">
-        <div
-          className={`flex items-center ${
-            collapsed ? "justify-center" : "justify-between"
-          }`}
-        >
-          {collapsed ? (
-            <div className="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full">
-              <User2 className="w-4 h-4 text-gray-600" />
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full">
-                  <User2 className="w-4 h-4 text-gray-600" />
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-xs font-semibold text-gray-900">
-                    {user?.name || "Admin"}
-                  </span>
-                  <span className="text-[11px] text-gray-500 capitalize">
-                    {user?.role || "admin"}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
-              >
-                <LogOut className="w-4 h-4 text-gray-600" />
+      <div className="border-t border-gray-100 px-4 py-4 bg-gray-50">
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
+          <div className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm">
+            <User2 className="w-5 h-5 text-gray-600" />
+          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{user?.name || "Admin User"}</p>
+              <button onClick={handleLogout} className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1 mt-0.5">
+                <LogOut className="w-3 h-3" /> Sign Out
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>

@@ -1,20 +1,22 @@
 import React from 'react';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Ticket } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Import Link
+import { Link } from 'react-router-dom';
 
-interface Event {
+// CHANGED: Renamed to 'EventItem' to avoid conflict with global 'Event' type
+interface EventItem {
   id: number;
   title: string;
   date: string;
   time: string;
   location: string;
   attendees: number;
-  image?: string;
+  image: string;
   type: 'homecoming' | 'career' | 'webinar' | 'reunion';
   featured?: boolean;
 }
 
-const events: Event[] = [
+// UPDATED: Type is now EventItem[]
+const events: EventItem[] = [
   {
     id: 1,
     title: 'Grand Alumni Homecoming 2025',
@@ -24,6 +26,7 @@ const events: Event[] = [
     attendees: 1500,
     type: 'homecoming',
     featured: true,
+    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&q=80&w=1200'
   },
   {
     id: 2,
@@ -33,26 +36,28 @@ const events: Event[] = [
     location: 'LCP Main Building',
     attendees: 500,
     type: 'career',
+    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=1200'
   },
   {
     id: 3,
-    title: 'Leadership Webinar: Building Strong Alumni Networks',
+    title: 'Leadership Webinar Series',
     date: 'July 5, 2025',
     time: '2:00 PM',
     location: 'Online via Zoom',
     attendees: 300,
     type: 'webinar',
+    image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&q=80&w=1200'
   },
 ];
 
-const eventTypeColors = {
-  homecoming: 'from-pink-500 to-rose-500',
-  career: 'from-blue-500 to-cyan-500',
-  webinar: 'from-purple-500 to-indigo-500',
-  reunion: 'from-orange-500 to-amber-500',
-};
+// REMOVED: unused 'eventTypeColors' to fix TS6133 error
 
 const EventsSection: React.FC = () => {
+  // UPDATED: Simplified type definition to avoid conflict
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.src = "https://placehold.co/600x400/1e293b/FFF?text=Image+Unavailable";
+  };
+
   return (
     <section id="events" className="relative py-24 bg-dark-700 overflow-hidden">
       {/* Background Effects */}
@@ -88,66 +93,72 @@ const EventsSection: React.FC = () => {
               key={event.id}
               className={`group relative ${event.featured ? 'lg:col-span-2 lg:row-span-2' : ''}`}
             >
-              <div className={`relative h-full bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 hover:border-pink-500/30 overflow-hidden transition-all duration-500 ${event.featured ? 'p-8' : 'p-6'}`}>
-                {/* Background Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${eventTypeColors[event.type]} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+              <div className={`relative h-full bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 hover:border-pink-500/30 overflow-hidden transition-all duration-500 flex flex-col`}>
                 
-                {/* Featured Badge */}
-                {event.featured && (
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full text-xs font-semibold text-white">
-                    Featured
-                  </div>
-                )}
-
-                {/* Event Image Placeholder */}
-                <div className={`relative ${event.featured ? 'h-64 mb-6' : 'h-40 mb-4'} bg-gradient-to-br ${eventTypeColors[event.type]} rounded-2xl overflow-hidden`}>
-                  <div className="absolute inset-0 bg-black/30" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Calendar className={`${event.featured ? 'w-16 h-16' : 'w-10 h-10'} text-white/50`} />
-                  </div>
+                {/* Image Section */}
+                <div className={`relative overflow-hidden ${event.featured ? 'h-72 lg:h-80' : 'h-48'} bg-dark-900`}>
+                  {/* Background Image */}
+                  <img 
+                    src={event.image} 
+                    alt={event.title}
+                    onError={handleImageError}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
                   
+                  {/* Gradient Overlay for Text Readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/20 to-transparent" />
+
+                  {/* Featured Badge */}
+                  {event.featured && (
+                    <div className="absolute top-4 right-4 z-20 px-3 py-1 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full text-xs font-semibold text-white shadow-lg">
+                      Featured Event
+                    </div>
+                  )}
+
                   {/* Event Type Badge */}
-                  <div className="absolute bottom-4 left-4">
-                    <span className={`px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white capitalize`}>
+                  <div className="absolute top-4 left-4 z-20">
+                    <span className={`px-3 py-1 bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-xs font-medium text-white capitalize`}>
                       {event.type}
                     </span>
                   </div>
                 </div>
 
-                {/* Event Details */}
-                <div>
-                  <h3 className={`${event.featured ? 'text-2xl' : 'text-lg'} font-bold text-white mb-3 group-hover:text-pink-300 transition-colors duration-300`}>
+                {/* Content Section */}
+                <div className="p-6 flex flex-col flex-grow">
+                  <h3 className={`${event.featured ? 'text-3xl' : 'text-xl'} font-bold text-white mb-4 group-hover:text-pink-300 transition-colors duration-300`}>
                     {event.title}
                   </h3>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-blue-200/70">
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-3 text-blue-200/80">
                       <Calendar className="w-4 h-4 text-pink-400" />
                       <span className="text-sm">{event.date}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-blue-200/70">
+                    <div className="flex items-center gap-3 text-blue-200/80">
                       <Clock className="w-4 h-4 text-pink-400" />
                       <span className="text-sm">{event.time}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-blue-200/70">
+                    <div className="flex items-center gap-3 text-blue-200/80">
                       <MapPin className="w-4 h-4 text-pink-400" />
                       <span className="text-sm">{event.location}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-blue-200/70">
+                    <div className="flex items-center gap-3 text-blue-200/80">
                       <Users className="w-4 h-4 text-pink-400" />
                       <span className="text-sm">{event.attendees.toLocaleString()} Expected Attendees</span>
                     </div>
                   </div>
 
-                  {/* CTA Button - Link to Register */}
-                  <Link 
-                    to="/Register" 
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all duration-300 group/btn"
-                  >
-                    <Ticket className="w-4 h-4" />
-                    Register Now
-                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
-                  </Link>
+                  {/* CTA Button */}
+                  <div className="mt-auto">
+                    <Link 
+                      to="/register" 
+                      className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all duration-300 group/btn shadow-lg hover:shadow-pink-500/25"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      Register Now
+                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -159,12 +170,8 @@ const EventsSection: React.FC = () => {
           <h3 className="text-2xl font-bold text-white mb-8 text-center">
             Event Timeline & History
           </h3>
-          
           <div className="relative">
-            {/* Timeline Line */}
             <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-pink-500 via-purple-500 to-blue-500" />
-            
-            {/* Timeline Items */}
             <div className="space-y-8">
               {[
                 { title: 'LCP Alumni Sportsfest 2024', date: 'October 2024', desc: 'An exciting weekend of sports and camaraderie.' },
@@ -190,7 +197,7 @@ const EventsSection: React.FC = () => {
           </div>
         </div>
 
-        {/* View All Button - Link to Register */}
+        {/* View All Button */}
         <div className="text-center mt-12">
           <Link 
             to="/register" 

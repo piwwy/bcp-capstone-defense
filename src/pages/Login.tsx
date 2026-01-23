@@ -163,7 +163,7 @@ const Login: React.FC = () => {
 
       {/* Glass Card */}
       <div className="max-w-md w-full relative z-[10]">
-        <div className="relative bg-white/10 backdrop-blur-[60px] rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] border border-white/20 p-10 pt-12 overflow-hidden">
+        <div className="relative bg-white/10 backdrop-blur-[1.5px] rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] border border-white/20 p-10 pt-12 overflow-hidden">
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img

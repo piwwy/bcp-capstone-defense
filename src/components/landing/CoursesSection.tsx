@@ -69,7 +69,7 @@ const CoursesSection: React.FC = () => {
             ref={trackRef}
             className={`flex gap-6 ${isPaused ? '' : 'animate-scroll'}`}
             style={{
-              animation: isPaused ? 'none' : 'scroll 30s linear infinite', // Speed increased (20s)
+              animation: isPaused ? 'none' : 'scroll 10s linear infinite', // Speed increased (20s)
             }}
           >
             {duplicatedCourses.map((course, index) => (

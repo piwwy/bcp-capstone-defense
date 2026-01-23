@@ -48,7 +48,7 @@ const Footer: React.FC = () => {
               </div>
             </Link>
             <p className="text-blue-200/60 text-sm leading-relaxed mb-6">
-              Connecting Bestlink graduates since 2002. Building a stronger community
+              Connecting Linker graduates since 2002. Building a stronger community
               through excellence, unity, and service.
             </p>
             <div className="flex items-center gap-2 text-sm text-blue-200/60">
@@ -120,7 +120,7 @@ const Footer: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-blue-200/60 text-sm text-center md:text-left">
-              © {currentYear} Bestlink College of the Philippines Alumni Portal. All rights reserved.
+              © {currentYear} Linker College of the Philippines Alumni Portal. All rights reserved.
             </p>
             
             <div className="flex items-center gap-6">

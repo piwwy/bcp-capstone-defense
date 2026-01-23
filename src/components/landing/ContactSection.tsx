@@ -138,7 +138,7 @@ const ContactSection: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-white">Address</p>
                     <p className="text-sm text-blue-200/70">
-                      1071 Brgy. Kaligayahan, Quirino Highway, Novaliches, Quezon City
+                       Quezon City
                     </p>
                   </div>
                 </div>
@@ -171,7 +171,7 @@ const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Phone</p>
-                    <p className="text-sm text-blue-200/70">(02) 8417-4355</p>
+                    <p className="text-sm text-blue-200/70">(02) 8135-8603</p>
                   </div>
                 </div>
               </div>
