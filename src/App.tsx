@@ -76,7 +76,8 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/alumni/2fa" element={<Alumni2FA />} />
-
+      <Route path="/pending-approval" element={<PendingApproval />} />
+      <Route path="/onboarding" element={<Onboarding />} />
       {/* --- ADMIN ROUTES --- */}
       <Route
         path="/admin/*"
@@ -120,8 +121,7 @@ function AppRoutes() {
                 <Route path="reports/analytics" element={<PlaceholderDashboard title="Tracking Analytics" />} />
                 <Route path="reports/exports" element={<PlaceholderDashboard title="Data Exports" />} />
                 <Route path="reports/certificates" element={<PlaceholderDashboard title="Certificates" />} />
-                <Route path="/pending-approval" element={<PendingApproval />} />
-                <Route path="/onboarding" element={<Onboarding />} />
+
                 
                 {/* Catch all for Admin */}
                 <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
