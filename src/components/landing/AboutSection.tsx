@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Users, Award, Building, Briefcase } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 interface StatItemProps {
   icon: React.ReactNode;
   value: number;
@@ -164,7 +164,9 @@ const AboutSection: React.FC = () => {
             </div>
 
             <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-blue-500/30">
-              Learn More About LCP
+              <Link to="/register" >
+  Learn More About LCP
+</Link>
             </button>
           </div>
         </div>
@@ -180,14 +182,14 @@ const AboutSection: React.FC = () => {
           />
           <StatItem
             icon={<Award className="w-7 h-7 text-white" />}
-            value={20}
+            value={30}
             suffix="+"
             label="Years of Excellence"
             delay={200}
           />
           <StatItem
             icon={<Building className="w-7 h-7 text-white" />}
-            value={13}
+            value={10}
             label="Departments & Programs"
             delay={400}
           />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Briefcase, MapPin, Clock, Building2, ExternalLink, Search, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Import Link
 
 interface Job {
   id: number;
@@ -165,11 +166,14 @@ const JobsSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Apply Button */}
-                <button className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 group/btn">
+                {/* Apply Button - Link to Register */}
+                <Link 
+                  to="/register" 
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 group/btn"
+                >
                   Apply Now
                   <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
-                </button>
+                </Link>
               </div>
             ))}
           </div>
@@ -213,19 +217,26 @@ const JobsSection: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 whitespace-nowrap">
+                {/* List Apply Button - Link to Register */}
+                <Link 
+                  to="/register" 
+                  className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 whitespace-nowrap text-center"
+                >
                   Apply Now
-                </button>
+                </Link>
               </div>
             ))}
           </div>
         </div>
 
-        {/* View All Button */}
+        {/* View All Button - Link to Register */}
         <div className="text-center mt-12">
-          <button className="px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-full hover:from-cyan-700 hover:to-blue-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-cyan-500/30">
+          <Link 
+            to="/register" 
+            className="inline-block px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-full hover:from-cyan-700 hover:to-blue-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-cyan-500/30"
+          >
             View All Job Openings
-          </button>
+          </Link>
         </div>
       </div>
     </section>

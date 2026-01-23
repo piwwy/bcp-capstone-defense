@@ -6,15 +6,23 @@ const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-
   // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 20); // Trigger sooner
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Prevent scrolling when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isMobileMenuOpen]);
 
   // Navigation links
   const navLinks = [
@@ -23,12 +31,11 @@ const Navbar: React.FC = () => {
     { name: 'Courses', href: '#courses' },
     { name: 'Alumni', href: '#alumni' },
     { name: 'Events', href: '#events' },
-    { name: 'News', href: '#news' },
+    { name: 'News', href: '#News' },
     { name: 'Jobs', href: '#jobs' },
     { name: 'Contact', href: '#contact' },
   ];
 
-  // Scroll to section handler
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
@@ -39,29 +46,29 @@ const Navbar: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b ${
         isScrolled
-          ? 'bg-dark-800/95 backdrop-blur-xl shadow-2xl border-b border-white/10'
-          : 'bg-transparent'
+          ? 'bg-dark-900/80 backdrop-blur-xl border-white/10 shadow-lg' // Lower opacity (80) para kita ang blur
+          : 'bg-transparent border-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
+          
           {/* Logo Section */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group z-50 relative">
             <div className="relative">
               <img
                 src="/images/Linker College Of The Philippines.png"
                 alt="LCP Logo"
-                className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-110"
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain transition-transform duration-300 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-white leading-tight">
+            <div className="block">
+              <h1 className="text-sm sm:text-xl font-bold text-white leading-tight">
                 ALUMNI PORTAL
               </h1>
-              <p className="text-xs text-blue-300/80">
+              <p className="text-[10px] sm:text-xs text-blue-300/80">
                 Linker College Of The Philippines
               </p>
             </div>
@@ -73,14 +80,14 @@ const Navbar: React.FC = () => {
               <button
                 key={link.name}
                 onClick={() => scrollToSection(link.href)}
-                className="nav-link px-4 py-2 text-sm font-medium"
+                className="nav-link px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
               >
                 {link.name}
               </button>
             ))}
           </nav>
 
-          {/* Auth Buttons */}
+          {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Link
               to="/login"
@@ -99,7 +106,7 @@ const Navbar: React.FC = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors duration-300"
+            className="lg:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors duration-300 z-50"
           >
             {isMobileMenuOpen ? (
               <X className="w-6 h-6" />
@@ -110,40 +117,41 @@ const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - FULL SCREEN MODAL */}
       <div
-        className={`lg:hidden absolute top-full left-0 right-0 bg-dark-800/98 backdrop-blur-xl border-b border-white/10 transition-all duration-300 ${
+        className={`lg:hidden fixed inset-0 z-40 bg-dark-900/98 backdrop-blur-xl transition-all duration-300 flex flex-col justify-center items-center ${
           isMobileMenuOpen
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 -translate-y-4 pointer-events-none'
+            ? 'opacity-100 visible'
+            : 'opacity-0 invisible pointer-events-none'
         }`}
       >
-        <nav className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <button
-                key={link.name}
-                onClick={() => scrollToSection(link.href)}
-                className="w-full text-left px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors duration-300"
-              >
-                {link.name}
-              </button>
-            ))}
-            <div className="border-t border-white/10 mt-2 pt-4 flex flex-col gap-2">
-              <Link
-                to="/login"
-                className="w-full px-4 py-3 text-center text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors duration-300"
-              >
-                Log In
-              </Link>
-              <Link
-                to="/register"
-                className="w-full px-4 py-3 text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold"
-              >
-                Sign Up
-              </Link>
-            </div>
-          </div>
+        <nav className="w-full max-w-sm px-6 flex flex-col gap-4 text-center">
+          {navLinks.map((link) => (
+            <button
+              key={link.name}
+              onClick={() => scrollToSection(link.href)}
+              className="text-2xl font-medium text-white/80 hover:text-white py-2 hover:scale-110 transition-all duration-300"
+            >
+              {link.name}
+            </button>
+          ))}
+          
+          <div className="h-px w-full bg-white/10 my-4" />
+          
+          <Link
+            to="/login"
+            className="w-full py-4 text-lg text-white/80 hover:text-white font-medium border border-white/10 rounded-xl hover:bg-white/5 transition-all"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Log In
+          </Link>
+          <Link
+            to="/register"
+            className="w-full py-4 text-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Sign Up
+          </Link>
         </nav>
       </div>
     </header>

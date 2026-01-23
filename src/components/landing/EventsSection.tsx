@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, MapPin, Clock, Users, ArrowRight, Ticket } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Import Link
 
 interface Event {
   id: number;
@@ -138,12 +139,15 @@ const EventsSection: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* CTA Button */}
-                  <button className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all duration-300 group/btn">
+                  {/* CTA Button - Link to Register */}
+                  <Link 
+                    to="/Register" 
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all duration-300 group/btn"
+                  >
                     <Ticket className="w-4 h-4" />
                     Register Now
                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -186,11 +190,14 @@ const EventsSection: React.FC = () => {
           </div>
         </div>
 
-        {/* View All Button */}
+        {/* View All Button - Link to Register */}
         <div className="text-center mt-12">
-          <button className="px-8 py-3 border-2 border-pink-400/50 text-pink-300 font-semibold rounded-full hover:bg-pink-400/10 hover:border-pink-400 transform hover:scale-105 transition-all duration-300">
+          <Link 
+            to="/register" 
+            className="inline-block px-8 py-3 border-2 border-pink-400/50 text-pink-300 font-semibold rounded-full hover:bg-pink-400/10 hover:border-pink-400 transform hover:scale-105 transition-all duration-300"
+          >
             View All Events
-          </button>
+          </Link>
         </div>
       </div>
     </section>

@@ -1,8 +1,6 @@
 import React from 'react';
 import { Quote, Linkedin, Twitter } from 'lucide-react';
-
-// NOTE: Since nasa 'public' folder ang images, direct path string na ang gamit natin.
-// Hindi na kailangan mag-import sa taas.
+import { Link } from 'react-router-dom'; // Import Link
 
 interface AlumniStory {
   id: number;
@@ -70,7 +68,7 @@ const AlumniSection: React.FC = () => {
           100% { background-position: 0% 50%; }
         }
         .animate-pan {
-          background-size: 200% auto; /* Zoom in para gumalaw */
+          background-size: 200% auto;
           animation: pan-image 10s ease-in-out infinite;
         }
       `}</style>
@@ -105,7 +103,7 @@ const AlumniSection: React.FC = () => {
           {alumniStories.map((alumni, index) => (
             <div
               key={alumni.id}
-              className="group relative h-[450px]" // Fixed height para uniform
+              className="group relative h-[450px]"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="relative w-full h-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500 flex flex-col hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]">
@@ -119,7 +117,7 @@ const AlumniSection: React.FC = () => {
                   }}
                 />
                 
-                {/* Dark Overlay on Hover para mabasa pa rin ang text */}
+                {/* Dark Overlay on Hover */}
                 <div className="absolute inset-0 bg-dark-900/80 opacity-0 group-hover:opacity-90 transition-opacity duration-500 z-0" />
 
                 {/* Card Content Wrapper */}
@@ -130,15 +128,14 @@ const AlumniSection: React.FC = () => {
                     <Quote className="w-4 h-4 text-white" />
                   </div>
 
-                  {/* 2. STATIC IMAGE (Rectangular Preview - Para makita agad ang mukha) */}
-                  {/* Tinanggal natin ang circle, ginawang rectangle na parang thumbnail */}
+                  {/* 2. STATIC IMAGE (Thumbnail) */}
                   <div className="relative w-full h-32 mb-6 group-hover:scale-105 transition-transform duration-500">
                      <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 group-hover:border-green-400/50">
                         {alumni.image ? (
                           <img
                             src={alumni.image}
                             alt={alumni.name}
-                            className="w-full h-full object-cover object-top" // object-top para sure na kita ulo
+                            className="w-full h-full object-cover object-top"
                           />
                         ) : (
                           <div className="w-full h-full bg-white/5 flex items-center justify-center">
@@ -176,7 +173,7 @@ const AlumniSection: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Social Links (Slide up effect) */}
+                  {/* Social Links */}
                   <div className="flex justify-center gap-3 mt-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">
                     <button className="p-2 bg-white/10 rounded-full hover:bg-blue-600 transition-colors duration-300 text-white">
                       <Linkedin className="w-3 h-3" />
@@ -192,11 +189,14 @@ const AlumniSection: React.FC = () => {
           ))}
         </div>
 
-        {/* View All Button */}
+        {/* View All Button - Updated to Link */}
         <div className="text-center mt-12">
-          <button className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-full hover:from-green-700 hover:to-emerald-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-green-500/30">
+          <Link 
+            to="/register" 
+            className="inline-block px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-full hover:from-green-700 hover:to-emerald-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-green-500/30"
+          >
             View All Alumni Stories
-          </button>
+          </Link>
         </div>
       </div>
     </section>
