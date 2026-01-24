@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient'; 
 import { 
   User, BookOpen, Lock, ChevronRight, ChevronLeft, 
-  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, 
+  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 
 // Types for validation errors
@@ -19,11 +19,12 @@ interface InputFieldProps {
   options?: { value: string | number; label: string | number }[];
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void; 
   error?: string;
 }
 
 const InputField: React.FC<InputFieldProps> = ({ 
-  label, name, type = "text", placeholder, required = false, options = [], value, onChange, error 
+  label, name, type = "text", placeholder, required = false, options = [], value, onChange, onBlur, error 
 }) => {
   const isError = !!error;
   
@@ -53,6 +54,7 @@ const InputField: React.FC<InputFieldProps> = ({
           name={name}
           value={value}
           onChange={onChange}
+          onBlur={onBlur}
           placeholder={placeholder}
           maxLength={name === 'mobile' ? 11 : undefined}
           className={`w-full p-3 border rounded-lg outline-none transition-all ${
@@ -72,6 +74,14 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  // Custom Toast State
+  const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string } | null>(null);
+
+  // Helper to show toast
+  const showToast = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    setToast({ show: true, type, title, message });
+    setTimeout(() => setToast(null), 4000);
+  };
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showGooglePrompt, setShowGooglePrompt] = useState(false);
 
@@ -153,6 +163,30 @@ const Register: React.FC = () => {
     }
   };
 
+  const checkEmailAvailability = async () => {
+    // Basic format check
+    if (!formData.email || !formData.email.includes('@')) return;
+
+    try {
+      // Check sa database kung taken na
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email)
+        .single();
+
+      if (data) {
+        setErrors(prev => ({
+          ...prev, 
+          email: "This email is already registered. Please use another or login."
+        }));
+        showToast('warning', 'Email Taken', 'This email is already linked to an account.');
+      }
+    } catch (err) {
+      // Ignore error if not found (ibig sabihin available pa)
+    }
+  };
+
   const validateStep = (currentStep: number): boolean => {
     const newErrors: Errors = {};
     let isValid = true;
@@ -197,21 +231,27 @@ const Register: React.FC = () => {
   const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault(); // Ito ang pipigil sa page refresh
+    e.stopPropagation();  // <--- ADD THIS (Stop event bubbling)
+
+    if (errors.email) {
+      showToast('error', 'Invalid Email', 'Please provide a unique email address.');
+      return;
+    }
+
     // 1. Privacy Check
     if (!formData.agreedToPrivacy) {
       setErrors({...errors, agreedToPrivacy: 'You must agree to the Data Privacy Policy'});
       return;
     }
 
-    // 2. Final Validation
+    // 2. Final Validation (Check kung may kulang sa Step 3)
     if (!validateStep(3)) return;
     
     setLoading(true);
 
     try {
-      // 3. Register sa Auth
+      // 3. Register sa Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -227,43 +267,52 @@ const Register: React.FC = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // 4. Save sa Database (Gamit ang UPSERT para iwas error)
+        // 4. Save sa Database (Profiles Table)
         const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
         
+        // Dito natin isasama ang SUFFIX at gagamit ng UPSERT
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert([
             { 
-              id: authData.user.id, // Importante: Ito ang link sa Auth
+              id: authData.user.id, // Link sa Auth ID
               email: formData.email,
               first_name: formData.firstName,
               last_name: formData.lastName,
               middle_name: formData.middleName || null,
+              suffix: formData.suffix || null, // <--- ADDED SUFFIX
               birthday: formData.birthday,
               mobile_number: formData.mobile,
               batch_year: formData.batchYear,
               course: formData.course,
               student_id: formData.studentId,
-              verification_answer: combinedVerification,
+              verification_answer: combinedVerification, // Combined Adviser & Section
               role: 'alumni',
               status: 'pending_approval',
               avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
             }
-          ], { onConflict: 'id' }); // Ito ang magic: Pag meron na, update lang. Pag wala, insert.
+          ], { onConflict: 'id' }); // Magic: Update if exists, Insert if new
 
         if (profileError) throw profileError;
 
-        // 5. Success!
-        navigate('/pending-approval'); 
+        
+       // 5. SUCCESS! Show Toast & Redirect
+        showToast('success', 'Application Submitted!', 'Redirecting you to the status page...');
+        
+        // Wait 2 seconds before redirecting
+        setTimeout(() => {
+          navigate('/pending-approval'); 
+        }, 2000);
+        
       }
 
     } catch (error: any) {
       console.error("Registration Error:", error);
-      // Mas malinaw na error message
+      // PALITAN ANG MGA ALERT NG SHOWTOAST
       if (error.message?.includes("already registered") || error.message?.includes("unique constraint")) {
-        alert("This email is already registered. Please login.");
+        showToast('error', 'Account Exists', 'This email is already registered. Please login instead.');
       } else {
-        alert("Registration failed: " + error.message);
+        showToast('error', 'Registration Failed', error.message);
       }
     } finally {
       setLoading(false);
@@ -273,6 +322,38 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       
+      {/* --- IDAGDAG MO ITO DITO (TOAST UI) --- */}
+      {toast && toast.show && (
+        <div className={`fixed top-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl border animate-in slide-in-from-right duration-300 max-w-sm w-full bg-white ${
+          toast.type === 'success' ? 'border-green-500' : 
+          toast.type === 'warning' ? 'border-yellow-500' : 
+          'border-red-500'
+        }`}>
+          <div className={`mt-0.5 ${
+            toast.type === 'success' ? 'text-green-600' : 
+            toast.type === 'warning' ? 'text-yellow-600' : 
+            'text-red-600'
+          }`}>
+            {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : 
+             toast.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> : 
+             <X className="w-5 h-5" />}
+          </div>
+          <div>
+            <h4 className={`text-sm font-bold ${
+              toast.type === 'success' ? 'text-green-800' : 
+              toast.type === 'warning' ? 'text-yellow-800' : 
+              'text-red-800'
+            }`}>{toast.title}</h4>
+            <p className="text-xs text-gray-600 mt-1">{toast.message}</p>
+          </div>
+          <button onClick={() => setToast(null)} className="ml-auto text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      {/* ------------------------------------- */}
+
+      {/* ... Dito na yung FLOATING GOOGLE LOGIN PROMPT mo ... */}
       {/* --- FLOATING GOOGLE LOGIN PROMPT --- */}
       {showGooglePrompt && (
         <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50 animate-in slide-in-from-right duration-700 fade-in">
@@ -420,7 +501,7 @@ const Register: React.FC = () => {
               {/* STEP 3 */}
               {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
-                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} error={errors.email} required placeholder="active@email.com" />
+                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} onBlur={checkEmailAvailability} error={errors.email} required placeholder="active@email.com" />
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <InputField type="password" label="Password" name="password" value={formData.password} onChange={handleChange} error={errors.password} required />
