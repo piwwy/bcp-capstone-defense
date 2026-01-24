@@ -1,100 +1,105 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 // User type definition
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'superadmin' | 'admin' | 'registrar' | 'alumni';
+  role: string; // Tinanggal ko muna ang strict typing para iwas error
   avatar?: string;
 }
 
-// Auth context type
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: User, token: string) => void;
   logout: () => void;
-  updateUser: (user: User) => void;
 }
 
-// Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider props
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-// Auth Provider Component
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
+    // 1. Check current session pag-load ng page
+    const checkSession = async () => {
       try {
-        const parsedUser = JSON.parse(storedUser) as User;
-        setUser(parsedUser);
-        setToken(storedToken);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await fetchProfile(session.user.id, session.user.email!);
+        }
       } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        console.error('Session check error:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    checkSession();
+
+    // 2. Makinig sa Login/Logout events real-time
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        await fetchProfile(session.user.id, session.user.email!);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Login function
-  const login = (userData: User, authToken: string) => {
-    setUser(userData);
-    setToken(authToken);
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+  // Helper para kunin ang ROLE sa profiles table
+  const fetchProfile = async (userId: string, email: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, first_name, last_name, avatar_url')
+        .eq('id', userId)
+        .single();
+
+      if (profile) {
+        setUser({
+          id: userId,
+          email: email,
+          name: `${profile.first_name} ${profile.last_name}`,
+          role: profile.role || 'alumni', // Dito manggagaling ang pagiging ADMIN
+          avatar: profile.avatar_url
+        });
+      } else {
+         // Fallback kung wala pang profile
+         setUser({ id: userId, email, name: 'User', role: 'alumni' });
+      }
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Logout function
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.clear(); // Linisin ang memory para sure
   };
 
-  // Update user function
-  const updateUser = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-
-  const value: AuthContextType = {
-    user,
-    token,
-    isAuthenticated: !!user && !!token,
-    isLoading,
-    login,
-    logout,
-    updateUser,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// Custom hook to use auth context
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
-
-export default AuthContext;

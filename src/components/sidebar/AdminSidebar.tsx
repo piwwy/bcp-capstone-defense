@@ -122,7 +122,7 @@ const AdminSidebar: React.FC = () => {
       {/* Header */}
       <div className={`flex items-center border-b border-gray-300 h-[80px] ${collapsed ? "justify-center" : "justify-between px-4"}`}>
         <div onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-2 cursor-pointer">
-          <img src="/logosms.png" alt="AMS Logo" className={`object-contain transition-all duration-300 ${collapsed ? "w-8 h-8" : "w-9 h-9 ml-[2px]"}`} />
+          <img src="/logosmss.png" alt="AMS Logo" className={`object-contain transition-all duration-300 ${collapsed ? "w-8 h-8" : "w-9 h-9 ml-[2px]"}`} />
           {!collapsed && (
             <div className="flex flex-col leading-tight whitespace-nowrap">
               <h1 className="text-base font-bold text-gray-900">LCP Admin</h1>

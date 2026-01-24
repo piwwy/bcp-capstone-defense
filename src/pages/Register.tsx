@@ -198,60 +198,76 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 1. Privacy Check
+    if (!formData.agreedToPrivacy) {
+      setErrors({...errors, agreedToPrivacy: 'You must agree to the Data Privacy Policy'});
+      return;
+    }
+
+    // 2. Final Validation
     if (!validateStep(3)) return;
+    
     setLoading(true);
 
     try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-              role: 'alumni'
-            }
+      // 3. Register sa Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
           }
-        });
-  
-        if (authError) throw authError;
-  
-        if (authData.user) {
-          // Combined Answer
-          const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
+        }
+      });
 
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: authData.user.id,
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // 4. Save sa Database (Gamit ang UPSERT para iwas error)
+        const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert([
+            { 
+              id: authData.user.id, // Importante: Ito ang link sa Auth
+              email: formData.email,
               first_name: formData.firstName,
               last_name: formData.lastName,
-              middle_name: formData.middleName,
-              // Note: Assuming you have a 'suffix' column, or append to last_name
-              // For now, let's append to last_name for simpler DB structure unless you added a column
-              // last_name: `${formData.lastName} ${formData.suffix}`.trim(), 
-              // Better if you have suffix column:
-              // suffix: formData.suffix, 
-              
+              middle_name: formData.middleName || null,
               birthday: formData.birthday,
               mobile_number: formData.mobile,
               batch_year: formData.batchYear,
               course: formData.course,
-              student_id: formData.studentId || null,
-              verification_answer: combinedVerification, // SAVED AS COMBINED STRING
+              student_id: formData.studentId,
+              verification_answer: combinedVerification,
               role: 'alumni',
-              status: 'pending_approval'
-            }] as any);
-  
-          if (profileError) throw profileError;
-          navigate('/pending-approval'); 
-        }
-      } catch (error: any) {
-        console.error(error);
-        alert(error.message || "Registration failed");
-      } finally {
-        setLoading(false);
+              status: 'pending_approval',
+              avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
+            }
+          ], { onConflict: 'id' }); // Ito ang magic: Pag meron na, update lang. Pag wala, insert.
+
+        if (profileError) throw profileError;
+
+        // 5. Success!
+        navigate('/pending-approval'); 
       }
+
+    } catch (error: any) {
+      console.error("Registration Error:", error);
+      // Mas malinaw na error message
+      if (error.message?.includes("already registered") || error.message?.includes("unique constraint")) {
+        alert("This email is already registered. Please login.");
+      } else {
+        alert("Registration failed: " + error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -508,7 +524,7 @@ const Register: React.FC = () => {
                 <strong>Republic Act No. 10173</strong>, also known as the Data Privacy Act of 2012, protects individuals from unauthorized processing of personal information.
               </p>
               <p>
-                By submitting this form, you consent to the collection, generation, use, processing, storage, and retention of your personal data by <strong>Bestlink College of the Philippines</strong> for the purpose of:
+                By submitting this form, you consent to the collection, generation, use, processing, storage, and retention of your personal data by <strong>Linker College of the Philippines</strong> for the purpose of:
               </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Alumni record verification and validation.</li>
