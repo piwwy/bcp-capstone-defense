@@ -16,30 +16,50 @@ export default function Login() {
     setError('');
 
     try {
+      console.log('🔐 Attempting login for:', email);
+      
       // 1. Authenticate User
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('🔑 Auth Response:', { data, error });
+
       if (error) throw error;
 
       if (data.user) {
+        console.log('✅ User authenticated:', data.user.id);
+        
         // 2. Fetch Profile Role & Status
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role, status') // IMPORTANT: Kunin din ang status
+          .select('role, status')
           .eq('id', data.user.id)
           .single();
+
+        console.log('👤 Profile Response:', { profile, profileError });
+
+        if (profileError) {
+          console.error('❌ Profile Error:', profileError);
+          throw new Error('Could not fetch profile. Please contact support.');
+        }
+
+        if (!profile) {
+          console.error('❌ No profile found for user');
+          throw new Error('Profile not found. Please complete registration.');
+        }
 
         // 3. Logic for Redirection
         if (profile?.role === 'alumni') {
            
            if (profile.status === 'verified') {
-             // SUCCESS: Go to Dashboard
-             navigate('/alumni/dashboard');
+             // SUCCESS: Go to 2FA first, then Dashboard
+             console.log('🚀 Redirecting to 2FA...');
+             navigate('/alumni/2fa');
            } else if (profile.status === 'pending_approval') {
              // PENDING: Go to Waiting Room
+             console.log('⏳ Redirecting to pending approval...');
              navigate('/pending-approval');
            } else if (profile.status === 'rejected') {
              // REJECTED: Show Error & Logout
@@ -47,15 +67,18 @@ export default function Login() {
              throw new Error("Your application was declined. Please contact the registrar.");
            } else {
              // NEW/UNKNOWN: Fallback to Onboarding
+             console.log('📝 Redirecting to onboarding...');
              navigate('/onboarding');
            }
 
         } else {
            // Admins, Registrar, etc. (Direct access)
+           console.log(`🚀 Redirecting ${profile?.role} to dashboard...`);
            navigate(`/${profile?.role}/dashboard`);
         }
       }
     } catch (err: any) {
+      console.error('❌ Login Error:', err);
       setError(err.message || 'Failed to sign in');
       // If error (like rejected), sign out immediately
       if (err.message.includes("declined")) {

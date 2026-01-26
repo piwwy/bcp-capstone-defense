@@ -12,6 +12,7 @@ import PendingApproval from './pages/PendingApproval';
 import Onboarding from './pages/Onboarding';
 import VerificationPage from './pages/admin/VerificationPage';
 import AdminLogin from './pages/AdminLogin';
+import ApplicationSubmitted from './pages/ApplicationSubmitted';
 
 // Dashboards (Imported from components)
 // Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
@@ -79,6 +80,7 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/alumni/2fa" element={<Alumni2FA />} />
       <Route path="/pending-approval" element={<PendingApproval />} />
+      <Route path="/application-submitted" element={<ApplicationSubmitted />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/admin/login" element={<AdminLogin />} />
 

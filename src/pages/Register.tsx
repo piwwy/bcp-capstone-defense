@@ -231,8 +231,10 @@ const Register: React.FC = () => {
   const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Ito ang pipigil sa page refresh
-    e.stopPropagation();  // <--- ADD THIS (Stop event bubbling)
+    e.preventDefault();
+    e.stopPropagation();
+
+    console.log('📝 Form submitted, starting registration...');
 
     if (errors.email) {
       showToast('error', 'Invalid Email', 'Please provide a unique email address.');
@@ -251,6 +253,8 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
+      console.log('🔐 Step 1: Registering with Supabase Auth...');
+      
       // 3. Register sa Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -264,55 +268,77 @@ const Register: React.FC = () => {
         }
       });
 
-      if (authError) throw authError;
+      console.log('🔑 Auth Response:', { authData, authError });
 
-      if (authData.user) {
-        // 4. Save sa Database (Profiles Table)
-        const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
-        
-        // Dito natin isasama ang SUFFIX at gagamit ng UPSERT
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert([
-            { 
-              id: authData.user.id, // Link sa Auth ID
-              email: formData.email,
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-              middle_name: formData.middleName || null,
-              suffix: formData.suffix || null, // <--- ADDED SUFFIX
-              birthday: formData.birthday,
-              mobile_number: formData.mobile,
-              batch_year: formData.batchYear,
-              course: formData.course,
-              student_id: formData.studentId,
-              verification_answer: combinedVerification, // Combined Adviser & Section
-              role: 'alumni',
-              status: 'pending_approval',
-              avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
-            }
-          ], { onConflict: 'id' }); // Magic: Update if exists, Insert if new
-
-        if (profileError) throw profileError;
-
-        
-       // 5. SUCCESS! Show Toast & Redirect
-        showToast('success', 'Application Submitted!', 'Redirecting you to the status page...');
-        
-        // Wait 2 seconds before redirecting
-        setTimeout(() => {
-          navigate('/pending-approval'); 
-        }, 2000);
-        
+      if (authError) {
+        console.error('❌ Auth Error:', authError);
+        throw authError;
       }
 
+      // IMPORTANT: Check if user was actually created
+      if (!authData.user) {
+        console.error('❌ No user returned from signUp');
+        throw new Error('Registration failed. Please try again.');
+      }
+
+      // Check if this is a fake success (user already exists)
+      if (authData.user && !authData.session && authData.user.identities?.length === 0) {
+        console.error('❌ User already exists (no new identity created)');
+        throw new Error('This email is already registered. Please login instead.');
+      }
+
+      console.log('✅ User created:', authData.user.id);
+      console.log('📊 Step 2: Saving profile to database...');
+
+      // 4. Save sa Database (Profiles Table)
+      const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([
+          { 
+            id: authData.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            middle_name: formData.middleName || null,
+            suffix: formData.suffix || null,
+            birthday: formData.birthday,
+            mobile_number: formData.mobile,
+            batch_year: formData.batchYear,
+            course: formData.course,
+            student_id: formData.studentId,
+            verification_answer: combinedVerification,
+            role: 'alumni',
+            status: 'pending_approval',
+            avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
+          }
+        ], { onConflict: 'id' });
+
+      console.log('📊 Profile save result - Error:', profileError);
+
+      if (profileError) {
+        console.error('❌ Profile Error:', profileError);
+        throw profileError;
+      }
+
+      console.log('✅ Profile saved successfully!');
+      console.log('🚀 Redirecting to application-submitted...');
+      
+      // 5. SUCCESS! Show Toast & Redirect
+      showToast('success', 'Application Submitted!', 'Redirecting you to the confirmation page...');
+      
+      setTimeout(() => {
+        navigate('/application-submitted'); 
+      }, 2000);
+
     } catch (error: any) {
-      console.error("Registration Error:", error);
-      // PALITAN ANG MGA ALERT NG SHOWTOAST
-      if (error.message?.includes("already registered") || error.message?.includes("unique constraint")) {
+      console.error("❌ Registration Error:", error);
+      
+      if (error.message?.includes("already registered") || error.message?.includes("unique constraint") || error.message?.includes("already")) {
         showToast('error', 'Account Exists', 'This email is already registered. Please login instead.');
       } else {
-        showToast('error', 'Registration Failed', error.message);
+        showToast('error', 'Registration Failed', error.message || 'Something went wrong.');
       }
     } finally {
       setLoading(false);

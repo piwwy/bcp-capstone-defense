@@ -47,8 +47,8 @@ export default function AdminLogin() {
         throw new Error("Access Denied: You are not an administrator.");
       }
 
-      // 4. Redirect to Dashboard
-      navigate('/admin/dashboard');
+      // 4. Redirect to appropriate Dashboard based on role
+      navigate(`/${profile.role}/dashboard`);
 
     } catch (err: any) {
       setError(err.message);
