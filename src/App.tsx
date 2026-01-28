@@ -14,6 +14,13 @@ import VerificationPage from './pages/admin/VerificationPage';
 import AdminLogin from './pages/AdminLogin';
 import ApplicationSubmitted from './pages/ApplicationSubmitted';
 
+// Admin Pages with Real Data
+import RegistrationApprovals from './pages/admin/Registrationapprovals';
+import AlumniDirectory from './pages/admin/Alumnidirectory';
+import AlumniProfiles from './pages/admin/Alumniprofiles';
+import AlumniRequests from './pages/admin/Alumnirequests';
+import AllAlumniRecords from './pages/admin/Allalumnirecords';
+
 // Dashboards (Imported from components)
 // Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
 import AlumniDashboard from './components/dashboard/AlumniDashboard';
@@ -95,11 +102,12 @@ function AppRoutes() {
                 {/* Fixed: Use the REAL DashboardAdmin component */}
                 <Route path="dashboard" element={<DashboardAdmin />} />
                 
-                <Route path="alumni/approvals" element={<PlaceholderDashboard title="Registration Approvals" />} />
-                <Route path="alumni/directory" element={<PlaceholderDashboard title="Alumni Directory" />} />
-                <Route path="alumni/profiles" element={<PlaceholderDashboard title="Alumni Profiles" />} />
-                <Route path="alumni/requests" element={<PlaceholderDashboard title="Alumni Requests" />} />
-                <Route path="alumni/records" element={<PlaceholderDashboard title="All Alumni Records" />} />
+                {/* Alumni & Records - REAL COMPONENTS */}
+                <Route path="alumni/approvals" element={<RegistrationApprovals />} />
+                <Route path="alumni/directory" element={<AlumniDirectory />} />
+                <Route path="alumni/profiles" element={<AlumniProfiles />} />
+                <Route path="alumni/requests" element={<AlumniRequests />} />
+                <Route path="alumni/records" element={<AllAlumniRecords />} />
                 <Route path="alumni/verify" element={<VerificationPage />} />
                 <Route path="tracking/career" element={<PlaceholderDashboard title="Career Tracking" />} />
                 <Route path="tracking/outcomes" element={<PlaceholderDashboard title="Employment Outcomes" />} />

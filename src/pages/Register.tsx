@@ -3,13 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient'; 
 import { 
   User, BookOpen, Lock, ChevronRight, ChevronLeft, 
-  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, CheckCircle2, AlertTriangle
+  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, CheckCircle2, AlertTriangle, Loader2
 } from 'lucide-react';
 
 // Types for validation errors
 type Errors = { [key: string]: string };
 
-// --- REUSABLE INPUT COMPONENT ---
+// --- REUSABLE INPUT COMPONENT (Unchanged) ---
 interface InputFieldProps {
   label: string;
   name: string;
@@ -35,19 +35,24 @@ const InputField: React.FC<InputFieldProps> = ({
       </label>
       
       {type === 'select' ? (
-        <select
-          name={name}
-          value={value}
-          onChange={onChange}
-          className={`w-full p-3 border rounded-lg outline-none transition-all ${
-            isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
-          }`}
-        >
-          <option value="">Select {label}</option>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            name={name}
+            value={value}
+            onChange={onChange}
+            className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none ${
+              isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+            }`}
+          >
+            <option value="">Select {label}</option>
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+             <ChevronRight className="w-4 h-4 rotate-90" />
+          </div>
+        </div>
       ) : (
         <input
           type={type}
@@ -74,45 +79,42 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  // Custom Toast State
   const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string } | null>(null);
-
-  // Helper to show toast
-  const showToast = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
-    setToast({ show: true, type, title, message });
-    setTimeout(() => setToast(null), 4000);
-  };
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showGooglePrompt, setShowGooglePrompt] = useState(false);
 
+  // --- CAPTCHA STATE ---
+  const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
+  const [captchaInput, setCaptchaInput] = useState('');
+
   useEffect(() => {
+    generateCaptcha();
     const timer = setTimeout(() => setShowGooglePrompt(true), 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Form Data
+  const generateCaptcha = () => {
+    const n1 = Math.floor(Math.random() * 10) + 1;
+    const n2 = Math.floor(Math.random() * 10) + 1;
+    setCaptcha({ num1: n1, num2: n2, answer: (n1 + n2).toString() });
+    setCaptchaInput('');
+  };
+
+  const showToast = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    setToast({ show: true, type, title, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    suffix: '', // Changed from maidenName
-    birthday: '',
-    email: '',
-    mobile: '',
-    password: '',
-    confirmPassword: '',
-    batchYear: '',
-    course: '',
-    // SPLIT CHALLENGE QUESTION
-    adviserName: '',
-    section: '',
-    studentId: '',
+    firstName: '', lastName: '', middleName: '', suffix: '',
+    birthday: '', email: '', mobile: '',
+    password: '', confirmPassword: '',
+    batchYear: '', course: '',
+    adviserName: '', section: '', studentId: '',
     agreedToPrivacy: false,
   });
 
   const [errors, setErrors] = useState<Errors>({});
-  
-  // PASSWORD STRENGTH LOGIC
   const [passStrength, setPassStrength] = useState(0);
   const [passFeedback, setPassFeedback] = useState('');
 
@@ -123,30 +125,24 @@ const Register: React.FC = () => {
     if (/[A-Z]/.test(p)) score++;
     if (/[0-9]/.test(p)) score++;
     if (/[^A-Za-z0-9]/.test(p)) score++;
-    
     setPassStrength(score);
-
     if (score === 0) setPassFeedback('');
     else if (score <= 2) setPassFeedback('Weak');
     else if (score === 3) setPassFeedback('Fair');
     else setPassFeedback('Strong');
-
   }, [formData.password]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
-    // VALIDATION: Letters Only for Names
-    if (['firstName', 'lastName', 'middleName', 'suffix', 'adviserName'].includes(name)) {
-      if (value !== '' && !/^[a-zA-Z\s.-]*$/.test(value)) return;
+    if (type !== 'checkbox') {
+      if (['firstName', 'lastName', 'middleName', 'suffix', 'adviserName'].includes(name)) {
+        if (value !== '' && !/^[a-zA-Z\s.-]*$/.test(value)) return;
+      }
+      if (['mobile', 'studentId', 'section'].includes(name)) {
+        if (value !== '' && !/^[0-9]*$/.test(value)) return;
+      }
     }
-    // VALIDATION: Numbers Only for Mobile, StudentID, Section
-    if (['mobile', 'studentId', 'section'].includes(name)) {
-      if (value !== '' && !/^[0-9]*$/.test(value)) return;
-    }
-
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    
     setFormData(prev => ({ ...prev, [name]: val }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
@@ -164,33 +160,19 @@ const Register: React.FC = () => {
   };
 
   const checkEmailAvailability = async () => {
-    // Basic format check
     if (!formData.email || !formData.email.includes('@')) return;
-
     try {
-      // Check sa database kung taken na
-      const { data } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', formData.email)
-        .single();
-
+      const { data } = await supabase.from('profiles').select('id').eq('email', formData.email).single();
       if (data) {
-        setErrors(prev => ({
-          ...prev, 
-          email: "This email is already registered. Please use another or login."
-        }));
+        setErrors(prev => ({ ...prev, email: "This email is already registered." }));
         showToast('warning', 'Email Taken', 'This email is already linked to an account.');
       }
-    } catch (err) {
-      // Ignore error if not found (ibig sabihin available pa)
-    }
+    } catch (err) {}
   };
 
   const validateStep = (currentStep: number): boolean => {
     const newErrors: Errors = {};
     let isValid = true;
-
     if (currentStep === 1) {
       if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
       if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
@@ -198,64 +180,57 @@ const Register: React.FC = () => {
       if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
       else if (formData.mobile.length !== 11) newErrors.mobile = 'Mobile number must be 11 digits';
     }
-
     if (currentStep === 2) {
       if (!formData.course) newErrors.course = 'Please select a course';
       if (!formData.batchYear) newErrors.batchYear = 'Please select a batch year';
-      // SPLIT VALIDATION
       if (!formData.adviserName.trim()) newErrors.adviserName = 'Adviser name is required';
       if (!formData.section.trim()) newErrors.section = 'Section is required';
     }
-
     if (currentStep === 3) {
       if (!formData.email.trim()) newErrors.email = 'Email is required';
       else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
-      
       if (!formData.password) newErrors.password = 'Password is required';
       else if (passStrength < 3) newErrors.password = 'Password is too weak';
-      
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-      
       if (!formData.agreedToPrivacy) newErrors.agreedToPrivacy = 'You must agree to the Data Privacy Policy';
     }
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       isValid = false;
     }
-
     return isValid;
   };
 
   const handleNext = () => { if (validateStep(step)) setStep((prev) => prev + 1); };
   const handleBack = () => setStep((prev) => prev - 1);
 
+  // --- FIXED LOGIC HERE (Matches Database) ---
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); 
     e.stopPropagation();
 
-    console.log('📝 Form submitted, starting registration...');
+    // 1. Captcha Check
+    if (captchaInput !== captcha.answer) {
+      showToast('error', 'Wrong Captcha', 'Please solve the math problem correctly.');
+      return; 
+    }
 
     if (errors.email) {
       showToast('error', 'Invalid Email', 'Please provide a unique email address.');
       return;
     }
 
-    // 1. Privacy Check
     if (!formData.agreedToPrivacy) {
-      setErrors({...errors, agreedToPrivacy: 'You must agree to the Data Privacy Policy'});
+      showToast('warning', 'Privacy Policy', 'You must agree to the Data Privacy Policy.');
       return;
     }
 
-    // 2. Final Validation (Check kung may kulang sa Step 3)
     if (!validateStep(3)) return;
     
     setLoading(true);
 
     try {
-      console.log('🔐 Step 1: Registering with Supabase Auth...');
-      
-      // 3. Register sa Supabase Auth
+      // 2. Register Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -268,77 +243,50 @@ const Register: React.FC = () => {
         }
       });
 
-      console.log('🔑 Auth Response:', { authData, authError });
+      if (authError) throw authError;
 
-      if (authError) {
-        console.error('❌ Auth Error:', authError);
-        throw authError;
+      if (authData.user) {
+        // 3. Save Profile (Ensure SQL Script from Step 1 was run!)
+        const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert([
+            { 
+              id: authData.user.id,
+              email: formData.email,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              middle_name: formData.middleName || null,
+              suffix: formData.suffix || null,
+              birthday: formData.birthday,
+              mobile_number: formData.mobile, // Important: Matches SQL table
+              batch_year: formData.batchYear,
+              course: formData.course,
+              student_id: formData.studentId,
+              verification_answer: combinedVerification,
+              role: 'alumni',
+              status: 'pending_approval',
+              avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
+            }
+          ], { onConflict: 'id' });
+
+        if (profileError) throw profileError;
+
+        // 4. Success Redirect
+        showToast('success', 'Application Submitted!', 'Redirecting...');
+        
+        setTimeout(() => {
+          navigate('/application-submitted'); 
+        }, 1500);
       }
-
-      // IMPORTANT: Check if user was actually created
-      if (!authData.user) {
-        console.error('❌ No user returned from signUp');
-        throw new Error('Registration failed. Please try again.');
-      }
-
-      // Check if this is a fake success (user already exists)
-      if (authData.user && !authData.session && authData.user.identities?.length === 0) {
-        console.error('❌ User already exists (no new identity created)');
-        throw new Error('This email is already registered. Please login instead.');
-      }
-
-      console.log('✅ User created:', authData.user.id);
-      console.log('📊 Step 2: Saving profile to database...');
-
-      // 4. Save sa Database (Profiles Table)
-      const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert([
-          { 
-            id: authData.user.id,
-            email: formData.email,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            middle_name: formData.middleName || null,
-            suffix: formData.suffix || null,
-            birthday: formData.birthday,
-            mobile_number: formData.mobile,
-            batch_year: formData.batchYear,
-            course: formData.course,
-            student_id: formData.studentId,
-            verification_answer: combinedVerification,
-            role: 'alumni',
-            status: 'pending_approval',
-            avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
-          }
-        ], { onConflict: 'id' });
-
-      console.log('📊 Profile save result - Error:', profileError);
-
-      if (profileError) {
-        console.error('❌ Profile Error:', profileError);
-        throw profileError;
-      }
-
-      console.log('✅ Profile saved successfully!');
-      console.log('🚀 Redirecting to application-submitted...');
-      
-      // 5. SUCCESS! Show Toast & Redirect
-      showToast('success', 'Application Submitted!', 'Redirecting you to the confirmation page...');
-      
-      setTimeout(() => {
-        navigate('/application-submitted'); 
-      }, 2000);
 
     } catch (error: any) {
-      console.error("❌ Registration Error:", error);
-      
-      if (error.message?.includes("already registered") || error.message?.includes("unique constraint") || error.message?.includes("already")) {
-        showToast('error', 'Account Exists', 'This email is already registered. Please login instead.');
+      console.error("Registration Error:", error);
+      if (error.message?.includes("already registered")) {
+        showToast('error', 'Account Exists', 'This email is already registered.');
       } else {
-        showToast('error', 'Registration Failed', error.message || 'Something went wrong.');
+        showToast('error', 'Registration Failed', error.message);
       }
     } finally {
       setLoading(false);
@@ -348,7 +296,7 @@ const Register: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       
-      {/* --- IDAGDAG MO ITO DITO (TOAST UI) --- */}
+      {/* Toast Notification */}
       {toast && toast.show && (
         <div className={`fixed top-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl border animate-in slide-in-from-right duration-300 max-w-sm w-full bg-white ${
           toast.type === 'success' ? 'border-green-500' : 
@@ -377,12 +325,10 @@ const Register: React.FC = () => {
           </button>
         </div>
       )}
-      {/* ------------------------------------- */}
 
-      {/* ... Dito na yung FLOATING GOOGLE LOGIN PROMPT mo ... */}
-      {/* --- FLOATING GOOGLE LOGIN PROMPT --- */}
+      {/* Floating Google Prompt */}
       {showGooglePrompt && (
-        <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50 animate-in slide-in-from-right duration-700 fade-in">
+        <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50 animate-in slide-in-from-right duration-700 fade-in hidden md:block">
           <div className="bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 w-80 relative transform hover:scale-105 transition-transform duration-300">
             <button onClick={() => setShowGooglePrompt(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
               <X className="w-4 h-4" />
@@ -407,7 +353,6 @@ const Register: React.FC = () => {
         
         {/* Left Side (Dark Blue Card) */}
         <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
-           {/* ... (Same Left Side Content as before) ... */}
            <div className="relative z-10 flex-1">
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-10">
               <img src="/images/Linker College Of The Philippines.png" alt="LCP Logo" className="w-12 h-12 object-contain"/>
@@ -467,7 +412,6 @@ const Register: React.FC = () => {
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                      <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Optional" />
-                     {/* CHANGED FROM MAIDEN NAME TO SUFFIX */}
                      <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} placeholder="Jr., III, etc." />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -516,7 +460,6 @@ const Register: React.FC = () => {
                   </div>
                   <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} placeholder="Optional (e.g. 1900123)" />
                   
-                  {/* SPLIT CHALLENGE QUESTION */}
                   <div className="grid md:grid-cols-2 gap-4">
                      <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
                      <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} error={errors.section} required placeholder="e.g. 4101" />
@@ -569,6 +512,30 @@ const Register: React.FC = () => {
                     <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
                       {errors.agreedToPrivacy || "Required"}
                     </div>
+
+                    {/* CAPTCHA UI */}
+                    <div className="pt-4 border-t border-gray-100 mt-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Security Check: What is {captcha.num1} + {captcha.num2}?
+                      </label>
+                      <div className="flex gap-3">
+                        <input
+                          type="number"
+                          value={captchaInput}
+                          onChange={(e) => setCaptchaInput(e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                          placeholder="Enter answer"
+                        />
+                        <button
+                          type="button"
+                          onClick={generateCaptcha}
+                          className="p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                          title="Refresh Captcha"
+                        >
+                          <Loader2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -589,7 +556,7 @@ const Register: React.FC = () => {
                   </button>
                 ) : (
                   <button type="submit" disabled={loading} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed">
-                    {loading ? 'Submitting...' : 'Submit Application'} <CheckCircle className="w-4 h-4" />
+                    {loading ? <><Loader2 className="w-4 h-4 animate-spin"/> Submitting...</> : <>Submit Application <CheckCircle className="w-4 h-4" /></>}
                   </button>
                 )}
               </div>
