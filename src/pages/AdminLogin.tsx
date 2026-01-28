@@ -17,41 +17,71 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      // 1. Attempt Login
+      console.log('🔐 Admin login attempt for:', email);
+
+      // 1. Attempt Login with Supabase Auth
       const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (authError) {
+        console.error('Auth Error:', authError);
         throw new Error("Invalid email or password.");
       }
 
-      if (!user) throw new Error("User not found.");
+      if (!user) {
+        throw new Error("User not found.");
+      }
+
+      console.log('✅ Auth successful, checking profile...');
 
       // 2. Check Role in Database
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, status, first_name, last_name')
         .eq('id', user.id)
         .single();
 
-      if (profileError || !profile) {
+      console.log('👤 Profile data:', profile);
+
+      if (profileError) {
+        console.error('Profile Error:', profileError);
+        await supabase.auth.signOut();
         throw new Error("Profile error. Please contact IT support.");
       }
 
-      // 3. Validate Admin Access
+      if (!profile) {
+        await supabase.auth.signOut();
+        throw new Error("No profile found. Please contact IT support.");
+      }
+
+      // 3. Validate Admin Access - STRICT CHECK
       const allowedRoles = ['admin', 'superadmin', 'registrar'];
+      
       if (!allowedRoles.includes(profile.role)) {
+        console.warn('Access denied for role:', profile.role);
         await supabase.auth.signOut();
         throw new Error("Access Denied: You are not an administrator.");
       }
 
-      // 4. Redirect to appropriate Dashboard based on role
-      navigate(`/${profile.role}/dashboard`);
+      console.log('✅ Admin access granted for role:', profile.role);
+
+      // 4. Redirect based on role - DIRECT NAVIGATION
+      switch (profile.role) {
+        case 'superadmin':
+          navigate('/superadmin/dashboard', { replace: true });
+          break;
+        case 'admin':
+        case 'registrar':
+        default:
+          navigate('/admin/dashboard', { replace: true });
+          break;
+      }
 
     } catch (err: any) {
-      setError(err.message);
+      console.error('❌ Admin Login Error:', err);
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

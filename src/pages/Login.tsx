@@ -51,30 +51,25 @@ export default function Login() {
         }
 
         // 3. Logic for Redirection
-        if (profile?.role === 'alumni') {
-           
-           if (profile.status === 'verified') {
-             // SUCCESS: Go to 2FA first, then Dashboard
-             console.log('🚀 Redirecting to 2FA...');
-             navigate('/alumni/2fa');
-           } else if (profile.status === 'pending_approval') {
-             // PENDING: Go to Waiting Room
-             console.log('⏳ Redirecting to pending approval...');
-             navigate('/pending-approval');
-           } else if (profile.status === 'rejected') {
-             // REJECTED: Show Error & Logout
-             await supabase.auth.signOut();
-             throw new Error("Your application was declined. Please contact the registrar.");
-           } else {
-             // NEW/UNKNOWN: Fallback to Onboarding
-             console.log('📝 Redirecting to onboarding...');
-             navigate('/onboarding');
-           }
+if (profile?.role === 'alumni') {
+    // ... existing alumni logic ...
+    if (profile.status === 'verified') navigate('/alumni/2fa');
+    else if (profile.status === 'pending_approval') navigate('/pending-approval');
+    else if (profile.status === 'rejected') {
+        await supabase.auth.signOut();
+        throw new Error("Your application was declined.");
+    } else {
+        navigate('/onboarding');
+    }
 
-        } else {
-           // Admins, Registrar, etc. (Direct access)
-           console.log(`🚀 Redirecting ${profile?.role} to dashboard...`);
-           navigate(`/${profile?.role}/dashboard`);
+} else {
+    // --- CONSOLIDATION FIX ---
+    // Both Admin and Registrar go to /admin/dashboard
+    if (profile?.role === 'admin' || profile?.role === 'registrar') {
+        navigate('/admin/dashboard'); 
+    } else if (profile?.role === 'superadmin') {
+        navigate('/superadmin/dashboard');
+    }
         }
       }
     } catch (err: any) {
