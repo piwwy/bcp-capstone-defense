@@ -1,35 +1,34 @@
-// src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// USE THE REAL AUTH CONTEXT
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Pages
+// --- PUBLIC PAGES ---
 import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
+import Login from './pages/Login'; 
 import Register from './pages/Register';
-import Alumni2FA from './pages/Alumni2FA';
+import AdminLogin from './pages/AdminLogin'; // Dedicated Admin Login
+import ApplicationSubmitted from './pages/ApplicationSubmitted';
 import PendingApproval from './pages/PendingApproval';
 import Onboarding from './pages/Onboarding';
-import VerificationPage from './pages/admin/VerificationPage';
-import AdminLogin from './pages/AdminLogin';
-import ApplicationSubmitted from './pages/ApplicationSubmitted';
+import Alumni2FA from './pages/Alumni2FA';
 
-// Admin Pages with Real Data
+// --- ADMIN PAGES ---
+import VerificationPage from './pages/admin/VerificationPage';
 import RegistrationApprovals from './pages/admin/Registrationapprovals';
 import AlumniDirectory from './pages/admin/Alumnidirectory';
 import AlumniProfiles from './pages/admin/Alumniprofiles';
-import AlumniRequests from './pages/admin/Alumnirequests';
 import AllAlumniRecords from './pages/admin/Allalumnirecords';
 
-// Dashboards (Imported from components)
-// Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
+// --- DASHBOARDS ---
 import AlumniDashboard from './components/dashboard/AlumniDashboard';
 import DashboardAdmin from './components/dashboard/DashboardAdmin';
 
-// Layouts
+// --- LAYOUTS ---
 import DashboardLayout from './layouts/DashboardLayout';
 
-// Protected Route Component
+// --- PROTECTED ROUTE (Real Security) ---
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -40,40 +39,40 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
+  // If not logged in, send to Login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
+  // Role-based Access Control
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    // If Admin tries to access Alumni pages, or vice versa
     switch (user.role) {
-      case 'superadmin':
-        return <Navigate to="/superadmin/dashboard" replace />;
-      case 'admin':
-        return <Navigate to="/admin/dashboard" replace />;
-      case 'registrar':
-        return <Navigate to="/registrar/dashboard" replace />;
-      case 'alumni':
-        return <Navigate to="/alumni/dashboard" replace />;
-      default:
-        return <Navigate to="/" replace />;
+      case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
+      case 'admin': return <Navigate to="/admin/dashboard" replace />;
+      case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
+      default: return <Navigate to="/" replace />;
     }
   }
 
   return <>{children}</>;
 };
 
-// Placeholder for other pages
-const PlaceholderDashboard: React.FC<{ title: string }> = ({ title }) => (
-  <div className="p-6">
-    <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
-      <h1 className="text-2xl font-bold text-gray-400 mb-2">{title}</h1>
-      <p className="text-gray-500">🚧 Module Under Construction 🚧</p>
+// --- PLACEHOLDER (For future Claude generation) ---
+const ModulePlaceholder: React.FC<{ title: string; module: string }> = ({ title, module }) => (
+  <div className="p-8">
+    <div className="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-16 text-center shadow-sm">
+      <h1 className="text-3xl font-bold text-gray-800 mb-2">{title}</h1>
+      <p className="text-gray-500 mb-6">Module: {module}</p>
+      <button className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+        Initialize Module
+      </button>
     </div>
   </div>
 );
@@ -81,151 +80,83 @@ const PlaceholderDashboard: React.FC<{ title: string }> = ({ title }) => (
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* --- PUBLIC ACCESS --- */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/alumni/2fa" element={<Alumni2FA />} />
-      <Route path="/pending-approval" element={<PendingApproval />} />
-      <Route path="/application-submitted" element={<ApplicationSubmitted />} />
-      <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/admin/login" element={<AdminLogin />} />
+      
+      {/* Registration Steps */}
+      <Route path="/application-submitted" element={<ApplicationSubmitted />} />
+      <Route path="/pending-approval" element={<PendingApproval />} />
+      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/alumni/2fa" element={<Alumni2FA />} />
 
-      {/* --- ADMIN ROUTES --- */}
-      <Route
-        path="/admin/*"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            {/* DashboardLayout will now show AdminSidebar because user.role is admin */}
-            <DashboardLayout>
-              <Routes>
-                {/* Fixed: Use the REAL DashboardAdmin component */}
-                <Route path="dashboard" element={<DashboardAdmin />} />
-                
-                {/* Alumni & Records - REAL COMPONENTS */}
-                <Route path="alumni/approvals" element={<RegistrationApprovals />} />
-                <Route path="alumni/directory" element={<AlumniDirectory />} />
-                <Route path="alumni/profiles" element={<AlumniProfiles />} />
-                <Route path="alumni/requests" element={<AlumniRequests />} />
-                <Route path="alumni/records" element={<AllAlumniRecords />} />
-                <Route path="alumni/verify" element={<VerificationPage />} />
-                <Route path="tracking/career" element={<PlaceholderDashboard title="Career Tracking" />} />
-                <Route path="tracking/outcomes" element={<PlaceholderDashboard title="Employment Outcomes" />} />
-                <Route path="tracking/cohorts" element={<PlaceholderDashboard title="Grad Cohorts" />} />
-                <Route path="jobs/board" element={<PlaceholderDashboard title="Job Board" />} />
-                <Route path="jobs/post" element={<PlaceholderDashboard title="Post a Job" />} />
-                <Route path="jobs/logs" element={<PlaceholderDashboard title="Placement Logs" />} />
-                <Route path="events/calendar" element={<PlaceholderDashboard title="Events Calendar" />} />
-                <Route path="events/create" element={<PlaceholderDashboard title="Create Event" />} />
-                <Route path="events/attendance" element={<PlaceholderDashboard title="Attendance" />} />
-                <Route path="events/upcoming" element={<PlaceholderDashboard title="Upcoming Events" />} />
-                <Route path="events/attendance-logs" element={<PlaceholderDashboard title="Attendance Logs" />} />
-                <Route path="campaigns" element={<PlaceholderDashboard title="Campaigns" />} />
-                <Route path="donations" element={<PlaceholderDashboard title="Donations" />} />
-                <Route path="donor/ledger" element={<PlaceholderDashboard title="Donor Ledger" />} />
-                <Route path="newsletter" element={<PlaceholderDashboard title="Newsletter" />} />
-                <Route path="mailinglists" element={<PlaceholderDashboard title="Mailing Lists" />} />
-                <Route path="announcements" element={<PlaceholderDashboard title="Announcements" />} />
-                <Route path="email" element={<PlaceholderDashboard title="Email Alumni" />} />
-                <Route path="notifications" element={<PlaceholderDashboard title="Bulk Notifications" />} />
-                <Route path="surveys" element={<PlaceholderDashboard title="Surveys" />} />
-                <Route path="surveys/responses" element={<PlaceholderDashboard title="Survey Responses" />} />
-                <Route path="surveys/insights" element={<PlaceholderDashboard title="Survey Insights" />} />
-                <Route path="reports/alumni" element={<PlaceholderDashboard title="Alumni Reports" />} />
-                <Route path="reports/analytics" element={<PlaceholderDashboard title="Tracking Analytics" />} />
-                <Route path="reports/exports" element={<PlaceholderDashboard title="Data Exports" />} />
-                <Route path="reports/certificates" element={<PlaceholderDashboard title="Certificates" />} />
 
-                
-                {/* Catch all for Admin */}
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-              </Routes>
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+      {/* =========================================================
+          ADMIN PORTAL (Real Data)
+         ========================================================= */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <DashboardLayout>
+            <Routes>
+              <Route path="dashboard" element={<DashboardAdmin />} />
 
-      {/* --- SUPER ADMIN ROUTES --- */}
-      <Route
-        path="/superadmin/*"
-        element={
-          <ProtectedRoute allowedRoles={['superadmin']}>
-            <DashboardLayout>
-              <Routes>
-                <Route path="dashboard" element={<PlaceholderDashboard title="Super Admin Dashboard" />} />
-                <Route path="users" element={<PlaceholderDashboard title="All Users" />} />
-                <Route path="users/admins" element={<PlaceholderDashboard title="Admin Accounts" />} />
-                <Route path="users/alumni" element={<PlaceholderDashboard title="Alumni Accounts" />} />
-                <Route path="roles" element={<PlaceholderDashboard title="Roles & Permissions" />} />
-                <Route path="logs" element={<PlaceholderDashboard title="Audit Logs" />} />
-                <Route path="analytics" element={<PlaceholderDashboard title="System Analytics" />} />
-                <Route path="reports" element={<PlaceholderDashboard title="Generated Reports" />} />
-                <Route path="database" element={<PlaceholderDashboard title="Backup & Restore" />} />
-                <Route path="config" element={<PlaceholderDashboard title="System Settings" />} />
-                <Route path="account" element={<PlaceholderDashboard title="Account Settings" />} />
-                <Route path="notifications" element={<PlaceholderDashboard title="Notifications" />} />
-                <Route path="*" element={<Navigate to="/superadmin/dashboard" replace />} />
-              </Routes>
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+              {/* Alumni Management */}
+              <Route path="alumni/verify" element={<VerificationPage />} />
+              <Route path="alumni/approvals" element={<RegistrationApprovals />} />
+              <Route path="alumni/directory" element={<AlumniDirectory />} />
+              <Route path="alumni/profiles" element={<AlumniProfiles />} />
+              <Route path="alumni/records" element={<AllAlumniRecords />} />
 
-      {/* --- REGISTRAR ROUTES --- */}
-      <Route
-        path="/registrar/*"
-        element={
-          <ProtectedRoute allowedRoles={['registrar']}>
-            <DashboardLayout>
-              <Routes>
-                <Route path="dashboard" element={<PlaceholderDashboard title="Registrar Dashboard" />} />
-                <Route path="students" element={<PlaceholderDashboard title="All Students" />} />
-                <Route path="graduates" element={<PlaceholderDashboard title="Graduates" />} />
-                <Route path="search" element={<PlaceholderDashboard title="Search Records" />} />
-                <Route path="verification/pending" element={<PlaceholderDashboard title="Pending Requests" />} />
-                <Route path="verification/verified" element={<PlaceholderDashboard title="Verified Alumni" />} />
-                <Route path="verification/rejected" element={<PlaceholderDashboard title="Rejected" />} />
-                <Route path="documents/transcripts" element={<PlaceholderDashboard title="Transcript Requests" />} />
-                <Route path="documents/certificates" element={<PlaceholderDashboard title="Certificate Requests" />} />
-                <Route path="documents/history" element={<PlaceholderDashboard title="Document History" />} />
-                <Route path="graduation/batches" element={<PlaceholderDashboard title="Batch Records" />} />
-                <Route path="graduation/analytics" element={<PlaceholderDashboard title="Cohort Analytics" />} />
-                <Route path="*" element={<Navigate to="/registrar/dashboard" replace />} />
-              </Routes>
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+              {/* Modules ready for Claude */}
+              <Route path="tracking/career" element={<ModulePlaceholder title="Career Tracking" module="Admin" />} />
+              <Route path="tracking/analytics" element={<ModulePlaceholder title="Employment Analytics" module="Admin" />} />
+              <Route path="jobs/board" element={<ModulePlaceholder title="Manage Job Board" module="Admin" />} />
+              <Route path="jobs/post" element={<ModulePlaceholder title="Post New Job" module="Admin" />} />
+              <Route path="events/calendar" element={<ModulePlaceholder title="Events Calendar" module="Admin" />} />
+              <Route path="reports" element={<ModulePlaceholder title="System Reports" module="Admin" />} />
 
-      {/* --- ALUMNI ROUTES --- */}
-      <Route
-        path="/alumni/*"
-        element={
-          <ProtectedRoute allowedRoles={['alumni']}>
-            {/* DashboardLayout will now show AlumniSidebar */}
-            <DashboardLayout>
-              <Routes>
-                {/* Fixed: Use the REAL AlumniDashboard component */}
-                <Route path="dashboard" element={<AlumniDashboard />} />
-                
-                <Route path="profile" element={<PlaceholderDashboard title="View Profile" />} />
-                <Route path="profile/update" element={<PlaceholderDashboard title="Update Request" />} />
-                <Route path="jobs" element={<PlaceholderDashboard title="Job Board" />} />
-                <Route path="applied" element={<PlaceholderDashboard title="Applied Jobs" />} />
-                <Route path="events/upcoming" element={<PlaceholderDashboard title="Upcoming Events" />} />
-                <Route path="events/attendance" element={<PlaceholderDashboard title="My Attendance" />} />
-                <Route path="feedback" element={<PlaceholderDashboard title="Send Feedback" />} />
-                <Route path="reports" element={<PlaceholderDashboard title="Reports" />} />
-                <Route path="certificates" element={<PlaceholderDashboard title="Certificates" />} />
-                <Route path="documents/request" element={<PlaceholderDashboard title="Request Form" />} />
-                <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />
-              </Routes>
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            </Routes>
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
 
-      {/* Catch-all redirect */}
+      {/* =========================================================
+          SUPER ADMIN PORTAL
+         ========================================================= */}
+      <Route path="/superadmin/*" element={
+        <ProtectedRoute allowedRoles={['superadmin']}>
+          <DashboardLayout>
+            <Routes>
+              <Route path="dashboard" element={<ModulePlaceholder title="Super Admin Dashboard" module="SuperAdmin" />} />
+              <Route path="users/admins" element={<ModulePlaceholder title="Manage Admins" module="SuperAdmin" />} />
+              <Route path="settings" element={<ModulePlaceholder title="System Settings" module="SuperAdmin" />} />
+              <Route path="*" element={<Navigate to="/superadmin/dashboard" replace />} />
+            </Routes>
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+
+      {/* =========================================================
+          ALUMNI PORTAL
+         ========================================================= */}
+      <Route path="/alumni/*" element={
+        <ProtectedRoute allowedRoles={['alumni']}>
+          <DashboardLayout>
+            <Routes>
+              <Route path="dashboard" element={<AlumniDashboard />} />
+              <Route path="profile" element={<ModulePlaceholder title="My Profile" module="Alumni" />} />
+              <Route path="jobs" element={<ModulePlaceholder title="Job Opportunities" module="Alumni" />} />
+              <Route path="events" element={<ModulePlaceholder title="Upcoming Events" module="Alumni" />} />
+              <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />
+            </Routes>
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
