@@ -94,7 +94,7 @@ const Navbar: React.FC = () => {
               Log In
             </Link>
             <Link
-              to="/register"
+              to="/signup-options" 
               className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-blue-500/25"
             >
               Sign Up
@@ -142,7 +142,7 @@ const Navbar: React.FC = () => {
                 Log In
               </Link>
               <Link
-                to="/register"
+                to="/signup-options"
                 className="w-full px-4 py-3 text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold"
               >
                 Sign Up

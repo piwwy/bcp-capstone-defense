@@ -13,6 +13,7 @@ import Onboarding from './pages/Onboarding';
 import VerificationPage from './pages/admin/VerificationPage';
 import AdminLogin from './pages/AdminLogin';
 import ApplicationSubmitted from './pages/ApplicationSubmitted';
+import SignUpOptions from './pages/SignUpOptions';
 
 // Dashboards (Imported from components)
 // Siguraduhin na na-save mo yung Dashboard files na binigay ko kanina
@@ -83,6 +84,7 @@ function AppRoutes() {
       <Route path="/application-submitted" element={<ApplicationSubmitted />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/signup-options" element={<SignUpOptions />} />
 
       {/* --- ADMIN ROUTES --- */}
       <Route

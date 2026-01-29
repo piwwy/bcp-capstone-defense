@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { 
   BookOpen, GraduationCap, Users,
-  UserCheck, ShieldCheck, LogOut, RefreshCw, X, Check, Lock 
+  UserCheck, ShieldCheck, LogOut, RefreshCw, X, Check, Lock, AlertCircle 
 } from 'lucide-react';
 
 const Onboarding: React.FC = () => {
@@ -11,7 +11,11 @@ const Onboarding: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Preview Name State (Para sa Card display)
+  // Checkbox State
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Preview Name State
   const [previewName, setPreviewName] = useState('');
 
   // Form Data
@@ -33,7 +37,7 @@ const Onboarding: React.FC = () => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate('/register'); 
+        navigate('/login'); 
       } else {
         setUser(user);
         
@@ -54,6 +58,7 @@ const Onboarding: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
     // Strict Input Validation
     if (['officialFirstName', 'officialMiddleName', 'officialLastName', 'officialSuffix', 'adviserName'].includes(name)) {
       if (value !== '' && !/^[a-zA-Z\s.-]*$/.test(value)) return; 
@@ -64,7 +69,6 @@ const Onboarding: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Function para i-update ang Preview Card manually
   const handleUpdatePreview = () => {
     const { officialFirstName, officialMiddleName, officialLastName, officialSuffix } = formData;
     const constructedName = `${officialFirstName} ${officialMiddleName} ${officialLastName} ${officialSuffix}`.replace(/\s+/g, ' ').trim();
@@ -73,11 +77,19 @@ const Onboarding: React.FC = () => {
 
   const handleCancelEdit = () => {
     setFormData(prev => ({ ...prev, isNameCorrect: true }));
-    setPreviewName(user.user_metadata.full_name); // Reset to Google Name
+    setPreviewName(user.user_metadata.full_name || ''); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
+    
+    // 1. Validation for Privacy Act
+    if (!agreedToPrivacy) {
+        setErrorMsg('You must agree to the Data Privacy Act to proceed.');
+        return;
+    }
+
     setLoading(true);
     if (!user) return;
 
@@ -85,35 +97,43 @@ const Onboarding: React.FC = () => {
       const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
 
       const profileData = {
-        id: user.id,
-        first_name: formData.isNameCorrect ? user.user_metadata.full_name?.split(' ')[0] : formData.officialFirstName,
-        last_name: formData.isNameCorrect ? user.user_metadata.full_name?.split(' ').slice(1).join(' ') : formData.officialLastName,
+        first_name: formData.isNameCorrect ? (user.user_metadata.full_name?.split(' ')[0] || formData.officialFirstName) : formData.officialFirstName,
+        last_name: formData.isNameCorrect ? (user.user_metadata.full_name?.split(' ').slice(1).join(' ') || formData.officialLastName) : formData.officialLastName,
         middle_name: formData.officialMiddleName || null,
-        email: user.email,
+        suffix: formData.officialSuffix || null,
         batch_year: formData.batchYear,
         course: formData.course,
         student_id: formData.studentId || null,
         verification_answer: combinedVerification, 
         role: 'alumni',
-        status: 'pending_approval',
-        avatar_url: user.user_metadata.avatar_url 
+        status: 'pending_approval', // Ensure status is set to pending
+        updated_at: new Date()
       };
 
-      const { error } = await supabase.from('profiles').upsert([profileData]); 
+      // 2. Perform Update (Not Upsert, because trigger created the row)
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', user.id);
+
       if (error) throw error;
+      
+      // 3. Success Redirect
+      console.log("Success! Redirecting to pending approval...");
       navigate('/pending-approval');
 
     } catch (error: any) {
       console.error("Onboarding Error:", error);
-      alert("Error saving profile: " + error.message);
+      setErrorMsg("Error saving profile: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
+    // Explicitly sign out and force redirect
     await supabase.auth.signOut();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   if (!user) return null; 
@@ -127,29 +147,32 @@ const Onboarding: React.FC = () => {
         
         {/* --- BLUE HEADER --- */}
         <div className="relative h-44 bg-gradient-to-r from-blue-900 to-blue-800 overflow-hidden">
-           {/* Subtle Patterns */}
            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-16 blur-2xl" />
            
-           {/* Top Row: Logo & Logout */}
-           <div className="relative z-10 flex justify-between items-start p-6">
+           {/* Top Row: Logo & Logout (FIXED Z-INDEX & TYPE) */}
+           <div className="relative z-20 flex justify-between items-start p-6">
              <div className="flex items-center gap-2 text-white/90">
                 <img src="/images/Linker College Of The Philippines.png" alt="Logo" className="w-8 h-8 object-contain" />
                 <span className="font-bold tracking-wide text-xs uppercase opacity-90">LCP Alumni</span>
              </div>
-             <button onClick={handleLogout} className="text-white/70 hover:text-white flex items-center gap-1.5 text-xs transition-colors hover:bg-white/10 px-3 py-1.5 rounded-full">
+             
+             {/* Logout Button Fixed */}
+             <button 
+                type="button"
+                onClick={handleLogout} 
+                className="text-white/70 hover:text-white flex items-center gap-1.5 text-xs transition-colors hover:bg-white/10 px-3 py-1.5 rounded-full cursor-pointer"
+             >
                <LogOut className="w-3.5 h-3.5" /> Sign Out
              </button>
            </div>
         </div>
 
-        {/* --- PROFILE SECTION (Fixed Alignment) --- */}
-        <div className="relative px-8 flex items-end gap-5 -mt-16 mb-8">
-           {/* Profile Picture */}
+        {/* --- PROFILE SECTION --- */}
+        <div className="relative px-8 flex items-end gap-5 -mt-16 mb-8 pointer-events-none">
            <div className="w-28 h-28 rounded-full border-[5px] border-white shadow-xl overflow-hidden bg-white z-10 flex-shrink-0">
               <img src={userImage} alt="User" className="w-full h-full object-cover" />
            </div>
 
-           {/* Name & Greeting (Adjusted to avoid overflow) */}
            <div className="pb-1 z-10 flex-1 flex flex-col justify-end h-28 min-w-0">
              <h1 className="text-2xl font-bold text-gray-900 leading-tight truncate">
                Hi, {user.user_metadata.full_name?.split(' ')[0]}!
@@ -160,25 +183,28 @@ const Onboarding: React.FC = () => {
 
         {/* --- FORM BODY --- */}
         <div className="px-8 pb-4">
+          
+          {errorMsg && (
+              <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4" /> {errorMsg}
+              </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-8">
             
             {/* 1. Name Verification Card */}
             <div className={`border rounded-xl p-6 shadow-sm relative overflow-hidden transition-all duration-300 ${!formData.isNameCorrect ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white'}`}>
-               
-               {/* Question Header */}
                <div className="flex items-start gap-3 mb-5">
                  <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
                     <UserCheck className="w-5 h-5" />
                  </div>
                  <div>
                    <h3 className="text-sm font-bold text-gray-900">Name Verification</h3>
-                   <p className="text-xs text-gray-500 mt-1">
-                     Does this name match your school records?
-                   </p>
+                   <p className="text-xs text-gray-500 mt-1">Does this name match your school records?</p>
                  </div>
                </div>
 
-               {/* PREVIEW CARD (Updates dynamically) */}
+               {/* PREVIEW CARD */}
                <div className="flex items-center gap-4 p-4 rounded-xl border bg-white border-gray-200 shadow-sm mb-6">
                   <img src={userImage} className="w-10 h-10 rounded-full border border-gray-100" alt="Profile" />
                   <div className="flex-1 min-w-0">
@@ -188,33 +214,27 @@ const Onboarding: React.FC = () => {
                   <div className="text-blue-600"><ShieldCheck className="w-5 h-5" /></div>
                </div>
 
-               {/* Radio Options (Fixed Selection Color) */}
+               {/* Radio Options */}
                {formData.isNameCorrect ? (
                  <div className="flex gap-6 pl-1 animate-in fade-in">
                     <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${formData.isNameCorrect ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`}>
-                        {formData.isNameCorrect && <div className="w-2 h-2 bg-white rounded-full" />}
-                      </div>
                       <input 
                         type="radio" 
                         name="isNameCorrect" 
                         checked={formData.isNameCorrect} 
                         onChange={() => setFormData({...formData, isNameCorrect: true})}
-                        className="sr-only"
+                        className="text-blue-600 focus:ring-blue-500"
                       />
                       <span className="font-medium text-gray-700">Yes, it matches</span>
                     </label>
 
                     <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${!formData.isNameCorrect ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`}>
-                        {!formData.isNameCorrect && <div className="w-2 h-2 bg-white rounded-full" />}
-                      </div>
                       <input 
                         type="radio" 
                         name="isNameCorrect" 
                         checked={!formData.isNameCorrect} 
                         onChange={() => setFormData({...formData, isNameCorrect: false})}
-                        className="sr-only"
+                        className="text-blue-600 focus:ring-blue-500"
                       />
                       <span className="font-medium text-gray-700 group-hover:text-blue-600">No, I'll edit it</span>
                     </label>
@@ -241,7 +261,6 @@ const Onboarding: React.FC = () => {
                        </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-3">
                       <button 
                         type="button" 
@@ -308,8 +327,25 @@ const Onboarding: React.FC = () => {
               </div>
             </div>
 
+            {/* 4. DATA PRIVACY CHECKBOX (NEW) */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+               <div className="flex items-start gap-3">
+                 <input 
+                    type="checkbox" 
+                    id="dpaCheck"
+                    checked={agreedToPrivacy}
+                    onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                    className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                 />
+                 <label htmlFor="dpaCheck" className="text-sm text-gray-600 leading-relaxed cursor-pointer select-none">
+                    I agree to the collection and processing of my personal data in compliance with the 
+                    <strong className="text-gray-800"> Data Privacy Act of 2012 (RA 10173)</strong> for alumni verification and school record purposes only.
+                 </label>
+               </div>
+            </div>
+
             {/* Submit Button */}
-            <div className="pt-6">
+            <div className="pt-2">
               <button 
                 type="submit" 
                 disabled={loading}
@@ -322,16 +358,12 @@ const Onboarding: React.FC = () => {
           </form>
         </div>
 
-        {/* --- FOOTER: DPA 2012 --- */}
+        {/* --- FOOTER --- */}
         <div className="bg-slate-50 border-t border-slate-200 p-6 text-center">
            <div className="flex items-center justify-center gap-2 text-gray-400 mb-2">
               <Lock className="w-3 h-3" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Data Privacy Protected</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Secure Connection</span>
            </div>
-           <p className="text-[10px] text-gray-500 leading-relaxed max-w-md mx-auto">
-             By proceeding, you agree to the collection and processing of your personal data in compliance with the 
-             <strong> Data Privacy Act of 2012 (RA 10173)</strong> for alumni verification and school record purposes only.
-           </p>
         </div>
 
       </div>

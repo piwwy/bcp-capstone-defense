@@ -196,9 +196,9 @@ export default function Login() {
           <div className="mt-8 text-center space-y-4">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 font-semibold hover:underline">
-                Create one now
-              </Link>
+              <Link to="/signup-options" className="text-blue-600 font-semibold hover:underline">
+  Create one now
+</Link>
             </p>
             
             <Link to="/" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
