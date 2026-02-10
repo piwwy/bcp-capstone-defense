@@ -1,0 +1,700 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
+import {
+  User, BookOpen, Lock, ChevronRight, ChevronLeft,
+  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, CheckCircle2, AlertTriangle, Loader2, RefreshCw, Eye, EyeOff, Copy, Check
+} from 'lucide-react';
+
+// Types for validation errors
+type Errors = { [key: string]: string };
+
+// --- REUSABLE INPUT COMPONENT ---
+interface InputFieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: { value: string | number; label: string | number }[];
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  error?: string;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  label, name, type = "text", placeholder, required = false, options = [], value, onChange, onBlur, error
+}) => {
+  const isError = !!error;
+
+  return (
+    <div className="space-y-1.5 min-h-[85px]">
+      <label className="text-sm font-semibold text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+
+      {type === 'select' ? (
+        <div className="relative">
+          <select
+            name={name}
+            value={value}
+            onChange={onChange}
+            className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none ${isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+              }`}
+          >
+            <option value="">Select {label}</option>
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
+            <ChevronRight className="w-4 h-4 rotate-90" />
+          </div>
+        </div>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          placeholder={placeholder}
+          maxLength={name === 'mobile' ? 11 : undefined}
+          className={`w-full p-3 border rounded-lg outline-none transition-all ${isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+            }`}
+        />
+      )}
+
+      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
+        <AlertCircle className="w-3 h-3" /> {error || "Error"}
+      </div>
+    </div>
+  );
+};
+
+const Register: React.FC = () => {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string } | null>(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // --- MATH CAPTCHA STATE ---
+  const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
+  const [captchaInput, setCaptchaInput] = useState('');
+
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
+
+  const generateCaptcha = () => {
+    const n1 = Math.floor(Math.random() * 10) + 1;
+    const n2 = Math.floor(Math.random() * 10) + 1;
+    setCaptcha({ num1: n1, num2: n2, answer: (n1 + n2).toString() });
+    setCaptchaInput('');
+  };
+
+  const showToast = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    setToast({ show: true, type, title, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // Form Data
+  const [formData, setFormData] = useState({
+    firstName: '', lastName: '', middleName: '', suffix: '',
+    birthday: '', email: '', mobile: '',
+    password: '', confirmPassword: '',
+    batchYear: '', course: '',
+    adviserName: '', section: '', studentId: '',
+    agreedToPrivacy: false,
+  });
+
+  const [errors, setErrors] = useState<Errors>({});
+  const [passStrength, setPassStrength] = useState(0);
+  const [passFeedback, setPassFeedback] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [copiedChar, setCopiedChar] = useState('');
+
+  useEffect(() => {
+    const p = formData.password;
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    setPassStrength(score);
+    if (score === 0) setPassFeedback('');
+    else if (score <= 2) setPassFeedback('Weak');
+    else if (score === 3) setPassFeedback('Fair');
+    else setPassFeedback('Strong');
+  }, [formData.password]);
+
+  // Regex patterns for strict validation
+  const NAME_REGEX = /^[A-Za-zÑñ\s.'-]*$/;  // Letters, ñ, spaces, dots, hyphens, apostrophes
+  const DIGITS_ONLY = /^[0-9]*$/;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+
+    // Handle checkbox separately
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({ ...prev, [name]: checked }));
+      if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+      return;
+    }
+
+    // STRICT INPUT FILTERING
+    // Name fields: block numbers
+    if (['firstName', 'lastName', 'middleName', 'suffix', 'adviserName'].includes(name)) {
+      if (!NAME_REGEX.test(value)) return; // silently block invalid chars
+    }
+
+    // Mobile & Section: digits only
+    if (name === 'mobile' || name === 'section' || name === 'studentId') {
+      if (!DIGITS_ONLY.test(value)) return;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  // ñ/Ñ copy helper
+  const handleCopyChar = (char: string) => {
+    navigator.clipboard.writeText(char);
+    setCopiedChar(char);
+    setTimeout(() => setCopiedChar(''), 1500);
+  };
+
+  const checkEmailAvailability = async () => {
+    if (!formData.email || !formData.email.includes('@')) return;
+    try {
+      const { data } = await supabase.from('profiles').select('id').eq('email', formData.email).single();
+      if (data) {
+        setErrors(prev => ({ ...prev, email: "This email is already registered." }));
+        showToast('warning', 'Email Taken', 'This email is already linked to an account.');
+      }
+    } catch (err) {
+      // Email is available
+    }
+  };
+
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: Errors = {};
+    let isValid = true;
+
+    if (currentStep === 1) {
+      if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
+      if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
+      if (!formData.birthday) newErrors.birthday = 'Birthday is required';
+      if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
+      else if (formData.mobile.length !== 11) newErrors.mobile = 'Mobile number must be 11 digits';
+    }
+
+    if (currentStep === 2) {
+      if (!formData.course) newErrors.course = 'Please select a course';
+      if (!formData.batchYear) newErrors.batchYear = 'Please select a batch year';
+      if (!formData.adviserName.trim()) newErrors.adviserName = 'Adviser name is required';
+      if (!formData.section.trim()) newErrors.section = 'Section is required';
+    }
+
+    if (currentStep === 3) {
+      if (!formData.email.trim()) newErrors.email = 'Email is required';
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
+      if (!formData.password) newErrors.password = 'Password is required';
+      else if (passStrength < 3) newErrors.password = 'Password is too weak';
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+      if (!formData.agreedToPrivacy) newErrors.agreedToPrivacy = 'You must agree to the Data Privacy Policy';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      isValid = false;
+    }
+    return isValid;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) setStep((prev) => prev + 1);
+  };
+
+  const handleBack = () => setStep((prev) => prev - 1);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Validate Step 3 first
+    if (!validateStep(3)) return;
+
+    // Math Captcha Check
+    if (captchaInput !== captcha.answer) {
+      showToast('error', 'Wrong Captcha', 'Please solve the math problem correctly.');
+      generateCaptcha();
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Step 1: Check if a profile with this email already exists (could be from Google/LinkedIn OAuth)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('email, auth_provider, status')
+        .eq('email', formData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        if (existingProfile.auth_provider === 'google' || existingProfile.auth_provider === 'linkedin') {
+          throw new Error(`This email is already linked to a ${existingProfile.auth_provider === 'google' ? 'Google' : 'LinkedIn'} account. Please log in using that provider instead.`);
+        }
+        throw new Error("This email is already registered. Please log in instead.");
+      }
+
+      // Step 2: Register with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+          }
+        }
+      });
+
+      if (authError) {
+        if (authError.message?.includes('already registered') || authError.status === 422) {
+          throw new Error('This email already has an account. Please log in instead.');
+        }
+        throw authError;
+      }
+
+      // Step 3: Check if the user identity was actually created (not a phantom response)
+      if (!authData.user || authData.user.identities?.length === 0) {
+        throw new Error('This email already has an account. Please log in instead.');
+      }
+
+      // Brief delay to let Supabase trigger (handle_new_user) finish creating partial profile
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Step 4: Create/update the profile with full form data
+      console.log('[Register] Creating profile for user:', authData.user.id);
+      const profilePayload = {
+        id: authData.user.id,
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        middle_name: formData.middleName || null,
+        suffix: formData.suffix || null,
+        birthday: formData.birthday,
+        mobile_number: formData.mobile,
+        batch_year: String(formData.batchYear),
+        course: formData.course,
+        student_id: formData.studentId || null,
+        verification_answer: `Adviser: ${formData.adviserName} | Section: ${formData.section}`,
+        role: 'alumni',
+        status: 'pending_approval',
+        auth_provider: 'email',
+        avatar_url: `https://ui-avatars.com/api/?name=${formData.firstName}+${formData.lastName}&background=random`
+      };
+
+      // Use upsert: Supabase may have a trigger (handle_new_user) that auto-creates
+      // a partial profile on signUp. Upsert ensures we UPDATE that row with full form data.
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([profilePayload], { onConflict: 'id' });
+
+      if (profileError) {
+        throw new Error(`Database Error: ${profileError.message}`);
+      }
+
+      await supabase.auth.signOut();
+      showToast('success', 'Application Submitted!', 'Redirecting...');
+      setTimeout(() => {
+        navigate('/pending-approval');
+      }, 1500);
+
+    } catch (error: any) {
+      if (error.message?.includes('already') || error.message?.includes('linked') || error.status === 422) {
+        showToast('error', 'Account Exists', error.message || 'This email is taken. Please Log In.');
+      } else {
+        showToast('error', 'Registration Failed', error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Toast Notification */}
+      {toast && toast.show && (
+        <div className={`fixed top-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl border animate-in slide-in-from-right duration-300 max-w-sm w-full bg-white ${toast.type === 'success' ? 'border-green-500' :
+          toast.type === 'warning' ? 'border-yellow-500' :
+            'border-red-500'
+          }`}>
+          <div className={`mt-0.5 ${toast.type === 'success' ? 'text-green-600' :
+            toast.type === 'warning' ? 'text-yellow-600' :
+              'text-red-600'
+            }`}>
+            {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> :
+              toast.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
+                <X className="w-5 h-5" />}
+          </div>
+          <div>
+            <h4 className={`text-sm font-bold ${toast.type === 'success' ? 'text-green-800' :
+              toast.type === 'warning' ? 'text-yellow-800' :
+                'text-red-800'
+              }`}>{toast.title}</h4>
+            <p className="text-xs text-gray-600 mt-1">{toast.message}</p>
+          </div>
+          <button onClick={() => setToast(null)} className="ml-auto text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
+
+        {/* Left Side (Dark Blue Card) */}
+        <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
+          <div className="relative z-10 flex-1">
+            <Link to="/" className="flex items-center gap-3 mb-6 md:mb-10">
+              <img src="/images/Linker College Of The Philippines.png" alt="LCP Logo" className="w-12 h-12 object-contain" />
+              <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
+            </Link>
+            <div className="mb-8 md:mb-0">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Welcome Home.</h2>
+              <p className="text-blue-200 text-sm leading-relaxed">Join the official alumni network. Verify your records securely.</p>
+            </div>
+
+            <div className="relative z-10 mt-6 md:mt-16 flex md:flex-col justify-between md:justify-start gap-0 md:gap-8">
+              <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-800 -z-10 md:w-0.5 md:h-full md:left-5 md:top-0 md:right-auto"></div>
+              {[
+                { id: 1, title: 'Personal', icon: User },
+                { id: 2, title: 'Academic', icon: BookOpen },
+                { id: 3, title: 'Security', icon: Lock },
+              ].map((s) => {
+                const isActive = step === s.id;
+                const isCompleted = step > s.id;
+                return (
+                  <div key={s.id} className={`flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 transition-all duration-300 ${isActive ? 'md:translate-x-2' : ''}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 relative z-10 bg-gray-900 
+                       ${isActive ? 'border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-110' : isCompleted ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-700 text-gray-500'}`}>
+                      {isCompleted ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                    </div>
+                    <div className={`flex flex-col items-center md:items-start ${isActive ? 'opacity-100' : 'opacity-60'} hidden md:flex`}>
+                      <span className="text-sm font-bold uppercase tracking-wider">{s.title}</span>
+                      <span className="text-xs text-gray-400">Step {s.id}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20" />
+        </div>
+
+        {/* Right Side: Form Area */}
+        <div className="md:w-2/3 p-6 md:p-12 bg-gray-50 flex flex-col">
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-gray-900">
+              {step === 1 && "Basic Information"}
+              {step === 2 && "Verification Details"}
+              {step === 3 && "Account Security"}
+            </h3>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
+            <div className="space-y-4">
+
+              {/* STEP 1 */}
+              {step === 1 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  {/* ñ/Ñ Helper */}
+                  <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                    <span className="text-xs text-amber-700 font-medium">May ñ/Ñ sa name mo?</span>
+                    <button type="button" onClick={() => handleCopyChar('ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'ñ' ? 'bg-green-500 text-white' : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'}`}>
+                      {copiedChar === 'ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'ñ'}
+                    </button>
+                    <button type="button" onClick={() => handleCopyChar('Ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'Ñ' ? 'bg-green-500 text-white' : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'}`}>
+                      {copiedChar === 'Ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'Ñ'}
+                    </button>
+                    <span className="text-[10px] text-amber-500 ml-1">Click to copy, then paste (Ctrl+V)</span>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} error={errors.firstName} required placeholder="Letters only" />
+                    <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} error={errors.lastName} required placeholder="Letters only" />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Optional (letters only)" />
+                    <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} placeholder="Jr., III, etc." />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField type="date" label="Birthday" name="birthday" value={formData.birthday} onChange={handleChange} error={errors.birthday} required />
+                    <InputField type="tel" label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} error={errors.mobile} required placeholder="09xxxxxxxxx (digits only)" />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2 */}
+              {step === 2 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex gap-3 mb-2">
+                    <HelpCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <p className="text-xs text-blue-800 leading-relaxed">
+                      <strong>Manual Verification:</strong> Our Registrar will check your details against the physical records.
+                    </p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+
+                    <InputField
+                      type="select"
+                      label="Course"
+                      name="course"
+                      required
+                      value={formData.course}
+                      onChange={handleChange}
+                      error={errors.course}
+                      options={[
+                        { value: 'BSIT', label: 'BS Information Technology' },
+                        { value: 'BSCS', label: 'BS Computer Science' },
+                        { value: 'BSBA', label: 'BS Business Administration' },
+                        { value: 'BSHM', label: 'BS Hospitality Management' },
+                        { value: 'BSTM', label: 'BS Tourism Management' },
+                        { value: 'BSOA', label: 'BS Office Administration' },
+                        { value: 'BSCrim', label: 'BS Criminology' },
+                        { value: 'BSEd', label: 'BS Education' },
+                        { value: 'BSPsych', label: 'BS Psychology' },
+                        { value: 'BSA', label: 'BS Accountancy' },
+                        { value: 'BSEntrep', label: 'BS Entrepreneurship' },
+                        { value: 'BSRealEstate', label: 'BS Real Estate Management' },
+                        { value: 'BSCustoms', label: 'BS Customs Administration' },
+                      ]}
+                    />
+                    <InputField
+                      type="select"
+                      label="Year Graduated"
+                      name="batchYear"
+                      required
+                      value={formData.batchYear}
+                      onChange={handleChange}
+                      error={errors.batchYear}
+                      options={Array.from({ length: 31 }, (_, i) => ({ value: 2026 - i, label: 2026 - i }))}
+                    />
+                  </div>
+                  <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} placeholder="Optional — digits only (e.g. 1900123)" />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
+                    <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} error={errors.section} required placeholder="Digits only (e.g. 4101)" />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 */}
+              {step === 3 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} onBlur={checkEmailAvailability} error={errors.email} required placeholder="active@email.com" />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 min-h-[85px]">
+                      <label className="text-sm font-semibold text-gray-700">Password <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className={`w-full p-3 pr-10 border rounded-lg outline-none transition-all ${errors.password ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'}`}
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${errors.password ? 'opacity-100' : 'opacity-0'}`}>
+                        <AlertCircle className="w-3 h-3" /> {errors.password || "Error"}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 min-h-[85px]">
+                      <label className="text-sm font-semibold text-gray-700">Confirm Password <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          className={`w-full p-3 pr-10 border rounded-lg outline-none transition-all ${errors.confirmPassword ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'}`}
+                        />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${errors.confirmPassword ? 'opacity-100' : 'opacity-0'}`}>
+                        <AlertCircle className="w-3 h-3" /> {errors.confirmPassword || "Error"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PASSWORD REQUIREMENTS CHECKLIST */}
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Password Requirements</p>
+                    {[
+                      { label: 'At least 8 characters', met: formData.password.length >= 8 },
+                      { label: 'At least 1 uppercase letter (A-Z)', met: /[A-Z]/.test(formData.password) },
+                      { label: 'At least 1 lowercase letter (a-z)', met: /[a-z]/.test(formData.password) },
+                      { label: 'At least 1 number (0-9)', met: /[0-9]/.test(formData.password) },
+                      { label: 'At least 1 special character (!@#$%...)', met: /[^A-Za-z0-9]/.test(formData.password) },
+                    ].map((req, i) => (
+                      <div key={i} className={`flex items-center gap-2 text-xs font-medium transition-colors ${req.met ? 'text-green-600' : 'text-gray-400'}`}>
+                        {req.met ? <CheckCircle2 className="w-3.5 h-3.5" /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300" />}
+                        {req.label}
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
+                      <span className="text-xs text-gray-500 font-semibold">Strength:</span>
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-300 ${passStrength === 0 ? 'w-0' : passStrength <= 2 ? 'w-1/3 bg-red-500' : passStrength === 3 ? 'w-2/3 bg-yellow-500' : 'w-full bg-green-500'}`} />
+                      </div>
+                      <span className={`text-xs font-bold ${passFeedback === 'Strong' ? 'text-green-600' : passFeedback === 'Weak' ? 'text-red-500' : 'text-yellow-600'}`}>{passFeedback}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 min-h-[50px]">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="terms"
+                        name="agreedToPrivacy"
+                        checked={formData.agreedToPrivacy}
+                        onChange={handleChange}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
+                        I have read and agree to the <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-blue-600 font-semibold hover:underline">Data Privacy Policy</button>.
+                      </label>
+                    </div>
+                    <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
+                      {errors.agreedToPrivacy || "Required"}
+                    </div>
+
+                    {/* MATH CAPTCHA */}
+                    <div className="pt-4 border-t border-gray-100 mt-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Security Check: What is {captcha.num1} + {captcha.num2}?
+                      </label>
+                      <div className="flex gap-3">
+                        <input
+                          type="number"
+                          value={captchaInput}
+                          onChange={(e) => setCaptchaInput(e.target.value)}
+                          className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                          placeholder="Enter answer"
+                        />
+                        <button
+                          type="button"
+                          onClick={generateCaptcha}
+                          className="p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                          title="Refresh Captcha"
+                        >
+                          <RefreshCw className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BUTTONS AND FOOTER LINKS */}
+            <div className="mt-auto">
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                {step > 1 ? (
+                  <button type="button" onClick={handleBack} className="flex items-center gap-2 text-gray-600 font-medium hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                ) : <div />}
+
+                {step < 3 ? (
+                  <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-blue-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    Next Step <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button type="submit" disabled={loading} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <>Submit Application <CheckCircle className="w-4 h-4" /></>}
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+                <div className="flex items-center gap-1">
+                  Already have an account?
+                  <Link to="/login" className="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                    Log in <LogIn className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                <Link to="/" className="text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors">
+                  <Home className="w-3 h-3" /> Back to Home
+                </Link>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* DATA PRIVACY MODAL */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <div className="flex items-center gap-2 text-blue-900">
+                <Shield className="w-6 h-6" />
+                <h3 className="text-xl font-bold">Data Privacy Act</h3>
+              </div>
+              <button onClick={() => setShowPrivacyModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
+              <p>
+                <strong>Republic Act No. 10173</strong>, also known as the Data Privacy Act of 2012, protects individuals from unauthorized processing of personal information.
+              </p>
+              <p>
+                By submitting this form, you consent to the collection, generation, use, processing, storage, and retention of your personal data by <strong>Linker College of the Philippines</strong> for the purpose of:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Alumni record verification and validation.</li>
+                <li>Communication regarding alumni events and career opportunities.</li>
+                <li>Statistical analysis and tracer studies.</li>
+              </ul>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button
+                onClick={() => {
+                  setFormData({ ...formData, agreedToPrivacy: true });
+                  setErrors({ ...errors, agreedToPrivacy: '' });
+                  setShowPrivacyModal(false);
+                }}
+                className="w-full bg-blue-900 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition-colors"
+              >
+                I Understand & Agree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Register;

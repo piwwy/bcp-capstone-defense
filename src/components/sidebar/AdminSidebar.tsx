@@ -1,0 +1,211 @@
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../services/supabaseClient";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard, Users, BarChart3, Briefcase, Calendar, Mail,
+  ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
+  PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
+  Bot, Settings, Repeat, MoreVertical, AlertTriangle, Loader2,
+  MessageSquare, PartyPopper, TrendingUp
+} from "lucide-react";
+
+interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
+interface MenuItem { name: string; icon: React.ElementType; path?: string; subItems?: SubMenuItem[]; }
+
+const AdminSidebar: React.FC = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const menuItems: MenuItem[] = [
+    { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+    {
+      name: "Alumni & Records", icon: Users, subItems: [
+        { name: "Registered Users", path: "/admin/users", icon: Users },
+        { name: "Approvals", path: "/admin/approvals", icon: ClipboardCheck },
+        { name: "Records", path: "/admin/records", icon: Database },
+        { name: "Master List", path: "/admin/upload", icon: UploadCloud },
+      ]
+    },
+    {
+      name: "Career & Jobs", icon: Briefcase, subItems: [
+        { name: "Manage Jobs", path: "/admin/jobs/board", icon: ListPlus },
+        { name: "Placement Logs", path: "/admin/job-placement", icon: TrendingUp },
+        { name: "Status Tracker", path: "/admin/tracking/career", icon: Briefcase },
+      ]
+    },
+    {
+      name: "Events & Reunions", icon: Calendar, subItems: [
+        { name: "Event Calendar", path: "/admin/events/calendar", icon: CalendarDays },
+        { name: "Event Approvals", path: "/admin/events/approvals", icon: ClipboardCheck },
+        { name: "Batch Reunions", path: "/admin/batch-reunions", icon: PartyPopper },
+      ]
+    },
+    {
+      name: "Communication & Updates", icon: Mail, subItems: [
+        { name: "News Feed", path: "/admin/news/manage", icon: Newspaper },
+      ]
+    },
+    {
+      name: "Engagement", icon: MessageSquare, subItems: [
+        { name: "Feedback & Surveys", path: "/admin/feedback", icon: MessageSquare },
+        { name: "Donations", path: "/admin/donations", icon: DollarSign },
+        { name: "Financial Collections", path: "/admin/collections", icon: DollarSign },
+      ]
+    },
+    {
+      name: "Advanced Tools", icon: BarChart3, subItems: [
+        { name: "Analytics", path: "/admin/tracking/analytics", icon: PieChart },
+        { name: "Report Generator", path: "/admin/reports", icon: FileText },
+        { name: "Train AI", path: "/admin/train-ai", icon: Bot },
+        { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
+      ]
+    },
+  ];
+
+  useEffect(() => {
+    if (!collapsed) {
+      const activeItem = menuItems.find(item => item.subItems?.some(sub => location.pathname.includes(sub.path)));
+      if (activeItem) setExpanded(activeItem.name);
+    }
+  }, [location.pathname, collapsed]);
+
+  const toggleSubMenu = (item: MenuItem) => {
+    if (collapsed && item.subItems && item.subItems.length > 0) { navigate(item.subItems[0].path); return; }
+    if (collapsed) setCollapsed(false);
+    setExpanded(prev => (prev === item.name ? null : item.name));
+  };
+
+  const handleLogoutConfirm = async () => { setIsLoggingOut(true); await logout(); navigate('/login'); };
+
+  const handleSwitchToSuperAdmin = async () => {
+    setShowUserMenu(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await supabase.from('profiles').update({ role: 'superadmin' }).eq('id', session.user.id);
+        window.location.href = '/superadmin/dashboard';
+      }
+    } catch (err) { console.error('Switch role error:', err); }
+  };
+
+  return (
+    <>
+      <div className={`bg-white border-r border-gray-200 h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out z-50 ${collapsed ? "w-[80px]" : "w-72"}`}>
+
+        {/* BRANDING */}
+        <div className="h-20 flex items-center border-b border-gray-100 px-5">
+          <div onClick={() => setCollapsed(!collapsed)} className="flex items-center gap-3.5 w-full cursor-pointer group">
+            <div className="w-35 h-35 flex items-center justify-center flex-shrink-0">
+              <img src="/images/logosmss.png" alt="AMS Logo" className={`w-8 h-8 max-w-none object-contain transition-all duration-500 ease-in-out ${collapsed ? "rotate-[360deg]" : "rotate-0"} group-hover:scale-125`} />
+            </div>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 whitespace-nowrap ${collapsed ? "w-0 opacity-0" : "w-40 opacity-100"}`}>
+              <h1 className="text-sm font-extrabold text-gray-800 tracking-tight leading-none">AMS ADMIN</h1>
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">Alumni Management System</p>
+            </div>
+          </div>
+        </div>
+
+        {/* NAVIGATION */}
+        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
+          {menuItems.map((item) => {
+            const isDirectActive = item.path === location.pathname;
+            const hasActiveSub = item.subItems?.some(sub => location.pathname.includes(sub.path));
+            const isActive = isDirectActive || hasActiveSub;
+            const isExp = expanded === item.name;
+            return (
+              <div key={item.name} className="relative">
+                <div
+                  onClick={() => item.path ? navigate(item.path) : toggleSubMenu(item)}
+                  className={`relative flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-300 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
+                    <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 ${collapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"}`}>{item.name}</span>
+                  </div>
+                  {!collapsed && item.subItems && (
+                    <ChevronRight className={`w-4 h-4 transition-all duration-300 ${isExp ? "rotate-90" : ""} ${isActive ? "text-white/90" : "text-gray-400"}`} />
+                  )}
+                </div>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${!collapsed && isExp && item.subItems ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
+                  <div className="ml-4 pl-4 border-l-2 border-gray-100 space-y-1">
+                    {item.subItems?.map((sub, idx) => {
+                      const isSubActive = location.pathname === sub.path;
+                      return (
+                        <Link key={idx} to={sub.path} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-blue-700 bg-blue-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
+                          <sub.icon className={`w-4 h-4 transition-all ${isSubActive ? "text-blue-600" : "text-gray-400 group-hover:text-blue-600"}`} />
+                          {sub.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* FOOTER */}
+        <div className="p-3 border-t border-gray-100 bg-gray-50/50 relative">
+          {showUserMenu && !collapsed && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-xl shadow-xl border border-gray-200 p-1 animate-in slide-in-from-bottom-2 z-50">
+              <button onClick={() => { setShowUserMenu(false); navigate('/admin/settings'); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
+                <Settings className="w-4 h-4 text-gray-400" /> Account Settings
+              </button>
+              <button onClick={handleSwitchToSuperAdmin} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
+                <Repeat className="w-4 h-4 text-gray-400" /> Switch to Super Admin
+              </button>
+              <div className="h-px bg-gray-100 my-1"></div>
+              <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg text-left font-medium">
+                <LogOut className="w-4 h-4" /> Sign Out
+              </button>
+            </div>
+          )}
+          <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} p-2 rounded-xl hover:bg-white hover:shadow-sm cursor-pointer transition-all group`} onClick={() => !collapsed && setShowUserMenu(!showUserMenu)}>
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-200 shadow-sm text-gray-600">
+                <User2 className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-all" />
+              </div>
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+            </div>
+            <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+              <p className="text-sm font-bold text-gray-900 truncate">Administrator</p>
+              <p className="text-xs text-gray-500 truncate">System Admin</p>
+            </div>
+            {!collapsed && <MoreVertical className="w-4 h-4 text-gray-400" />}
+          </div>
+        </div>
+      </div>
+
+      {/* LOGOUT MODAL */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Logout</h3>
+              <p className="text-gray-500 text-sm">Are you sure you want to end your session?</p>
+            </div>
+            <div className="flex border-t border-gray-100 bg-gray-50/50 p-4 gap-3">
+              <button onClick={() => setShowLogoutModal(false)} className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50">Cancel</button>
+              <button onClick={handleLogoutConfirm} disabled={isLoggingOut} className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 flex items-center justify-center gap-2">
+                {isLoggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Logout'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default AdminSidebar;

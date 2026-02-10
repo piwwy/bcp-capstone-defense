@@ -1,0 +1,340 @@
+// Email Service using Brevo (Sendinblue) API
+// You need to set VITE_BREVO_API_KEY in your .env file
+
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || '';
+
+interface EmailParams {
+    to: string;
+    toName: string;
+    subject: string;
+    htmlContent: string;
+}
+
+export const EmailService = {
+    /**
+     * Send an email using Brevo API
+     */
+    sendEmail: async ({ to, toName, subject, htmlContent }: EmailParams): Promise<{ success: boolean; error?: string }> => {
+        if (!BREVO_API_KEY) {
+            console.warn('⚠️ Brevo API key not configured. Email not sent.');
+            return { success: false, error: 'Email service not configured' };
+        }
+
+        try {
+            const response = await fetch(BREVO_API_URL, {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': BREVO_API_KEY,
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender: {
+                        name: 'LCP Alumni Portal',
+                        email: 'perrypesinocute@gmail.com' // Replace with your verified sender
+                    },
+                    to: [{ email: to, name: toName }],
+                    subject,
+                    htmlContent,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to send email');
+            }
+
+            return { success: true };
+        } catch (error: any) {
+            console.error('Email send error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Send account approval notification
+     */
+    sendApprovalEmail: async (email: string, firstName: string): Promise<{ success: boolean; error?: string }> => {
+        const subject = '🎉 Your LCP Alumni Account Has Been Approved!';
+
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 40px 30px; text-align: center;">
+              <img src="https://i.imgur.com/YourLogoHere.png" alt="LCP Logo" style="width: 60px; height: 60px; margin-bottom: 15px;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Welcome to LCP Alumni!</h1>
+            </td>
+          </tr>
+          
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <h2 style="color: #1e3a8a; margin: 0 0 20px 0; font-size: 22px;">
+                Congratulations, ${firstName}! 🎓
+              </h2>
+              
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                Great news! Your LCP Alumni Portal account has been <strong style="color: #059669;">verified and approved</strong> by our admin team.
+              </p>
+              
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                You now have full access to:
+              </p>
+              
+              <ul style="color: #4b5563; font-size: 15px; line-height: 1.8; margin: 0 0 25px 0; padding-left: 20px;">
+                <li>📋 Alumni Directory & Community</li>
+                <li>💼 Exclusive Job Opportunities</li>
+                <li>📅 Events & Reunions</li>
+                <li>📰 News & Announcements</li>
+                <li>🤝 Networking Features</li>
+              </ul>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 30px 0;">
+                    <a href="https://main--lcp-capstone.netlify.app/login" 
+                       style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                      Login to Your Account →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                If you have any questions, feel free to reply to this email or contact the Alumni Office.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
+              <p style="color: #9ca3af; font-size: 13px; margin: 0 0 10px 0;">
+                Linker College of the Philippines - Alumni Portal
+              </p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} LCP Alumni. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+        return EmailService.sendEmail({
+            to: email,
+            toName: firstName,
+            subject,
+            htmlContent,
+        });
+    },
+
+    /**
+     * Send OTP verification code
+     */
+    sendOTPEmail: async (email: string, firstName: string, otpCode: string): Promise<{ success: boolean; error?: string }> => {
+        const subject = '🔐 Your LCP Alumni Verification Code';
+
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 22px;">🔐 Verification Code</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px 30px; text-align: center;">
+              <p style="color: #4b5563; font-size: 16px; margin: 0 0 10px 0;">Hi ${firstName},</p>
+              <p style="color: #4b5563; font-size: 15px; margin: 0 0 30px 0;">Use this code to verify your identity:</p>
+              <div style="background: #f8fafc; border: 2px dashed #3b82f6; border-radius: 12px; padding: 20px; display: inline-block;">
+                <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #1e3a8a; font-family: monospace;">${otpCode}</span>
+              </div>
+              <p style="color: #ef4444; font-size: 13px; margin: 20px 0 0 0; font-weight: bold;">⏱ This code expires in 60 seconds.</p>
+              <p style="color: #9ca3af; font-size: 12px; margin: 15px 0 0 0;">If you didn't request this, please ignore this email.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #1f2937; padding: 20px 30px; text-align: center;">
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LCP Alumni Portal</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+        return EmailService.sendEmail({
+            to: email,
+            toName: firstName,
+            subject,
+            htmlContent,
+        });
+    },
+
+    /**
+     * Send account rejection notification
+     */
+    sendRejectionEmail: async (email: string, firstName: string): Promise<{ success: boolean; error?: string }> => {
+        const subject = 'LCP Alumni Portal - Application Update';
+
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <tr>
+            <td style="background: #1e3a8a; padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 22px;">LCP Alumni Portal</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px 30px;">
+              <h2 style="color: #374151; margin: 0 0 20px 0;">Hello ${firstName},</h2>
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                We regret to inform you that your alumni account application could not be verified at this time.
+              </p>
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                This may be due to incomplete or incorrect information provided during registration.
+              </p>
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                If you believe this is an error, please contact the Alumni Office for assistance.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f3f4f6; padding: 20px 30px; text-align: center;">
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} LCP Alumni Portal
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+        return EmailService.sendEmail({
+            to: email,
+            toName: firstName,
+            subject,
+            htmlContent,
+        });
+    },
+
+    /**
+     * Send tracer study / employment status survey email
+     */
+    sendTracerSurveyEmail: async (email: string, firstName: string, portalUrl: string): Promise<{ success: boolean; error?: string }> => {
+        const subject = '📋 LCP Alumni — Kamusta ka na? Update Your Status!';
+
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: bold;">📋 Alumni Tracer Study</h1>
+              <p style="color: #bfdbfe; margin: 10px 0 0 0; font-size: 14px;">Linker College of the Philippines</p>
+            </td>
+          </tr>
+          
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <h2 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 22px;">
+                Kumusta ka na, ${firstName}? 👋
+              </h2>
+              
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
+                Bilang bahagi ng aming <strong>Graduate Tracer Study</strong>, nais naming malaman ang iyong kasalukuyang kalagayan pagkatapos ng iyong pagtatapos sa LCP.
+              </p>
+
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
+                Maari mo bang i-update ang iyong <strong>employment status</strong> sa aming Alumni Portal? Ito ay makakatulong sa amin na:
+              </p>
+              
+              <ul style="color: #4b5563; font-size: 15px; line-height: 2; margin: 0 0 25px 0; padding-left: 20px;">
+                <li>📊 Mapabuti ang aming curriculum base sa real-world outcomes</li>
+                <li>🤝 Makakonekta ka sa mga kapwa alumni at career opportunities</li>
+                <li>📈 Masubaybayan ang success rate ng aming graduates</li>
+                <li>🎓 Ma-maintain ang accreditation requirements ng school</li>
+              </ul>
+
+              <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 0 0 25px 0;">
+                <p style="color: #1e40af; font-size: 14px; margin: 0; font-weight: bold;">
+                  💡 Ano ang kailangan mong gawin?
+                </p>
+                <p style="color: #3b82f6; font-size: 14px; margin: 8px 0 0 0;">
+                  I-click ang button sa baba, mag-login sa iyong account, at i-update ang iyong profile — lalo na ang iyong <strong>Employment Status</strong>, <strong>Current Position</strong>, at <strong>Company</strong>.
+                </p>
+              </div>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 30px 0;">
+                    <a href="${portalUrl}/login" 
+                       style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                      I-Update ang Aking Status →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #9ca3af; font-size: 13px; line-height: 1.6; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
+                Ang iyong datos ay protektado sa ilalim ng <strong>RA 10173 (Data Privacy Act of 2012)</strong>.
+                <br>Hindi ibabahagi ang iyong personal na impormasyon sa labas ng LCP.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
+              <p style="color: #9ca3af; font-size: 13px; margin: 0 0 8px 0;">
+                Linker College of the Philippines — Alumni Affairs Office
+              </p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} LCP Alumni Portal. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+        return EmailService.sendEmail({
+            to: email,
+            toName: firstName,
+            subject,
+            htmlContent,
+        });
+    },
+};
+
+export default EmailService;
