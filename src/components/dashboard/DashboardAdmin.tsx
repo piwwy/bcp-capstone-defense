@@ -4,7 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import { 
   Users, Clock, CheckCircle, AlertTriangle, 
   ArrowRight, Activity, Calendar, Loader2,
-  Briefcase, Heart, Newspaper, TrendingUp, BarChart3
+  Briefcase, Heart, Newspaper, BarChart3
 } from 'lucide-react';
 
 const DashboardAdmin: React.FC = () => {

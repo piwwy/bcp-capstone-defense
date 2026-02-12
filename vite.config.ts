@@ -11,5 +11,19 @@ export default defineConfig({
     hmr: {
       clientPort: 5173,
     },
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          supabase: ['@supabase/supabase-js'],
+          charts: ['recharts'],
+          leaflet: ['leaflet', 'react-leaflet'],
+          ui: ['lucide-react', 'html2canvas', 'dompurify'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 })

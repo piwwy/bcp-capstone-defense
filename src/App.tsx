@@ -266,19 +266,74 @@ function AppRoutes() {
   );
 }
 
+// --- ERROR BOUNDARY ---
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+          <h2 style={{ color: '#e11d48' }}>Something went wrong.</h2>
+          <p style={{ color: '#4b5563' }}>The application crashed due to a runtime error.</p>
+          <pre style={{
+            marginTop: '20px',
+            padding: '20px',
+            background: '#f3f4f6',
+            borderRadius: '12px',
+            textAlign: 'left',
+            overflowX: 'auto',
+            fontSize: '12px'
+          }}>
+            {this.state.error?.toString()}
+          </pre>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '20px',
+              padding: '10px 20px',
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <Router>
-      <ToastProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <SessionTimeoutProvider>
-              <AppRoutes />
-            </SessionTimeoutProvider>
-          </NotificationProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <ToastProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <SessionTimeoutProvider>
+                <AppRoutes />
+              </SessionTimeoutProvider>
+            </NotificationProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

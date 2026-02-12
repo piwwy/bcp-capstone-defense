@@ -9,10 +9,10 @@ const HeroSection: React.FC = () => {
 
   // Hero images for carousel
   const heroImages = [
-    '/images/g1.png',
-    '/images/g2.png',
-    '/images/g3.png',
-    '/images/g4.png',
+    '/images/g1.jpg',
+    '/images/g2.jpg',
+    '/images/g3.jpg',
+    '/images/g4.jpg',
   ];
 
   // Particle animation effect

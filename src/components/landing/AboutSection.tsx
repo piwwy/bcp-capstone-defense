@@ -91,7 +91,7 @@ const AboutSection: React.FC = () => {
               {/* Main Image */}
               <div className="aspect-[4/3] bg-gradient-to-br from-blue-600/20 to-purple-600/20 relative">
                 <img
-                  src="/images/g1.png"
+                  src="/images/g1.jpg"
                   alt="LCP Campus"
                   className="w-full h-full object-cover"
                   onError={(e) => {

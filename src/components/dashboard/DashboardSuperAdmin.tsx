@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import {
   Users, Shield, Activity, ArrowRight, Calendar, Loader2,
   Crown, Database, BarChart3, Clock, CheckCircle, AlertTriangle,
-  UserCheck, UserX, Repeat, Settings
+  Repeat
 } from 'lucide-react';
 
 interface SystemStats {
@@ -23,7 +23,6 @@ interface SystemStats {
 
 const DashboardSuperAdmin = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<SystemStats>({
     totalUsers: 0, totalAlumni: 0, totalAdmins: 0, pendingApprovals: 0,

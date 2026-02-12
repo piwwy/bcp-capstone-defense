@@ -4,7 +4,7 @@ import { supabase } from "../../services/supabaseClient";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, BarChart3, Shield, Database,
-  ChevronRight, User2, LogOut, Settings, Repeat,
+  ChevronRight, LogOut, Settings, Repeat,
   MoreVertical, AlertTriangle, Loader2, Crown,
   ClipboardCheck, FileText, Bell, Key
 } from "lucide-react";
