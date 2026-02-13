@@ -8,4 +8,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase Error: Missing Environment Variables. Please check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Fallback URL prevents createClient from throwing when .env is missing
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key'
+);
