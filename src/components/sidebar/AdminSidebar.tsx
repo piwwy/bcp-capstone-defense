@@ -28,8 +28,7 @@ const AdminSidebar: React.FC = () => {
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     {
       name: "Alumni & Records", icon: Users, subItems: [
-        { name: "Registered Users", path: "/admin/users", icon: Users },
-        { name: "Approvals", path: "/admin/approvals", icon: ClipboardCheck },
+        { name: "Manage Users", path: "/admin/users", icon: Users },
         { name: "Records", path: "/admin/records", icon: Database },
         { name: "Master List", path: "/admin/upload", icon: UploadCloud },
       ]

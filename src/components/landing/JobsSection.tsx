@@ -92,16 +92,16 @@ const JobsSection: React.FC = () => {
             <Briefcase className="w-4 h-4 text-cyan-300" />
             <span className="text-sm text-cyan-300 font-medium">Career Opportunities</span>
           </div>
-          
+
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Find Your Next
             <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               {' '}Career Move
             </span>
           </h2>
-          
+
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            Explore job openings shared through the LCP Alumni Network 
+            Explore job openings shared through the LCP Alumni Network
             and partner companies.
           </p>
         </div>
@@ -130,7 +130,7 @@ const JobsSection: React.FC = () => {
             <span className="w-2 h-2 bg-cyan-400 rounded-full" />
             Featured Opportunities
           </h3>
-          
+
           <div className="grid md:grid-cols-3 gap-6">
             {featuredJobs.map((job) => (
               <div
@@ -166,12 +166,12 @@ const JobsSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Apply Button - Link to Register */}
-                <Link 
-                  to="/register" 
+                {/* Apply Button - Link to Login */}
+                <Link
+                  to="/login"
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 group/btn"
                 >
-                  Apply Now
+                  Log In to Apply
                   <ExternalLink className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
                 </Link>
               </div>
@@ -216,23 +216,23 @@ const JobsSection: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
-                {/* List Apply Button - Link to Register */}
-                <Link 
-                  to="/register" 
+
+                {/* List Apply Button - Link to Login */}
+                <Link
+                  to="/login"
                   className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 whitespace-nowrap text-center"
                 >
-                  Apply Now
+                  Log In to Apply
                 </Link>
               </div>
             ))}
           </div>
         </div>
 
-        {/* View All Button - Link to Register */}
+        {/* View All Button - Link to Login */}
         <div className="text-center mt-12">
-          <Link 
-            to="/register" 
+          <Link
+            to="/login"
             className="inline-block px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-full hover:from-cyan-700 hover:to-blue-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-cyan-500/30"
           >
             View All Job Openings

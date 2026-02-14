@@ -19,19 +19,14 @@ import { PageSkeleton } from './components/ui/Skeleton';
 // --- PUBLIC PAGES (keep eager — needed on first paint) ---
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import SignUpOptions from './pages/SignUpOptions';
 import AuthCallback from './pages/AuthCallback';
 
 // --- LAZY-LOADED PAGES (split into separate chunks) ---
 // Public
 const Alumni2FA = React.lazy(() => import('./pages/Alumni2FA'));
-const PendingApproval = React.lazy(() => import('./pages/PendingApproval'));
-const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const PublicDonationPage = React.lazy(() => import('./pages/PublicDonationPage'));
 
 // Admin pages
-const RegistrationApprovals = React.lazy(() => import('./pages/admin/RegistrationApprovals'));
 const AllAlumniRecords = React.lazy(() => import('./pages/admin/AllAlumniRecords'));
 const MasterListUpload = React.lazy(() => import('./pages/admin/MasterListUpload'));
 const ManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
@@ -131,11 +126,7 @@ function AppRoutes() {
         {/* PUBLIC ROUTES */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/alumni/2fa" element={<Alumni2FA />} />
-        <Route path="/pending-approval" element={<PendingApproval />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/signup-options" element={<SignUpOptions />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="donate" element={<PublicDonationPage />} />
 
@@ -150,9 +141,6 @@ function AppRoutes() {
                   <Route path="dashboard" element={<DashboardAdmin />} />
 
                   {/* MATCHING SIDEBAR PATHS: */}
-
-                  {/* Sidebar: /admin/approvals */}
-                  <Route path="approvals" element={<RegistrationApprovals />} />
 
                   {/* Sidebar: /admin/records */}
                   <Route path="records" element={<AllAlumniRecords />} />

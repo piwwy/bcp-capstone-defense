@@ -146,8 +146,8 @@ const AdminUsers: React.FC = () => {
 
     return (
         <AdminPageLayout
-            title="Registered Users"
-            subtitle="View all alumni registrations"
+            title="Manage Users"
+            subtitle="View and manage all alumni accounts"
             icon={Users}
         >
             {/* Stats & Filters Row */}
@@ -226,7 +226,7 @@ const AdminUsers: React.FC = () => {
                                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Course / Batch</th>
                                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
                                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Provider</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Registered</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Date Added</th>
                                     <th className="px-4 py-3 text-center font-semibold text-gray-600">Action</th>
                                 </tr>
                             </thead>
@@ -336,12 +336,12 @@ const AdminUsers: React.FC = () => {
                             <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
                                 <span className="text-xs text-gray-400 uppercase font-bold">Status:</span>
                                 {getStatusBadge(selectedUser.status)}
-                                <span className="text-xs text-gray-400 uppercase font-bold ml-4">Registered via:</span>
+                                <span className="text-xs text-gray-400 uppercase font-bold ml-4">Account via:</span>
                                 {getProviderBadge(selectedUser.auth_provider)}
                             </div>
 
                             <div className="pt-2 text-xs text-gray-400">
-                                Registered on {formatDate(selectedUser.created_at)}
+                                Added on {formatDate(selectedUser.created_at)}
                             </div>
                         </div>
 

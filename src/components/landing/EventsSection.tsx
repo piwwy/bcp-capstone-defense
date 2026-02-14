@@ -72,14 +72,14 @@ const EventsSection: React.FC = () => {
             <Calendar className="w-4 h-4 text-pink-300" />
             <span className="text-sm text-pink-300 font-medium">Upcoming Events</span>
           </div>
-          
+
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Alumni Events &
             <span className="bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
               {' '}Activities
             </span>
           </h2>
-          
+
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
             Celebrate milestones, reunite with classmates, and join upcoming events at
             Linker College of the Philippines.
@@ -94,17 +94,17 @@ const EventsSection: React.FC = () => {
               className={`group relative ${event.featured ? 'lg:col-span-2 lg:row-span-2' : ''}`}
             >
               <div className={`relative h-full bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 hover:border-pink-500/30 overflow-hidden transition-all duration-500 flex flex-col`}>
-                
+
                 {/* Image Section */}
                 <div className={`relative overflow-hidden ${event.featured ? 'h-72 lg:h-80' : 'h-48'} bg-dark-900`}>
                   {/* Background Image */}
-                  <img 
-                    src={event.image} 
+                  <img
+                    src={event.image}
                     alt={event.title}
                     onError={handleImageError}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  
+
                   {/* Gradient Overlay for Text Readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/20 to-transparent" />
 
@@ -150,12 +150,12 @@ const EventsSection: React.FC = () => {
 
                   {/* CTA Button */}
                   <div className="mt-auto">
-                    <Link 
-                      to="/register" 
+                    <Link
+                      to="/login"
                       className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-xl hover:from-pink-700 hover:to-purple-700 transition-all duration-300 group/btn shadow-lg hover:shadow-pink-500/25"
                     >
                       <Ticket className="w-4 h-4" />
-                      Register Now
+                      Log In to Join
                       <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
                     </Link>
                   </div>
@@ -199,8 +199,8 @@ const EventsSection: React.FC = () => {
 
         {/* View All Button */}
         <div className="text-center mt-12">
-          <Link 
-            to="/register" 
+          <Link
+            to="/login"
             className="inline-block px-8 py-3 border-2 border-pink-400/50 text-pink-300 font-semibold rounded-full hover:bg-pink-400/10 hover:border-pink-400 transform hover:scale-105 transition-all duration-300"
           >
             View All Events

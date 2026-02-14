@@ -40,7 +40,7 @@ export default function Login() {
         .single();
 
       if (profileError || !profile) {
-        throw new Error("Profile not found. Please register first.");
+        throw new Error("Account not found. Please contact your administrator.");
       }
 
       debugToast(showToast, 'Profile Loaded', `role=${profile.role} status=${profile.status}`);
@@ -88,8 +88,8 @@ export default function Login() {
             break;
           }
           case 'pending_approval':
-            debugToast(showToast, 'Redirect', 'Routing to /pending-approval');
-            navigate('/pending-approval', { replace: true });
+            supabase.auth.signOut();
+            showToast({ type: 'warning', title: 'Account Pending', message: 'Your account is still being set up. Please contact your administrator.' });
             break;
 
           case 'rejected':
@@ -192,12 +192,11 @@ export default function Login() {
 
           {/* Footer */}
           <div className="mt-8 text-center space-y-4">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/signup-options" className="text-blue-600 font-bold hover:underline">
-                Register Here
-              </Link>
-            </p>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-xs text-blue-600 font-medium">
+                💡 Don't have an account? Contact your administrator for access.
+              </p>
+            </div>
 
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
               <ArrowLeft className="w-3 h-3" /> Back to Home

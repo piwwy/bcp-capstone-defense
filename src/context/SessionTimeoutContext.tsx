@@ -22,7 +22,7 @@ export const SessionTimeoutProvider: React.FC<{ children: ReactNode }> = ({ chil
   const location = useLocation();
 
   // Only activate on actual dashboard/portal routes — NOT on OTP, login, register, etc.
-  const EXCLUDED_ROUTES = ['/alumni/2fa', '/login', '/register', '/pending-approval', '/onboarding', '/signup-options', '/admin-login'];
+  const EXCLUDED_ROUTES = ['/alumni/2fa', '/login', '/admin-login'];
   const isExcluded = EXCLUDED_ROUTES.some(route => location.pathname === route);
   const isDashboardRoute = !isExcluded && (location.pathname.startsWith('/admin') || location.pathname.startsWith('/alumni') || location.pathname.startsWith('/superadmin'));
   const [showWarning, setShowWarning] = useState(false);
@@ -92,7 +92,7 @@ export const SessionTimeoutProvider: React.FC<{ children: ReactNode }> = ({ chil
       events.forEach(e => window.removeEventListener(e, handleActivity));
       clearAllTimers();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isDashboardRoute]);
 
   // "Stay Logged In" handler — dismiss modal & restart idle timer

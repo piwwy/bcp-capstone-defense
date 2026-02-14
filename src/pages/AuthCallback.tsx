@@ -37,16 +37,17 @@ const AuthCallback: React.FC = () => {
                     .single();
 
                 if (profileError || !profile) {
-                    // No profile exists - user needs to complete onboarding
-                    setStatus('Welcome! Setting up your profile...');
-                    setTimeout(() => navigate('/onboarding'), 1000);
+                    // No profile exists — admin hasn't created their account yet
+                    setStatus('Account not found. Redirecting...');
+                    await supabase.auth.signOut();
+                    setTimeout(() => navigate('/login'), 1500);
                     return;
                 }
 
                 // Profile exists - check status
                 setStatus(`Welcome back, ${profile.first_name || 'User'}!`);
 
-                setTimeout(() => {
+                setTimeout(async () => {
                     // Admin/Staff go to admin dashboard
                     if (['admin', 'registrar', 'superadmin'].includes(profile.role)) {
                         navigate('/admin/dashboard', { replace: true });
@@ -60,15 +61,17 @@ const AuthCallback: React.FC = () => {
                                 navigate('/alumni/dashboard', { replace: true });
                                 break;
                             case 'pending_approval':
-                                navigate('/pending-approval', { replace: true });
+                                await supabase.auth.signOut();
+                                navigate('/login', { replace: true });
                                 break;
                             case 'rejected':
-                                supabase.auth.signOut();
+                                await supabase.auth.signOut();
                                 navigate('/login?error=rejected', { replace: true });
                                 break;
                             default:
-                                // No status yet - needs onboarding
-                                navigate('/onboarding', { replace: true });
+                                // No status yet — accounts must be admin-provisioned
+                                await supabase.auth.signOut();
+                                navigate('/login', { replace: true });
                         }
                         return;
                     }
