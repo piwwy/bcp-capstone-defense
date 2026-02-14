@@ -3,15 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import {
   GraduationCap, BookOpen, CheckCircle, Shield, X, LogOut, Loader2,
-  AlertCircle, AlertTriangle, CheckCircle2, HelpCircle, Lock, Eye, EyeOff
+  AlertCircle, Lock, Eye, EyeOff
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { debugToast } from '../utils/debugToast';
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string } | null>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -58,11 +61,6 @@ const Onboarding: React.FC = () => {
 
     getUser();
   }, [navigate]);
-
-  const showToast = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
-    setToast({ show: true, type, title, message });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -125,6 +123,8 @@ const Onboarding: React.FC = () => {
     setLoading(true);
 
     try {
+      debugToast(showToast, 'Onboarding Submit', `uid=${user.id}`);
+
       // 1. Try to update user password in Supabase Auth
       // Note: This might fail if password is the same - we handle it gracefully
       const { error: passwordError } = await supabase.auth.updateUser({
@@ -136,6 +136,7 @@ const Onboarding: React.FC = () => {
         throw passwordError;
       }
       // If password was same, just continue (user can still use that password)
+      debugToast(showToast, 'Password Update', passwordError ? 'Password unchanged; continuing' : 'Password updated');
 
       // 2. Save profile data
       const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
@@ -162,7 +163,8 @@ const Onboarding: React.FC = () => {
 
       if (error) throw error;
 
-      showToast('success', 'Profile Completed!', 'Redirecting to status page...');
+      showToast({ type: 'success', title: 'Profile Completed!', message: 'Redirecting to status page...' });
+      debugToast(showToast, 'Onboarding Success', 'Profile upserted; redirecting to pending approval');
 
       setTimeout(() => {
         navigate('/pending-approval');
@@ -170,7 +172,8 @@ const Onboarding: React.FC = () => {
 
     } catch (error: any) {
       console.error("Onboarding Error:", error);
-      showToast('error', 'System Error', error.message);
+      debugToast(showToast, 'Onboarding Error', error.message || 'Unknown onboarding error', { type: 'warning' });
+      showToast({ type: 'error', title: 'System Error', message: error.message });
     } finally {
       setLoading(false);
     }
@@ -186,33 +189,6 @@ const Onboarding: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-
-      {/* Toast Notification */}
-      {toast && toast.show && (
-        <div className={`fixed top-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl border animate-in slide-in-from-right duration-300 max-w-sm w-full bg-white ${toast.type === 'success' ? 'border-green-500' :
-          toast.type === 'warning' ? 'border-yellow-500' :
-            'border-red-500'
-          }`}>
-          <div className={`mt-0.5 ${toast.type === 'success' ? 'text-green-600' :
-            toast.type === 'warning' ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
-            {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> :
-              toast.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
-                <X className="w-5 h-5" />}
-          </div>
-          <div>
-            <h4 className={`text-sm font-bold ${toast.type === 'success' ? 'text-green-800' :
-              toast.type === 'warning' ? 'text-yellow-800' :
-                'text-red-800'
-              }`}>{toast.title}</h4>
-            <p className="text-xs text-gray-600 mt-1">{toast.message}</p>
-          </div>
-          <button onClick={() => setToast(null)} className="ml-auto text-gray-400 hover:text-gray-600">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       <div className="bg-white w-full max-w-4xl min-h-[650px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
 

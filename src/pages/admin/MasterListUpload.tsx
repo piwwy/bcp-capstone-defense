@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import AdminPageLayout from './AdminPageLayout';
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Search, Download, Trash2, Users, GraduationCap } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
+import { debugToast } from '../../utils/debugToast';
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Search, Download, Users, GraduationCap } from 'lucide-react';
 
 interface MasterRecord {
   id?: string;
@@ -19,6 +21,7 @@ const COURSES = [
 ];
 
 const MasterListUpload = () => {
+  const { showToast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [records, setRecords] = useState<MasterRecord[]>([]);
@@ -32,6 +35,7 @@ const MasterListUpload = () => {
   const fetchMasterList = async () => {
     setLoading(true);
     try {
+      debugToast(showToast, 'Master List Fetch', 'Loading master_list records');
       const { data, error } = await supabase
         .from('profiles')
         .select('id, student_id, first_name, last_name, course, batch_year, status')
@@ -39,8 +43,10 @@ const MasterListUpload = () => {
         .order('course', { ascending: true });
       if (error) throw error;
       setRecords(data || []);
+      debugToast(showToast, 'Master List Loaded', `records=${(data || []).length}`);
     } catch (err) {
       console.error('Fetch error:', err);
+      debugToast(showToast, 'Master List Fetch Error', 'Failed to load records', { type: 'warning' });
     } finally { setLoading(false); }
   };
 
@@ -50,6 +56,7 @@ const MasterListUpload = () => {
 
     setUploading(true);
     setMessage({ type: 'info', text: 'Processing records...' });
+    debugToast(showToast, 'CSV Upload Started', `file=${file.name}`);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -80,9 +87,13 @@ const MasterListUpload = () => {
           .upsert(parsed, { onConflict: 'email', ignoreDuplicates: true });
         if (error) throw error;
         setMessage({ type: 'success', text: `Successfully imported ${parsed.length} graduates!` });
+        showToast({ type: 'success', title: 'Master List Imported', message: `${parsed.length} records were processed.` });
+        debugToast(showToast, 'CSV Upload Success', `imported=${parsed.length}`);
         fetchMasterList();
       } catch (err: any) {
         setMessage({ type: 'error', text: 'Database error: ' + err.message });
+        showToast({ type: 'error', title: 'Import Failed', message: err.message || 'Unable to import CSV.' });
+        debugToast(showToast, 'CSV Upload Error', err.message || 'Unknown import error', { type: 'warning' });
       } finally {
         setUploading(false);
         if (fileRef.current) fileRef.current.value = '';
@@ -186,15 +197,9 @@ const MasterListUpload = () => {
         </p>
       </div>
 
-      {/* Table */}
+      {/* Table Preview */}
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
-      ) : filteredRecords.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-          <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-          <p className="font-bold text-slate-400">No master list records found</p>
-          <p className="text-sm text-slate-300 mt-1">Upload a CSV to populate the master list.</p>
-        </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
@@ -210,18 +215,28 @@ const MasterListUpload = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredRecords.map((rec, i) => (
-                  <tr key={rec.id || i} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
-                    <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-blue-600 font-bold">{rec.student_id}</td>
-                    <td className="px-4 py-3 font-bold text-slate-800">{rec.last_name}</td>
-                    <td className="px-4 py-3 text-slate-600">{rec.first_name}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold">{rec.course}</span>
+                {filteredRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <FileText className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                      <p className="font-bold text-slate-400">No master list records found</p>
+                      <p className="text-sm text-slate-300 mt-1">Upload a CSV to populate the table preview.</p>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{rec.batch_year}</td>
                   </tr>
-                ))}
+                ) : (
+                  filteredRecords.map((rec, i) => (
+                    <tr key={rec.id || i} className="border-b border-slate-50 hover:bg-blue-50/30 transition-colors">
+                      <td className="px-4 py-3 text-slate-400 text-xs">{i + 1}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-blue-600 font-bold">{rec.student_id}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800">{rec.last_name}</td>
+                      <td className="px-4 py-3 text-slate-600">{rec.first_name}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold">{rec.course}</span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{rec.batch_year}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

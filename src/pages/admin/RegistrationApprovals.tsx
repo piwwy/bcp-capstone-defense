@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import AdminPageLayout from './AdminPageLayout';
 import EmailService from '../../services/emailService';
+import { useToast } from '../../context/ToastContext';
+import { debugToast } from '../../utils/debugToast';
 import {
   CheckCircle, XCircle,
-  Loader2, UserCheck, GraduationCap, Mail, AlertTriangle
+  Loader2, UserCheck, GraduationCap, Mail
 } from 'lucide-react';
 
 interface Alumni {
@@ -22,20 +24,16 @@ interface Alumni {
 }
 
 const RegistrationApprovals: React.FC = () => {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<Alumni[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'warning'; message: string } | null>(null);
-
-  const showToast = (type: 'success' | 'error' | 'warning', message: string) => {
-    setToast({ show: true, type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   // 1. Fetch Pending
   const fetchPendingUsers = async () => {
     setLoading(true);
     try {
+      debugToast(showToast, 'Approvals Fetch', 'Loading pending alumni approvals');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -44,8 +42,10 @@ const RegistrationApprovals: React.FC = () => {
 
       if (error) throw error;
       setUsers(data || []);
+      debugToast(showToast, 'Approvals Loaded', `pending=${(data || []).length}`);
     } catch (err) {
       console.error("Error fetching pending:", err);
+      debugToast(showToast, 'Approvals Fetch Error', 'Failed to load pending approvals', { type: 'warning' });
     } finally {
       setLoading(false);
     }
@@ -59,6 +59,7 @@ const RegistrationApprovals: React.FC = () => {
   const handleApprove = async (user: Alumni) => {
     if (!window.confirm(`Verify ${user.first_name} ${user.last_name}?\nAn email notification will be sent to ${user.email}.`)) return;
     setActionLoading(user.id);
+    debugToast(showToast, 'Approve Action', `user=${user.id}`);
 
     try {
       // Update status in database
@@ -73,15 +74,17 @@ const RegistrationApprovals: React.FC = () => {
       const emailResult = await EmailService.sendApprovalEmail(user.email, user.first_name);
 
       if (emailResult.success) {
-        showToast('success', `✅ ${user.first_name} verified! Email sent.`);
+        showToast({ type: 'success', title: 'User Verified', message: `${user.first_name} is verified and email was sent.` });
       } else {
-        showToast('warning', `⚠️ Verified but email failed: ${emailResult.error}`);
+        showToast({ type: 'warning', title: 'Verified with Email Issue', message: `Verification succeeded but email failed: ${emailResult.error}` });
       }
+      debugToast(showToast, 'Approve Completed', `emailSuccess=${emailResult.success}`);
 
       // Remove from list visually
       setUsers(users.filter(u => u.id !== user.id));
     } catch (err: any) {
-      showToast('error', `Error: ${err.message}`);
+      debugToast(showToast, 'Approve Error', err.message || 'Unknown approval error', { type: 'warning' });
+      showToast({ type: 'error', title: 'Approval Failed', message: err.message || 'Unable to verify this user.' });
     } finally {
       setActionLoading(null);
     }
@@ -91,6 +94,7 @@ const RegistrationApprovals: React.FC = () => {
   const handleReject = async (user: Alumni) => {
     if (!window.confirm(`Reject ${user.first_name} ${user.last_name}?\nThis action cannot be undone.`)) return;
     setActionLoading(user.id);
+    debugToast(showToast, 'Reject Action', `user=${user.id}`);
 
     try {
       const { error } = await supabase
@@ -104,9 +108,11 @@ const RegistrationApprovals: React.FC = () => {
       await EmailService.sendRejectionEmail(user.email, user.first_name);
 
       setUsers(users.filter(u => u.id !== user.id));
-      showToast('success', 'Application rejected.');
+      showToast({ type: 'success', title: 'Application Rejected', message: `${user.first_name}'s application was rejected.` });
+      debugToast(showToast, 'Reject Completed', `user=${user.id}`);
     } catch (err: any) {
-      showToast('error', `Error: ${err.message}`);
+      debugToast(showToast, 'Reject Error', err.message || 'Unknown rejection error', { type: 'warning' });
+      showToast({ type: 'error', title: 'Rejection Failed', message: err.message || 'Unable to reject this application.' });
     } finally {
       setActionLoading(null);
     }
@@ -150,24 +156,6 @@ const RegistrationApprovals: React.FC = () => {
       subtitle="Verify identity against Master List"
       icon={UserCheck}
     >
-      {/* Toast Notification */}
-      {toast && toast.show && (
-        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border max-w-sm w-full bg-white ${toast.type === 'success' ? 'border-green-500' :
-          toast.type === 'warning' ? 'border-yellow-500' :
-            'border-red-500'
-          }`}>
-          <div className={`${toast.type === 'success' ? 'text-green-600' :
-            toast.type === 'warning' ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
-            {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> :
-              toast.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
-                <XCircle className="w-5 h-5" />}
-          </div>
-          <p className="text-sm text-gray-700">{toast.message}</p>
-        </div>
-      )}
-
       {loading ? (
         <div className="flex justify-center p-12">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

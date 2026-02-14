@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import { useToast } from '../context/ToastContext';
 import {
   User, BookOpen, Lock, ChevronRight, ChevronLeft,
-  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, CheckCircle2, AlertTriangle, Loader2, RefreshCw, Eye, EyeOff, Copy, Check
+  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, CheckCircle2, Loader2, RefreshCw, Eye, EyeOff, Check
 } from 'lucide-react';
 
 // Types for validation errors
 type Errors = { [key: string]: string };
 
-// --- REUSABLE INPUT COMPONENT ---
 interface InputFieldProps {
   label: string;
   name: string;
@@ -19,7 +19,7 @@ interface InputFieldProps {
   options?: { value: string | number; label: string | number }[];
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => void;
   error?: string;
 }
 
@@ -40,6 +40,7 @@ const InputField: React.FC<InputFieldProps> = ({
             name={name}
             value={value}
             onChange={onChange}
+            onBlur={onBlur}
             className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none ${isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
               }`}
           >
@@ -75,9 +76,9 @@ const InputField: React.FC<InputFieldProps> = ({
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string } | null>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // --- MATH CAPTCHA STATE ---
@@ -93,11 +94,6 @@ const Register: React.FC = () => {
     const n2 = Math.floor(Math.random() * 10) + 1;
     setCaptcha({ num1: n1, num2: n2, answer: (n1 + n2).toString() });
     setCaptchaInput('');
-  };
-
-  const showToast = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
-    setToast({ show: true, type, title, message });
-    setTimeout(() => setToast(null), 4000);
   };
 
   // Form Data
@@ -116,6 +112,7 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [copiedChar, setCopiedChar] = useState('');
+  const [lastValidationToastKey, setLastValidationToastKey] = useState('');
 
   useEffect(() => {
     const p = formData.password;
@@ -134,6 +131,82 @@ const Register: React.FC = () => {
   // Regex patterns for strict validation
   const NAME_REGEX = /^[A-Za-zÑñ\s.'-]*$/;  // Letters, ñ, spaces, dots, hyphens, apostrophes
   const DIGITS_ONLY = /^[0-9]*$/;
+  const EMAIL_REGEX = /\S+@\S+\.\S+/;
+
+  const FIELD_LABELS: Record<string, string> = {
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    middleName: 'Middle Name',
+    suffix: 'Suffix',
+    birthday: 'Birthday',
+    mobile: 'Mobile Number',
+    course: 'Course',
+    batchYear: 'Year Graduated',
+    adviserName: 'Thesis Adviser',
+    section: 'Section Number',
+    studentId: 'Student Number',
+    email: 'Email Address',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    agreedToPrivacy: 'Data Privacy Consent'
+  };
+
+  const triggerValidationToast = (fieldName: string, message: string) => {
+    const toastKey = `${fieldName}:${message}`;
+    if (lastValidationToastKey === toastKey) return;
+
+    showToast({
+      type: 'warning',
+      title: `Check ${FIELD_LABELS[fieldName] || fieldName}`,
+      message,
+      durationMs: 2800,
+      silent: true
+    });
+    setLastValidationToastKey(toastKey);
+  };
+
+  const getFieldError = (fieldName: string, value: string) => {
+    const trimmedValue = value.trim();
+
+    switch (fieldName) {
+      case 'firstName':
+      case 'lastName':
+        return trimmedValue ? '' : `${FIELD_LABELS[fieldName]} is required`;
+      case 'birthday':
+        return value ? '' : 'Birthday is required';
+      case 'mobile':
+        if (!trimmedValue) return 'Mobile number is required';
+        return value.length === 11 ? '' : 'Mobile number must be 11 digits';
+      case 'course':
+        return value ? '' : 'Please select a course';
+      case 'batchYear':
+        return value ? '' : 'Please select a batch year';
+      case 'adviserName':
+        return trimmedValue ? '' : 'Adviser name is required';
+      case 'section':
+        return trimmedValue ? '' : 'Section is required';
+      case 'email':
+        if (!trimmedValue) return 'Email is required';
+        return EMAIL_REGEX.test(value) ? '' : 'Invalid email format';
+      case 'password':
+        if (!value) return 'Password is required';
+        return passStrength < 3 ? 'Password is too weak' : '';
+      case 'confirmPassword':
+        return value === formData.password ? '' : 'Passwords do not match';
+      default:
+        return '';
+    }
+  };
+
+  const handleFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    const fieldError = getFieldError(name, value);
+
+    if (!fieldError) return;
+
+    setErrors((prev) => ({ ...prev, [name]: fieldError }));
+    triggerValidationToast(name, fieldError);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -165,19 +238,30 @@ const Register: React.FC = () => {
   const handleCopyChar = (char: string) => {
     navigator.clipboard.writeText(char);
     setCopiedChar(char);
+    showToast({ type: 'info', title: 'Character Copied', message: `${char} copied to clipboard.` });
     setTimeout(() => setCopiedChar(''), 1500);
   };
 
   const checkEmailAvailability = async () => {
     if (!formData.email || !formData.email.includes('@')) return;
     try {
-      const { data } = await supabase.from('profiles').select('id').eq('email', formData.email).single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (error) {
+        showToast({ type: 'error', title: 'Email Check Failed', message: error.message || 'Unable to verify email right now.' });
+        return;
+      }
+
       if (data) {
         setErrors(prev => ({ ...prev, email: "This email is already registered." }));
-        showToast('warning', 'Email Taken', 'This email is already linked to an account.');
+        showToast({ type: 'warning', title: 'Email Taken', message: 'This email is already linked to an account.' });
       }
-    } catch (err) {
-      // Email is available
+    } catch (err: any) {
+      showToast({ type: 'error', title: 'Email Check Failed', message: err.message || 'Unable to verify email right now.' });
     }
   };
 
@@ -202,7 +286,7 @@ const Register: React.FC = () => {
 
     if (currentStep === 3) {
       if (!formData.email.trim()) newErrors.email = 'Email is required';
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
+      else if (!EMAIL_REGEX.test(formData.email)) newErrors.email = 'Invalid email format';
       if (!formData.password) newErrors.password = 'Password is required';
       else if (passStrength < 3) newErrors.password = 'Password is too weak';
       if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
@@ -211,39 +295,82 @@ const Register: React.FC = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      const [firstErrorField] = Object.keys(newErrors);
+      if (firstErrorField) {
+        if (firstErrorField === 'agreedToPrivacy') {
+          showToast({
+            type: 'error',
+            title: 'DPA 2012 Required',
+            message: 'You must check the Data Privacy Act of 2012 consent before submitting.'
+          });
+        } else {
+          triggerValidationToast(firstErrorField, newErrors[firstErrorField]);
+        }
+      }
       isValid = false;
     }
     return isValid;
   };
 
   const handleNext = () => {
-    if (validateStep(step)) setStep((prev) => prev + 1);
+    if (validateStep(step)) {
+      setStep((prev) => prev + 1);
+      showToast({
+        type: 'info',
+        title: 'Step Updated',
+        message: `Moved to Step ${step + 1}.`,
+        durationMs: 2200,
+        silent: true
+      });
+      return;
+    }
+
+    showToast({
+      type: 'error',
+      title: 'Cannot Continue',
+      message: `Please complete required fields in Step ${step} before proceeding.`
+    });
   };
 
-  const handleBack = () => setStep((prev) => prev - 1);
+  const handleBack = () => {
+    setStep((prev) => prev - 1);
+    showToast({
+      type: 'info',
+      title: 'Step Updated',
+      message: `Returned to Step ${Math.max(1, step - 1)}.`,
+      durationMs: 2200,
+      silent: true
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (loading) {
+      showToast({ type: 'warning', title: 'Submission in Progress', message: 'Please wait while we process your application.' });
+      return;
+    }
 
     // Validate Step 3 first
     if (!validateStep(3)) return;
 
     // Math Captcha Check
     if (captchaInput !== captcha.answer) {
-      showToast('error', 'Wrong Captcha', 'Please solve the math problem correctly.');
+      showToast({ type: 'error', title: 'Wrong Captcha', message: 'Please solve the math problem correctly.' });
       generateCaptcha();
       return;
     }
 
     setLoading(true);
+    const normalizedEmail = formData.email.trim().toLowerCase();
 
     try {
       // Step 1: Check if a profile with this email already exists (could be from Google/LinkedIn OAuth)
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('email, auth_provider, status')
-        .eq('email', formData.email)
+        .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (existingProfile) {
@@ -255,7 +382,7 @@ const Register: React.FC = () => {
 
       // Step 2: Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: normalizedEmail,
         password: formData.password,
         options: {
           data: {
@@ -285,7 +412,7 @@ const Register: React.FC = () => {
       console.log('[Register] Creating profile for user:', authData.user.id);
       const profilePayload = {
         id: authData.user.id,
-        email: formData.email,
+        email: normalizedEmail,
         first_name: formData.firstName,
         last_name: formData.lastName,
         middle_name: formData.middleName || null,
@@ -313,16 +440,14 @@ const Register: React.FC = () => {
       }
 
       await supabase.auth.signOut();
-      showToast('success', 'Application Submitted!', 'Redirecting...');
-      setTimeout(() => {
-        navigate('/pending-approval');
-      }, 1500);
+      showToast({ type: 'success', title: 'Application Submitted', message: 'Your record was saved and is now pending admin approval.' });
+      navigate('/pending-approval', { replace: true });
 
     } catch (error: any) {
       if (error.message?.includes('already') || error.message?.includes('linked') || error.status === 422) {
-        showToast('error', 'Account Exists', error.message || 'This email is taken. Please Log In.');
+        showToast({ type: 'error', title: 'Account Exists', message: error.message || 'This email is taken. Please Log In.' });
       } else {
-        showToast('error', 'Registration Failed', error.message);
+        showToast({ type: 'error', title: 'Registration Failed', message: error.message || 'Unable to complete registration.' });
       }
     } finally {
       setLoading(false);
@@ -331,33 +456,6 @@ const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Toast Notification */}
-      {toast && toast.show && (
-        <div className={`fixed top-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl border animate-in slide-in-from-right duration-300 max-w-sm w-full bg-white ${toast.type === 'success' ? 'border-green-500' :
-          toast.type === 'warning' ? 'border-yellow-500' :
-            'border-red-500'
-          }`}>
-          <div className={`mt-0.5 ${toast.type === 'success' ? 'text-green-600' :
-            toast.type === 'warning' ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
-            {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> :
-              toast.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
-                <X className="w-5 h-5" />}
-          </div>
-          <div>
-            <h4 className={`text-sm font-bold ${toast.type === 'success' ? 'text-green-800' :
-              toast.type === 'warning' ? 'text-yellow-800' :
-                'text-red-800'
-              }`}>{toast.title}</h4>
-            <p className="text-xs text-gray-600 mt-1">{toast.message}</p>
-          </div>
-          <button onClick={() => setToast(null)} className="ml-auto text-gray-400 hover:text-gray-600">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
 
         {/* Left Side (Dark Blue Card) */}
@@ -428,16 +526,16 @@ const Register: React.FC = () => {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} error={errors.firstName} required placeholder="Letters only" />
-                    <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} error={errors.lastName} required placeholder="Letters only" />
+                    <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.firstName} required placeholder="Letters only" />
+                    <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.lastName} required placeholder="Letters only" />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Optional (letters only)" />
-                    <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} placeholder="Jr., III, etc." />
+                    <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Optional (letters only)" />
+                    <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Jr., III, etc." />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField type="date" label="Birthday" name="birthday" value={formData.birthday} onChange={handleChange} error={errors.birthday} required />
-                    <InputField type="tel" label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} error={errors.mobile} required placeholder="09xxxxxxxxx (digits only)" />
+                    <InputField type="date" label="Birthday" name="birthday" value={formData.birthday} onChange={handleChange} onBlur={handleFieldBlur} error={errors.birthday} required />
+                    <InputField type="tel" label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleFieldBlur} error={errors.mobile} required placeholder="09xxxxxxxxx (digits only)" />
                   </div>
                 </div>
               )}
@@ -461,6 +559,7 @@ const Register: React.FC = () => {
                       required
                       value={formData.course}
                       onChange={handleChange}
+                      onBlur={handleFieldBlur}
                       error={errors.course}
                       options={[
                         { value: 'BSIT', label: 'BS Information Technology' },
@@ -485,15 +584,16 @@ const Register: React.FC = () => {
                       required
                       value={formData.batchYear}
                       onChange={handleChange}
+                      onBlur={handleFieldBlur}
                       error={errors.batchYear}
                       options={Array.from({ length: 31 }, (_, i) => ({ value: 2026 - i, label: 2026 - i }))}
                     />
                   </div>
-                  <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} placeholder="Optional — digits only (e.g. 1900123)" />
+                  <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Optional — digits only (e.g. 1900123)" />
 
                   <div className="grid md:grid-cols-2 gap-4">
-                    <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
-                    <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} error={errors.section} required placeholder="Digits only (e.g. 4101)" />
+                    <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
+                    <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} onBlur={handleFieldBlur} error={errors.section} required placeholder="Digits only (e.g. 4101)" />
                   </div>
                 </div>
               )}
@@ -501,7 +601,10 @@ const Register: React.FC = () => {
               {/* STEP 3 */}
               {step === 3 && (
                 <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
-                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} onBlur={checkEmailAvailability} error={errors.email} required placeholder="active@email.com" />
+                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} onBlur={(e) => {
+                    handleFieldBlur(e);
+                    checkEmailAvailability();
+                  }} error={errors.email} required placeholder="active@email.com" />
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-1.5 min-h-[85px]">
@@ -512,6 +615,8 @@ const Register: React.FC = () => {
                           name="password"
                           value={formData.password}
                           onChange={handleChange}
+                          onBlur={handleFieldBlur}
+
                           className={`w-full p-3 pr-10 border rounded-lg outline-none transition-all ${errors.password ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'}`}
                         />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
@@ -530,6 +635,8 @@ const Register: React.FC = () => {
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleChange}
+                          onBlur={handleFieldBlur}
+
                           className={`w-full p-3 pr-10 border rounded-lg outline-none transition-all ${errors.confirmPassword ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'}`}
                         />
                         <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
@@ -577,7 +684,10 @@ const Register: React.FC = () => {
                         className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
                       <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
-                        I have read and agree to the <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-blue-600 font-semibold hover:underline">Data Privacy Policy</button>.
+                        I have read and agree to the <button type="button" onClick={() => {
+                          setShowPrivacyModal(true);
+                          showToast({ type: 'info', title: 'Policy Opened', message: 'Please review the Data Privacy Act of 2012 before checking consent.', silent: true });
+                        }} className="text-blue-600 font-semibold hover:underline">Data Privacy Policy</button>.
                       </label>
                     </div>
                     <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
@@ -599,7 +709,10 @@ const Register: React.FC = () => {
                         />
                         <button
                           type="button"
-                          onClick={generateCaptcha}
+                          onClick={() => {
+                            generateCaptcha();
+                            showToast({ type: 'info', title: 'Captcha Refreshed', message: 'A new security challenge has been generated.', durationMs: 2200, silent: true });
+                          }}
                           className="p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
                           title="Refresh Captcha"
                         >

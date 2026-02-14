@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, Facebook, Linkedin, Twitter, Clock, Building2, Globe, ShieldCheck, Users, Briefcase, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Facebook, Linkedin, Twitter, Clock, Building2, Globe, ShieldCheck, Users, Briefcase, CheckCircle2, Loader2 } from 'lucide-react';
+import { supabase } from '../../services/supabaseClient';
+import { useToast } from '../../context/ToastContext';
+import { debugToast } from '../../utils/debugToast';
 
 const ContactSection: React.FC = () => {
+  const { showToast } = useToast();
   const [formTab, setFormTab] = useState<'general' | 'company'>('general');
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,12 +20,67 @@ const ContactSection: React.FC = () => {
     companyMessage: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    alert(formTab === 'company'
-      ? "Company inquiry sent! Our admin will verify and get back to you within 1-2 business days."
-      : "Message sent! (Demo only)");
+
+    setSubmitting(true);
+    try {
+      const payload = formTab === 'company'
+        ? {
+            inquiry_type: 'company',
+            company_name: formData.companyName,
+            contact_person: formData.contactPerson,
+            company_email: formData.companyEmail,
+            company_phone: formData.companyPhone || null,
+            position_offered: formData.positionOffered,
+            company_message: formData.companyMessage || null,
+            status: 'pending',
+            routed_to_osa: false,
+            routed_to_hr: false,
+          }
+        : {
+            inquiry_type: 'general',
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+            status: 'pending',
+            routed_to_osa: false,
+            routed_to_hr: false,
+          };
+
+      const { error } = await supabase.from('contact_inquiries').insert([payload]);
+      if (error) throw error;
+
+      showToast({
+        type: 'success',
+        title: formTab === 'company' ? 'Inquiry Received' : 'Message Sent',
+        message: formTab === 'company'
+          ? 'Your company inquiry was submitted and is now pending admin review.'
+          : 'Your message was sent successfully. We will get back to you soon.',
+      });
+
+      debugToast(showToast, 'Contact Inquiry Saved', `type=${formTab}`);
+
+      setFormData({
+        name: '',
+        email: '',
+        message: '',
+        companyName: '',
+        contactPerson: '',
+        companyEmail: '',
+        companyPhone: '',
+        positionOffered: '',
+        companyMessage: '',
+      });
+    } catch (error: any) {
+      showToast({
+        type: 'error',
+        title: 'Submission Failed',
+        message: error.message || 'Unable to submit inquiry right now. Please try again.',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -103,8 +163,8 @@ const ContactSection: React.FC = () => {
                     <label className="block text-sm font-medium text-blue-200/80 mb-2">Your Message</label>
                     <textarea name="message" value={formData.message} onChange={handleChange} rows={5} placeholder="Tell us what's on your mind..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none" required />
                   </div>
-                  <button type="submit" className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-blue-500/30">
-                    <Send className="w-5 h-5" /> Send Message
+                  <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-blue-500/30 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} {submitting ? 'Sending...' : 'Send Message'}
                   </button>
                 </form>
               ) : (
@@ -146,8 +206,8 @@ const ContactSection: React.FC = () => {
                     <label className="block text-sm font-medium text-blue-200/80 mb-2">Additional Details</label>
                     <textarea name="companyMessage" value={formData.companyMessage} onChange={handleChange} rows={4} placeholder="Tell us about your company and what you're looking for in candidates..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300 resize-none" />
                   </div>
-                  <button type="submit" className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transform hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-cyan-500/30">
-                    <Send className="w-5 h-5" /> Submit Company Inquiry
+                  <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transform hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-cyan-500/30 disabled:opacity-70 disabled:cursor-not-allowed">
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} {submitting ? 'Submitting...' : 'Submit Company Inquiry'}
                   </button>
                 </form>
               )}

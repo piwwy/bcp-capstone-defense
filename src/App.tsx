@@ -50,6 +50,8 @@ const ManageFeedback = React.lazy(() => import('./pages/admin/ManageFeedback'));
 const ManageBatchReunions = React.lazy(() => import('./pages/admin/ManageBatchReunions'));
 const ManageJobPlacement = React.lazy(() => import('./pages/admin/ManageJobPlacement'));
 const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
+const TracerSurvey = React.lazy(() => import('./pages/admin/TracerSurvey'));
+const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries'));
 
 // Alumni pages
 const AlumniDashboard = React.lazy(() => import('./components/dashboard/AlumniDashboard'));
@@ -182,9 +184,11 @@ function AppRoutes() {
                   <Route path="train-ai" element={<TrainAI />} />
                   <Route path="collections" element={<DonationCollections />} />
                   <Route path="audit-trail" element={<AuditTrail />} />
+                  <Route path="tracer-survey" element={<TracerSurvey />} />
 
                   {/* Feedback & Surveys */}
                   <Route path="feedback" element={<ManageFeedback />} />
+                  <Route path="partner-inquiries" element={<PartnerInquiries />} />
 
                   {/* Batch Reunions */}
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />

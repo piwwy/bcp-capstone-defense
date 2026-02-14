@@ -22,7 +22,7 @@ interface User {
     mobile_number?: string;
 }
 
-type FilterType = 'all' | 'email' | 'google' | 'linkedin';
+type FilterType = 'all' | 'email' | 'google';
 
 const AdminUsers: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -85,7 +85,6 @@ const AdminUsers: React.FC = () => {
         all: users.length,
         email: users.filter(u => !u.auth_provider || u.auth_provider === 'email').length,
         google: users.filter(u => u.auth_provider === 'google').length,
-        linkedin: users.filter(u => u.auth_provider === 'linkedin' || u.auth_provider === 'linkedin_oidc').length,
     };
 
     // Status badge colors
@@ -159,7 +158,6 @@ const AdminUsers: React.FC = () => {
                         { key: 'all' as FilterType, label: 'All', count: counts.all },
                         { key: 'email' as FilterType, label: 'Manual', count: counts.email },
                         { key: 'google' as FilterType, label: 'Google', count: counts.google },
-                        { key: 'linkedin' as FilterType, label: 'LinkedIn', count: counts.linkedin },
                     ].map((tab) => (
                         <button
                             key={tab.key}
