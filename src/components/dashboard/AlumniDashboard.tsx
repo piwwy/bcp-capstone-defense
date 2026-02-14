@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { Link } from 'react-router-dom';
+import { useJobs, useCampaigns, useUpcomingEvents, useAlumniProfile } from '../../hooks/useSupabaseQuery';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import PageTransition from '../../components/ui/PageTransition';
 import {
   Briefcase, Calendar, ChevronRight, MapPin,
   Users, TrendingUp, Loader2, Heart,
@@ -19,14 +22,13 @@ interface Job {
 
 const AlumniDashboard: React.FC = () => {
   const { user } = useAuth();
-  // FIXED: Dito dapat ang state
-  const [alumniProfile, setAlumniProfile] = useState<any>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  // State for Real Data
-  const [loadingJobs, setLoadingJobs] = useState(true);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
-  const [events, setEvents] = useState<any[]>([]);
+
+  // TanStack Query cached hooks — shared across pages, instant on revisit
+  const { data: jobs = [], isLoading: loadingJobs } = useJobs(3);
+  const { data: campaigns = [], isLoading: loadingCampaigns } = useCampaigns(2);
+  const { data: events = [] } = useUpcomingEvents(3);
+  const { data: alumniProfile } = useAlumniProfile(user?.id);
+
   const [course, setCourse] = useState('');
   const [hasExperience, setHasExperience] = useState(false);
   const [hasEducation, setHasEducation] = useState(false);
@@ -45,87 +47,23 @@ const AlumniDashboard: React.FC = () => {
   };
   const profileProgress = getProfileProgress();
 
-  // --- FETCH JOBS FROM SUPABASE ---
-  // LINE 30-55: Palitan ang buong useEffect at fetchLatestJobs ng ganito:
+  // Lightweight fetches that don't need global caching
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const fetchData = async () => {
-        try {
-          // 1. Fetch Jobs (Existing)
-          const { data: jobData } = await supabase.from('jobs').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(3);
-          setJobs(jobData || []);
-          setLoadingJobs(false);
+    if (!user?.id) return;
+    const fetchExtras = async () => {
+      const { data: mainProf } = await supabase
+        .from('profiles')
+        .select('course')
+        .eq('id', user.id)
+        .single();
+      if (mainProf) setCourse(mainProf.course || '');
 
-          // 2. Fetch Campaigns (New)
-          const { data: campData } = await supabase.from('donation_campaigns').select('*').eq('status', 'active').limit(2);
-          setCampaigns(campData || []);
-          setLoadingCampaigns(false);
-
-          // 3. Fetch Alumni Profile (only if user exists)
-          if (user?.id) {
-            const { data: profData } = await supabase
-              .from('alumni_profiles')
-              .select('*')
-              .eq('id', user.id)
-              .single();
-            setAlumniProfile(profData);
-
-            // 3b. Fetch course from profiles table
-            const { data: mainProf } = await supabase
-              .from('profiles')
-              .select('course')
-              .eq('id', user.id)
-              .single();
-            if (mainProf) setCourse(mainProf.course || '');
-
-            // 3c. Fetch experience & education counts for completeness
-            const { count: expCount } = await supabase.from('alumni_experience').select('*', { count: 'exact', head: true }).eq('alumni_id', user.id);
-            const { count: eduCount } = await supabase.from('alumni_education').select('*', { count: 'exact', head: true }).eq('alumni_id', user.id);
-            setHasExperience((expCount || 0) > 0);
-            setHasEducation((eduCount || 0) > 0);
-          }
-
-          // 4. Fetch Events
-          try {
-            const { data: eventData } = await supabase
-              .from('alumni_events')
-              .select('*')
-              .gte('event_date', new Date().toISOString())
-              .order('event_date', { ascending: true })
-              .limit(3);
-            setEvents(eventData || []);
-          } catch { /* table may not exist yet */ }
-        } catch (err) {
-          console.error('AlumniDashboard fetch error:', err);
-          setLoadingJobs(false);
-          setLoadingCampaigns(false);
-        }
-      };
-
-      fetchData();
-    }, 100);
-
-    // Real-time: auto-refresh when admin updates jobs, events, campaigns
-    const subscription = supabase
-      .channel('alumni-dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-        supabase.from('jobs').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(3)
-          .then(({ data }) => { if (data) setJobs(data); });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, () => {
-        supabase.from('donation_campaigns').select('*').eq('status', 'active').limit(2)
-          .then(({ data }) => { if (data) setCampaigns(data); });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, () => {
-        supabase.from('alumni_events').select('*').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3)
-          .then(({ data }) => { if (data) setEvents(data); });
-      })
-      .subscribe();
-
-    return () => {
-      clearTimeout(timer);
-      supabase.removeChannel(subscription);
+      const { count: expCount } = await supabase.from('alumni_experience').select('*', { count: 'exact', head: true }).eq('alumni_id', user.id);
+      const { count: eduCount } = await supabase.from('alumni_education').select('*', { count: 'exact', head: true }).eq('alumni_id', user.id);
+      setHasExperience((expCount || 0) > 0);
+      setHasEducation((eduCount || 0) > 0);
     };
+    fetchExtras();
   }, [user]);
 
   // Fallback events if DB has none
@@ -144,7 +82,8 @@ const AlumniDashboard: React.FC = () => {
   const empConfig = EMPLOYMENT_MAP[empStatus] || EMPLOYMENT_MAP['employed'];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <PageTransition>
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
 
       {/* 1. HERO SECTION: Emotional & Personalized */}
       <div className="relative bg-gradient-to-r from-blue-900 to-blue-700 rounded-3xl p-8 text-white shadow-xl overflow-hidden">
@@ -472,6 +411,7 @@ const AlumniDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 };
 

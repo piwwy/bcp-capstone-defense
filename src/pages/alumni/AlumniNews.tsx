@@ -1,8 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../../services/supabaseClient';
+import { useState, useMemo } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useNewsArticles } from '../../hooks/useSupabaseQuery';
+import { HeroSkeleton, CardGridSkeleton } from '../../components/ui/Skeleton';
+import PageTransition from '../../components/ui/PageTransition';
 import {
-    Newspaper, Calendar, User, Loader2,
+    Newspaper, Calendar, User,
     ChevronRight, Clock, ArrowLeft, Timer, Share2
 } from 'lucide-react';
 
@@ -35,46 +37,9 @@ const CATEGORIES = [
 
 const AlumniNews = () => {
     const { showToast } = useToast();
-    const [articles, setArticles] = useState<NewsArticle[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: fetchedArticles = [], isLoading: loading } = useNewsArticles();
     const [activeCategory, setActiveCategory] = useState('All');
     const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-
-    useEffect(() => {
-        fetchArticles();
-
-        const channel = supabase
-            .channel('alumni-news-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, () => {
-                fetchArticles();
-            })
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
-    }, []);
-
-    const fetchArticles = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('news_articles')
-                .select('*, profiles:author_id(first_name, last_name)')
-                .eq('is_published', true)
-                .order('published_at', { ascending: false });
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                setArticles(data);
-            } else {
-                setArticles(SAMPLE_ARTICLES);
-            }
-        } catch (error: any) {
-            console.error('Error fetching articles:', error);
-            setArticles(SAMPLE_ARTICLES);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // Sample placeholder articles with real Unsplash images
     const SAMPLE_ARTICLES: NewsArticle[] = [
@@ -154,6 +119,9 @@ Registration is now open through the alumni portal. Early registrants will recei
         }
     ];
 
+    // Use fetched data, fall back to samples if empty
+    const articles = fetchedArticles.length > 0 ? fetchedArticles : SAMPLE_ARTICLES;
+
     // Featured article (latest or most important)
     const featuredArticle = useMemo(() => articles[0], [articles]);
 
@@ -197,8 +165,9 @@ Registration is now open through the alumni portal. Early registrants will recei
 
     if (loading) {
         return (
-            <div className="h-96 flex items-center justify-center">
-                <Loader2 className="animate-spin text-blue-600 w-8 h-8" />
+            <div className="max-w-7xl mx-auto space-y-10 pb-20">
+                <HeroSkeleton />
+                <CardGridSkeleton count={3} />
             </div>
         );
     }
@@ -206,7 +175,8 @@ Registration is now open through the alumni portal. Early registrants will recei
     // ARTICLE DETAIL VIEW
     if (selectedArticle) {
         return (
-            <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+            <PageTransition>
+            <div className="max-w-7xl mx-auto space-y-8 pb-20">
                 {/* Back Button */}
                 <button
                     onClick={() => setSelectedArticle(null)}
@@ -266,12 +236,14 @@ Registration is now open through the alumni portal. Early registrants will recei
                     </div>
                 </div>
             </div>
+            </PageTransition>
         );
     }
 
     // MAIN NEWS LIST VIEW
     return (
-        <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
+        <PageTransition>
+        <div className="max-w-7xl mx-auto space-y-10 pb-20">
 
             {/* 1. FEATURED ARTICLE HERO (Same pattern as Events) */}
             {featuredArticle && (
@@ -395,6 +367,7 @@ Registration is now open through the alumni portal. Early registrants will recei
                 </div>
             )}
         </div>
+        </PageTransition>
     );
 };
 

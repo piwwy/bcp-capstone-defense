@@ -1,52 +1,34 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useEvents } from '../../hooks/useSupabaseQuery';
+import { useQueryClient } from '@tanstack/react-query';
+import { HeroSkeleton, CardGridSkeleton } from '../../components/ui/Skeleton';
+import PageTransition from '../../components/ui/PageTransition';
 import {
   Calendar, MapPin, Clock, Image as ImageIcon,
-  Users, CheckCircle2, CalendarPlus, Share2, 
+  Users, CheckCircle2, CalendarPlus, Share2,
   Loader2, Timer, Plus, X
 } from 'lucide-react';
 
 const AlumniEvents = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: events = [], isLoading: loading } = useEvents();
   const [activeCategory, setActiveCategory] = useState('All');
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [addEventLoading, setAddEventLoading] = useState(false);
   const now = useMemo(() => new Date(), []);
-const upcomingEvents = useMemo(() => events.filter(e => new Date(e.date) >= now), [events, now]);
-const dynamicPastEvents = useMemo(() => events.filter(e => new Date(e.date) < now), [events, now]);
+const upcomingEvents = useMemo(() => events.filter((e: any) => new Date(e.date) >= now), [events, now]);
+const dynamicPastEvents = useMemo(() => events.filter((e: any) => new Date(e.date) < now), [events, now]);
   const [eventForm, setEventForm] = useState({
     title: '', description: '', date: '', location: '', category: 'Reunions', image_url: ''
   });
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('alumni_events')
-      .select(`
-        *,
-        event_attendees ( alumni_id )
-      `) // FIXED: Kinukuha natin ang IDs para sa isRegistered check
-      .eq('status', 'active')
-      .order('date', { ascending: true });
-
-    if (error) throw error;
-    setEvents(data || []);
-  } catch (err: any) {
-    showToast({ title: 'Error', message: err.message, type: 'error' });
-  } finally {
-    setLoading(false);
-  }
-};
+  const refetchEvents = () => queryClient.invalidateQueries({ queryKey: ['alumni_events'] });
 
 
   const handleShare = async (event: any) => {
@@ -81,7 +63,7 @@ const dynamicPastEvents = useMemo(() => events.filter(e => new Date(e.date) < no
     return ['All', ...Array.from(new Set(cats))];
   }, [events]);
 
-  if (loading) return <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+  if (loading) return <div className="max-w-7xl mx-auto space-y-10 pb-20"><HeroSkeleton /><CardGridSkeleton count={3} /></div>;
   const handleAddToCalendar = (event: any) => {
     const start = new Date(event.date).toISOString().replace(/-|:|\.\d\d\d/g, "");
     const end = new Date(new Date(event.date).getTime() + 3600000).toISOString().replace(/-|:|\.\d\d\d/g, "");
@@ -101,7 +83,7 @@ const dynamicPastEvents = useMemo(() => events.filter(e => new Date(e.date) < no
       showToast({ title: 'Event Created!', message: 'Your event has been published.', type: 'success' });
       setIsAddEventOpen(false);
       setEventForm({ title: '', description: '', date: '', location: '', category: 'Reunions', image_url: '' });
-      fetchEvents();
+      refetchEvents();
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
     } finally {
@@ -119,7 +101,7 @@ const dynamicPastEvents = useMemo(() => events.filter(e => new Date(e.date) < no
 
       if (error) throw error;
       showToast({ title: 'RSVP Success!', message: "We've added you to the guest list.", type: 'success' });
-      fetchEvents();
+      refetchEvents();
     } catch (err: any) {
       showToast({ title: 'RSVP Failed', message: 'You might already be registered.', type: 'info' });
     } finally {
@@ -128,10 +110,11 @@ const dynamicPastEvents = useMemo(() => events.filter(e => new Date(e.date) < no
   };
 
  
-  if (loading) return <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+  if (loading) return <div className="max-w-7xl mx-auto space-y-10 pb-20"><HeroSkeleton /><CardGridSkeleton count={3} /></div>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
+    <PageTransition>
+    <div className="max-w-7xl mx-auto space-y-10 pb-20">
 
        {/* 1. FEATURED EVENT HERO (With Live Status) */}
        {featuredEvent && (
@@ -439,7 +422,7 @@ const dynamicPastEvents = useMemo(() => events.filter(e => new Date(e.date) < no
          </div>
        )}
     </div>
-
+    </PageTransition>
   );
 };
 

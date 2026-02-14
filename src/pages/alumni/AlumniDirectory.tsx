@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useAlumniDirectory, useConnections } from '../../hooks/useSupabaseQuery';
+import { useQueryClient } from '@tanstack/react-query';
+import { AlumniCardSkeleton } from '../../components/ui/Skeleton';
+import PageTransition from '../../components/ui/PageTransition';
 import {
   Search, MapPin, Users, Loader2, Briefcase,
   GraduationCap, Globe, X, MessageCircle, UserPlus, UserCheck, Eye, Mail
@@ -103,29 +107,15 @@ const AlumniDirectory = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [alumni, setAlumni] = useState<AlumniMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: alumni = [], isLoading: loading } = useAlumniDirectory() as { data: AlumniMember[]; isLoading: boolean };
+  const { data: connections = new Set<string>() } = useConnections(user?.id);
   const [searchQuery, setSearchQuery] = useState('');
   const [batchFilter, setBatchFilter] = useState('All');
   const [courseFilter, setCourseFilter] = useState('All');
   const [showMap, setShowMap] = useState(false);
   const [selectedAlumni, setSelectedAlumni] = useState<AlumniMember | null>(null);
-  const [connections, setConnections] = useState<Set<string>>(new Set());
   const [connectionCounts, setConnectionCounts] = useState<Record<string, { followers: number; following: number }>>({});
-
-  // Load connections from Supabase
-  useEffect(() => {
-    if (user?.id) fetchConnections();
-  }, [user]);
-
-  const fetchConnections = async () => {
-    if (!user?.id) return;
-    const { data } = await supabase
-      .from('alumni_connections')
-      .select('following_id')
-      .eq('follower_id', user.id);
-    if (data) setConnections(new Set(data.map(d => d.following_id)));
-  };
 
   const fetchConnectionCounts = async (alumniId: string) => {
     const [{ count: followers }, { count: following }] = await Promise.all([
@@ -140,47 +130,12 @@ const AlumniDirectory = () => {
     if (connections.has(alumId)) {
       await supabase.from('alumni_connections').delete()
         .eq('follower_id', user.id).eq('following_id', alumId);
-      setConnections(prev => { const next = new Set(prev); next.delete(alumId); return next; });
       showToast({ title: 'Disconnected', message: `Removed ${name} from connections.`, type: 'info' });
     } else {
       await supabase.from('alumni_connections').insert({ follower_id: user.id, following_id: alumId });
-      setConnections(prev => { const next = new Set(prev); next.add(alumId); return next; });
       showToast({ title: 'Connected!', message: `You are now connected with ${name}.`, type: 'success' });
     }
-  };
-
-  useEffect(() => {
-    fetchAlumni();
-  }, []);
-
-  const fetchAlumni = async () => {
-    try {
-      const { data: profilesData, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email, batch_year, course, avatar_url')
-        .eq('role', 'alumni')
-        .eq('status', 'verified')
-        .order('last_name', { ascending: true });
-
-      if (error) throw error;
-
-      const { data: careerData } = await supabase
-        .from('alumni_profiles')
-        .select('id, location, current_position, current_company, employment_status, headline, about, skills, linkedin_url, portfolio_url, phone');
-
-      const careerMap = new Map((careerData || []).map(c => [c.id, c]));
-
-      const merged = (profilesData || []).map(p => ({
-        ...p,
-        ...(careerMap.get(p.id) || {})
-      }));
-
-      setAlumni(merged);
-    } catch (err) {
-      console.error('Error fetching alumni:', err);
-    } finally {
-      setLoading(false);
-    }
+    queryClient.invalidateQueries({ queryKey: ['connections'] });
   };
 
   const batchYears = useMemo(() => {
@@ -220,12 +175,13 @@ const AlumniDirectory = () => {
   }, [alumni]);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-32"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>;
+    return <div className="max-w-6xl mx-auto space-y-8 pb-20"><AlumniCardSkeleton count={6} /></div>;
   }
 
   return (
+    <PageTransition>
     <>
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
+      <div className="max-w-6xl mx-auto space-y-8 pb-20">
 
         {/* Header */}
         <div className="text-center">
@@ -559,6 +515,7 @@ const AlumniDirectory = () => {
         </div>
       )}
     </>
+    </PageTransition>
   );
 };
 

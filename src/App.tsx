@@ -1,6 +1,8 @@
 // src/App.tsx
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 
 // USE THE REAL AUTH CONTEXT
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -11,75 +13,68 @@ import { ToastProvider } from './context/ToastContext'; // <-- Import ToastProvi
 import { NotificationProvider } from './context/NotificationContext';
 import { SessionTimeoutProvider } from './context/SessionTimeoutContext';
 
-// --- PUBLIC PAGES ---
+// Skeleton for Suspense fallback (shows while lazy chunks load)
+import { PageSkeleton } from './components/ui/Skeleton';
+
+// --- PUBLIC PAGES (keep eager — needed on first paint) ---
 import LandingPage from './pages/LandingPage';
-import Login from './pages/Login'; // Unified Login Page
+import Login from './pages/Login';
 import Register from './pages/Register';
-import Alumni2FA from './pages/Alumni2FA';
-import PendingApproval from './pages/PendingApproval';
-import Onboarding from './pages/Onboarding';
-// REMOVED: import AdminLogin from './pages/AdminLogin'; <-- DELETE THIS
 import SignUpOptions from './pages/SignUpOptions';
 import AuthCallback from './pages/AuthCallback';
 
-// --- ADMIN PAGES (Matched with your specific filenames) ---
-import RegistrationApprovals from './pages/admin/RegistrationApprovals'; // Note: small 'a'
-import AllAlumniRecords from './pages/admin/AllAlumniRecords';
-import MasterListUpload from './pages/admin/MasterListUpload';
-import ManageJobs from './pages/admin/ManageJobs';
-import AdminUsers from './pages/admin/AdminUsers';
+// --- LAZY-LOADED PAGES (split into separate chunks) ---
+// Public
+const Alumni2FA = React.lazy(() => import('./pages/Alumni2FA'));
+const PendingApproval = React.lazy(() => import('./pages/PendingApproval'));
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
+const PublicDonationPage = React.lazy(() => import('./pages/PublicDonationPage'));
 
-// -- navbar for alumni 
-import AlumniDirectory from './pages/alumni/AlumniDirectory';
-import AlumniCommunity from './pages/alumni/AlumniCommunity';
-import AlumniResources from './pages/alumni/AlumniResources';
-import AlumniProfile from './pages/alumni/AlumniProfile';
-// AlumniAnnouncements removed — consolidated into News Feed
-import AlumniNews from './pages/alumni/AlumniNews';
+// Admin pages
+const RegistrationApprovals = React.lazy(() => import('./pages/admin/RegistrationApprovals'));
+const AllAlumniRecords = React.lazy(() => import('./pages/admin/AllAlumniRecords'));
+const MasterListUpload = React.lazy(() => import('./pages/admin/MasterListUpload'));
+const ManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
+const AdminUsers = React.lazy(() => import('./pages/admin/AdminUsers'));
+const DonationManager = React.lazy(() => import('./pages/admin/DonationManager'));
+const ReportGenerator = React.lazy(() => import('./pages/admin/ReportGenerator'));
+const TrainAI = React.lazy(() => import('./pages/admin/TrainAI'));
+const DonationCollections = React.lazy(() => import('./pages/admin/DonationCollections'));
+const ManageEvents = React.lazy(() => import('./pages/admin/ManageEvents'));
+const EventApprovals = React.lazy(() => import('./pages/admin/EventApprovals'));
+const AuditTrail = React.lazy(() => import('./pages/admin/AuditTrail'));
+const ManageNews = React.lazy(() => import('./pages/admin/ManageNews'));
+const CareerTracking = React.lazy(() => import('./pages/admin/CareerTracking'));
+const DataAnalytics = React.lazy(() => import('./pages/admin/DataAnalytics'));
+const ManageFeedback = React.lazy(() => import('./pages/admin/ManageFeedback'));
+const ManageBatchReunions = React.lazy(() => import('./pages/admin/ManageBatchReunions'));
+const ManageJobPlacement = React.lazy(() => import('./pages/admin/ManageJobPlacement'));
+const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
 
-// alumni
-import AlumniDonations from './pages/alumni/AlumniDonations';
-// Idagdag mo ito sa mga imports
-import DonationManager from './pages/admin/DonationManager';
-// import DonationPortal from './pages/alumni/DonationPortal';
+// Alumni pages
+const AlumniDashboard = React.lazy(() => import('./components/dashboard/AlumniDashboard'));
+const AlumniDirectory = React.lazy(() => import('./pages/alumni/AlumniDirectory'));
+const AlumniCommunity = React.lazy(() => import('./pages/alumni/AlumniCommunity'));
+const AlumniResources = React.lazy(() => import('./pages/alumni/AlumniResources'));
+const AlumniProfile = React.lazy(() => import('./pages/alumni/AlumniProfile'));
+const AlumniNews = React.lazy(() => import('./pages/alumni/AlumniNews'));
+const AlumniDonations = React.lazy(() => import('./pages/alumni/AlumniDonations'));
+const AlumniEvents = React.lazy(() => import('./pages/alumni/AlumniEvents'));
+const AlumniJobs = React.lazy(() => import('./pages/alumni/AlumniJobs'));
+const AlumniGraduateTracking = React.lazy(() => import('./pages/alumni/AlumniGraduateTracking'));
+const AlumniFeedback = React.lazy(() => import('./pages/alumni/AlumniFeedback'));
+const AlumniBatchReunions = React.lazy(() => import('./pages/alumni/AlumniBatchReunions'));
+const AlumniJobPlacement = React.lazy(() => import('./pages/alumni/AlumniJobPlacement'));
+const AlumniSettings = React.lazy(() => import('./pages/alumni/AlumniSettings'));
+const AlumniMessages = React.lazy(() => import('./pages/alumni/AlumniMessages'));
 
-import ReportGenerator from './pages/admin/ReportGenerator';
-import TrainAI from './pages/admin/TrainAI';
-// --- DASHBOARDS ---
-import AlumniDashboard from './components/dashboard/AlumniDashboard';
-import DashboardAdmin from './components/dashboard/DashboardAdmin';
-import DashboardSuperAdmin from './components/dashboard/DashboardSuperAdmin';
+// Dashboards
+const DashboardAdmin = React.lazy(() => import('./components/dashboard/DashboardAdmin'));
+const DashboardSuperAdmin = React.lazy(() => import('./components/dashboard/DashboardSuperAdmin'));
 
-// --- LAYOUTS ---
+// --- LAYOUTS (keep eager — they wrap everything) ---
 import DashboardLayout from './layouts/DashboardLayout';
-
 import AlumniLayout from './layouts/AlumniLayout';
-import AlumniEvents from './pages/alumni/AlumniEvents';
-import AlumniJobs from './pages/alumni/AlumniJobs';
-import PublicDonationPage from './pages/PublicDonationPage';
-import DonationCollections from './pages/admin/DonationCollections';
-import ManageEvents from './pages/admin/ManageEvents';
-import EventApprovals from './pages/admin/EventApprovals';
-
-import AuditTrail from './pages/admin/AuditTrail';
-// Announcements removed — consolidated into News Feed
-import ManageNews from './pages/admin/ManageNews';
-import CareerTracking from './pages/admin/CareerTracking';
-import DataAnalytics from './pages/admin/DataAnalytics';
-import AlumniGraduateTracking from './pages/alumni/AlumniGraduateTracking';
-
-// --- NEW MODULES ---
-import AlumniFeedback from './pages/alumni/AlumniFeedback';
-// AlumniNewsletter removed — consolidated into News Feed
-import AlumniBatchReunions from './pages/alumni/AlumniBatchReunions';
-import AlumniJobPlacement from './pages/alumni/AlumniJobPlacement';
-import ManageFeedback from './pages/admin/ManageFeedback';
-// ManageNewsletter removed — consolidated into News Feed
-import ManageBatchReunions from './pages/admin/ManageBatchReunions';
-import ManageJobPlacement from './pages/admin/ManageJobPlacement';
-import AlumniSettings from './pages/alumni/AlumniSettings';
-import AlumniMessages from './pages/alumni/AlumniMessages';
-import AdminSettings from './pages/admin/AdminSettings';
 
 // --- PROTECTED ROUTE (Role Checker) ---
 interface ProtectedRouteProps {
@@ -129,140 +124,146 @@ const ModulePlaceholder: React.FC<{ title: string; module: string }> = ({ title,
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* PUBLIC ROUTES */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/alumni/2fa" element={<Alumni2FA />} />
-      <Route path="/pending-approval" element={<PendingApproval />} />
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/signup-options" element={<SignUpOptions />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="donate" element={<PublicDonationPage />} />
+    <Suspense fallback={<PageSkeleton />}>
+      <Routes>
+        {/* PUBLIC ROUTES */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/alumni/2fa" element={<Alumni2FA />} />
+        <Route path="/pending-approval" element={<PendingApproval />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/signup-options" element={<SignUpOptions />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="donate" element={<PublicDonationPage />} />
 
-      {/* =========================================================
-    ADMIN PORTAL 
-   ========================================================= */}
-      <Route path="/admin/*" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <DashboardLayout>
-            <Routes>
-              <Route path="dashboard" element={<DashboardAdmin />} />
+        {/* =========================================================
+      ADMIN PORTAL
+     ========================================================= */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<DashboardAdmin />} />
 
-              {/* MATCHING SIDEBAR PATHS: */}
+                  {/* MATCHING SIDEBAR PATHS: */}
 
-              {/* Sidebar: /admin/approvals */}
-              <Route path="approvals" element={<RegistrationApprovals />} />
+                  {/* Sidebar: /admin/approvals */}
+                  <Route path="approvals" element={<RegistrationApprovals />} />
 
-              {/* Sidebar: /admin/records */}
-              <Route path="records" element={<AllAlumniRecords />} />
+                  {/* Sidebar: /admin/records */}
+                  <Route path="records" element={<AllAlumniRecords />} />
 
-              {/* Sidebar: /admin/upload */}
-              <Route path="upload" element={<MasterListUpload />} />
+                  {/* Sidebar: /admin/upload */}
+                  <Route path="upload" element={<MasterListUpload />} />
 
-              {/* Sidebar: /admin/users - View all registered users */}
-              <Route path="users" element={<AdminUsers />} />
+                  {/* Sidebar: /admin/users - View all registered users */}
+                  <Route path="users" element={<AdminUsers />} />
 
-              {/* 3. Philanthropy / Donations */}
-              <Route path="donations" element={<DonationManager />} />
+                  {/* 3. Philanthropy / Donations */}
+                  <Route path="donations" element={<DonationManager />} />
 
-              {/* 3. Career Tracking & Analytics */}
-              <Route path="tracking/career" element={<CareerTracking />} />
-              <Route path="tracking/analytics" element={<DataAnalytics />} />
+                  {/* 3. Career Tracking & Analytics */}
+                  <Route path="tracking/career" element={<CareerTracking />} />
+                  <Route path="tracking/analytics" element={<DataAnalytics />} />
 
-              {/* IPALIT ITO PARA GUMANA NA ANG FILE MO: */}
-              <Route path="jobs/board" element={<ManageJobs />} />
+                  {/* IPALIT ITO PARA GUMANA NA ANG FILE MO: */}
+                  <Route path="jobs/board" element={<ManageJobs />} />
 
-              {/* 6. Communication & Reports */}
-              {/* Announcements removed — consolidated into News Feed */}
-              <Route path="events/calendar" element={<ManageEvents />} />
-              <Route path="events/approvals" element={<EventApprovals />} />
-              <Route path="news/manage" element={<ManageNews />} />
+                  {/* 6. Communication & Reports */}
+                  {/* Announcements removed — consolidated into News Feed */}
+                  <Route path="events/calendar" element={<ManageEvents />} />
+                  <Route path="events/approvals" element={<EventApprovals />} />
+                  <Route path="news/manage" element={<ManageNews />} />
 
-              {/* Advanced Tools */}
-              <Route path="reports" element={<ReportGenerator />} />
-              <Route path="train-ai" element={<TrainAI />} />
-              <Route path="collections" element={<DonationCollections />} />
-              <Route path="audit-trail" element={<AuditTrail />} />
+                  {/* Advanced Tools */}
+                  <Route path="reports" element={<ReportGenerator />} />
+                  <Route path="train-ai" element={<TrainAI />} />
+                  <Route path="collections" element={<DonationCollections />} />
+                  <Route path="audit-trail" element={<AuditTrail />} />
 
-              {/* Feedback & Surveys */}
-              <Route path="feedback" element={<ManageFeedback />} />
+                  {/* Feedback & Surveys */}
+                  <Route path="feedback" element={<ManageFeedback />} />
 
-              {/* Batch Reunions */}
-              <Route path="batch-reunions" element={<ManageBatchReunions />} />
+                  {/* Batch Reunions */}
+                  <Route path="batch-reunions" element={<ManageBatchReunions />} />
 
-              {/* Job Placement Logs */}
-              <Route path="job-placement" element={<ManageJobPlacement />} />
+                  {/* Job Placement Logs */}
+                  <Route path="job-placement" element={<ManageJobPlacement />} />
 
-              {/* Admin Settings */}
-              <Route path="settings" element={<AdminSettings />} />
+                  {/* Admin Settings */}
+                  <Route path="settings" element={<AdminSettings />} />
 
-              {/* Catch-all: Ito ang dahilan kung bakit bumabalik sa dashboard dati. 
-            Ngayon, gagana na ang mga nasa taas kaya hindi na ito tatamaan agad. */}
-              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-            </Routes>
-          </DashboardLayout>
-        </ProtectedRoute>
-      } />
-      {/* =========================================================
-          SUPER ADMIN PORTAL
-         ========================================================= */}
-      <Route path="/superadmin/*" element={
-        <ProtectedRoute allowedRoles={['superadmin']}>
-          <DashboardLayout>
-            <Routes>
-              <Route path="dashboard" element={<DashboardSuperAdmin />} />
-              <Route path="settings" element={<ModulePlaceholder title="System Settings" module="SuperAdmin" />} />
-              <Route path="*" element={<Navigate to="/superadmin/dashboard" replace />} />
-            </Routes>
-          </DashboardLayout>
-        </ProtectedRoute>
-      } />
+                  {/* Catch-all */}
+                  <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+        {/* =========================================================
+            SUPER ADMIN PORTAL
+           ========================================================= */}
+        <Route path="/superadmin/*" element={
+          <ProtectedRoute allowedRoles={['superadmin']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<DashboardSuperAdmin />} />
+                  <Route path="settings" element={<ModulePlaceholder title="System Settings" module="SuperAdmin" />} />
+                  <Route path="*" element={<Navigate to="/superadmin/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
 
-      {/* =========================================================
-    ALUMNI PORTAL (Using New Upwork-Style Layout)
-   ========================================================= */}
-      <Route path="/alumni/*" element={
-        <ProtectedRoute allowedRoles={['alumni']}>
-          {/* DITO NATIN PINALITAN: */}
-          <AlumniLayout>
-            <Routes>
-              <Route path="dashboard" element={<AlumniDashboard />} />
-              <Route path="profile" element={<AlumniProfile />} />
+        {/* =========================================================
+      ALUMNI PORTAL (Using New Upwork-Style Layout)
+     ========================================================= */}
+        <Route path="/alumni/*" element={
+          <ProtectedRoute allowedRoles={['alumni']}>
+            <AlumniLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<AlumniDashboard />} />
+                  <Route path="profile" element={<AlumniProfile />} />
 
-              <Route path="settings" element={<AlumniSettings />} />
-              <Route path="events" element={<AlumniEvents />} />
+                  <Route path="settings" element={<AlumniSettings />} />
+                  <Route path="events" element={<AlumniEvents />} />
 
-              {/* New Alumni Navbar Links */}
+                  {/* New Alumni Navbar Links */}
 
-              <Route path="directory" element={<AlumniDirectory />} />
-              <Route path="donations" element={<AlumniDonations />} />
+                  <Route path="directory" element={<AlumniDirectory />} />
+                  <Route path="donations" element={<AlumniDonations />} />
 
-              <Route path="jobs" element={<AlumniJobs />} /> {/* Updated */}
+                  <Route path="jobs" element={<AlumniJobs />} />
 
-              <Route path="forum" element={<AlumniCommunity />} />
-              {/* Announcements removed — consolidated into News Feed */}
-              <Route path="news" element={<AlumniNews />} />
-              <Route path="resources" element={<AlumniResources />} />
-              <Route path="graduate-tracking" element={<AlumniGraduateTracking />} />
+                  <Route path="forum" element={<AlumniCommunity />} />
+                  {/* Announcements removed — consolidated into News Feed */}
+                  <Route path="news" element={<AlumniNews />} />
+                  <Route path="resources" element={<AlumniResources />} />
+                  <Route path="graduate-tracking" element={<AlumniGraduateTracking />} />
 
-              {/* New Modules */}
-              <Route path="messages" element={<AlumniMessages />} />
-              <Route path="feedback" element={<AlumniFeedback />} />
-              {/* Newsletter removed — consolidated into News Feed */}
-              <Route path="batch-reunions" element={<AlumniBatchReunions />} />
-              <Route path="job-placement" element={<AlumniJobPlacement />} />
+                  {/* New Modules */}
+                  <Route path="messages" element={<AlumniMessages />} />
+                  <Route path="feedback" element={<AlumniFeedback />} />
+                  {/* Newsletter removed — consolidated into News Feed */}
+                  <Route path="batch-reunions" element={<AlumniBatchReunions />} />
+                  <Route path="job-placement" element={<AlumniJobPlacement />} />
 
-              {/* Catch-all - MUST be last */}
-              <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />
-            </Routes>
-          </AlumniLayout>
-        </ProtectedRoute>
-      } />
+                  {/* Catch-all - MUST be last */}
+                  <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </AlumniLayout>
+          </ProtectedRoute>
+        } />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -322,17 +323,19 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
-        <ToastProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <SessionTimeoutProvider>
-                <AppRoutes />
-              </SessionTimeoutProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </Router>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <ToastProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <SessionTimeoutProvider>
+                  <AppRoutes />
+                </SessionTimeoutProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </Router>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

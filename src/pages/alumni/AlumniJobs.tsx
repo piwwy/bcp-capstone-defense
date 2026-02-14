@@ -3,6 +3,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useJobs, useMyApplications, useAppliedJobIds } from '../../hooks/useSupabaseQuery';
+import { useQueryClient } from '@tanstack/react-query';
+import { JobListSkeleton } from '../../components/ui/Skeleton';
+import PageTransition from '../../components/ui/PageTransition';
 import {
   Search, MapPin, Briefcase, Clock, Send, X,
   Sparkles, CheckCircle,
@@ -39,15 +43,18 @@ type FeedTab = 'my-feed' | 'best-matches' | 'most-recent' | 'saved';
 const AlumniJobs: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [mainView, setMainView] = useState<'discover' | 'my-apps'>('discover');
   const [feedTab, setFeedTab] = useState<FeedTab>('my-feed');
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
 
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [myApplications, setMyApplications] = useState<any[]>([]);
-  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+  // TanStack Query cached hooks
+  const { data: jobs = [], isLoading: loadingJobs } = useJobs();
+  const { data: myApplications = [], isLoading: loadingApps } = useMyApplications(user?.id);
+  const { data: appliedJobIds = new Set<string>(), } = useAppliedJobIds(user?.id);
+  const loading = mainView === 'discover' ? loadingJobs : loadingApps;
+
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -73,35 +80,15 @@ const AlumniJobs: React.FC = () => {
     showToast({ title: savedJobIds.has(jobId) ? 'Removed' : 'Saved', message: savedJobIds.has(jobId) ? 'Job removed from saved.' : 'Job saved!', type: 'info' });
   };
 
-  // Fetch user profile + applied job IDs
+  // Fetch user profile (lightweight, keep as useEffect)
   useEffect(() => {
     if (!user?.id) return;
     const fetchUserData = async () => {
       const { data: prof } = await supabase.from('profiles').select('*, course').eq('id', user.id).single();
       setUserProfile(prof);
-      const { data: apps } = await supabase.from('job_applications').select('job_id').eq('alumni_id', user.id);
-      if (apps) setAppliedJobIds(new Set(apps.map(a => a.job_id)));
     };
     fetchUserData();
   }, [user]);
-
-  // Fetch data based on main view
-  useEffect(() => {
-    const fetchTabData = async () => {
-      setLoading(true);
-      try {
-        if (mainView === 'discover') {
-          const { data } = await supabase.from('jobs').select('*').eq('status', 'active').order('created_at', { ascending: false });
-          setJobs(data || []);
-        } else {
-          const { data } = await supabase.from('job_applications').select('*, jobs(*)').eq('alumni_id', user?.id).order('applied_at', { ascending: false });
-          setMyApplications(data || []);
-        }
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    };
-    fetchTabData();
-  }, [mainView, user]);
 
   // Status Stepper for application tracking
   const StatusStepper = ({ status }: { status: string }) => {
@@ -141,9 +128,8 @@ const AlumniJobs: React.FC = () => {
       const { error } = await supabase.from('job_applications').delete().eq('id', appId);
       if (error) throw error;
       showToast({ title: 'Withdrawn', message: 'Application removed.', type: 'info' });
-      setMyApplications(prev => prev.filter(a => a.id !== appId));
-      const { data: apps } = await supabase.from('job_applications').select('job_id').eq('alumni_id', user?.id);
-      if (apps) setAppliedJobIds(new Set(apps.map(a => a.job_id)));
+      queryClient.invalidateQueries({ queryKey: ['job_applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applied_job_ids'] });
     } catch (err: any) { showToast({ title: 'Failed', message: err.message, type: 'error' }); }
   };
 
@@ -155,7 +141,8 @@ const AlumniJobs: React.FC = () => {
       const { error } = await supabase.from('job_applications').insert([{ job_id: selectedJob.id, alumni_id: user.id, cover_letter: coverLetter, portfolio_url: portfolioUrl, status: 'pending' }]);
       if (error) throw error;
       showToast({ title: 'Success!', message: `Applied to ${selectedJob.company}`, type: 'success' });
-      setAppliedJobIds(prev => new Set(prev).add(selectedJob.id));
+      queryClient.invalidateQueries({ queryKey: ['applied_job_ids'] });
+      queryClient.invalidateQueries({ queryKey: ['job_applications'] });
       setShowApplyModal(false);
       setShowDetail(false);
       setCoverLetter('');
@@ -221,7 +208,8 @@ const AlumniJobs: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-700 pb-10">
+    <PageTransition>
+    <div className="max-w-7xl mx-auto space-y-6 pb-10">
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
@@ -512,6 +500,7 @@ const AlumniJobs: React.FC = () => {
         </div>
       )}
     </div>
+    </PageTransition>
   );
 };
 
