@@ -26,10 +26,16 @@ const DashboardAdmin: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    
+
+    // Real-time: listen to ALL tables the dashboard displays
     const subscription = supabase
-      .channel('public:profiles')
+      .channel('admin-dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_profiles' }, fetchDashboardData)
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };

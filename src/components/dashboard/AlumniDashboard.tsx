@@ -105,7 +105,27 @@ const AlumniDashboard: React.FC = () => {
       fetchData();
     }, 100);
 
-    return () => clearTimeout(timer);
+    // Real-time: auto-refresh when admin updates jobs, events, campaigns
+    const subscription = supabase
+      .channel('alumni-dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+        supabase.from('jobs').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(3)
+          .then(({ data }) => { if (data) setJobs(data); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, () => {
+        supabase.from('donation_campaigns').select('*').eq('status', 'active').limit(2)
+          .then(({ data }) => { if (data) setCampaigns(data); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, () => {
+        supabase.from('alumni_events').select('*').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3)
+          .then(({ data }) => { if (data) setEvents(data); });
+      })
+      .subscribe();
+
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(subscription);
+    };
   }, [user]);
 
   // Fallback events if DB has none

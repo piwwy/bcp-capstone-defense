@@ -27,50 +27,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     let mounted = true;
 
-    // 1. Check current session pag-load ng page
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && mounted) {
-          await fetchProfile(session.user.id, session.user.email!);
-        }
-      } catch (error) {
-        console.error('Session check error:', error);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    checkSession();
-
-    // Safety timeout: ensure loading is resolved within 5 seconds
+    // Safety timeout: kung 8 seconds walang response, stop loading
     const timeout = setTimeout(() => {
       if (mounted) setIsLoading(false);
-    }, 5000);
+    }, 8000);
 
-    // 2. Makinig sa Login/Logout events real-time
-    // Handle SIGNED_IN, INITIAL_SESSION for proper auth flow
+    // SINGLE SOURCE OF TRUTH: onAuthStateChange handles EVERYTHING
+    // - INITIAL_SESSION fires once on page load (replaces getSession())
+    // - SIGNED_IN fires on fresh login
+    // - SIGNED_OUT fires on logout
+    // NO separate checkSession() = NO race condition
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event); // Debug log
+      if (!mounted) return;
 
-      // Skip TOKEN_REFRESHED events to avoid loading flash on tab switch
-      if (event === 'TOKEN_REFRESHED') {
-        return;
-      }
-
-      // Handle sign-in and initial session (for fresh login or page reload with existing session)
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && mounted) {
-        try {
-          // Don't set loading=true to avoid flash, just update user
+      if (event === 'INITIAL_SESSION') {
+        // Page reload: restore session from stored token
+        if (session?.user) {
           await fetchProfile(session.user.id, session.user.email!);
-        } catch (error) {
-          // Silently handle abort errors during registration flow
-          console.log('Profile fetch skipped (user may be registering):', error);
+        } else {
+          setIsLoading(false); // No session = not logged in
         }
-      } else if (event === 'SIGNED_OUT' && mounted) {
+      } else if (event === 'SIGNED_IN') {
+        // Fresh login
+        if (session?.user) {
+          await fetchProfile(session.user.id, session.user.email!);
+        }
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsLoading(false);
       }
+      // TOKEN_REFRESHED — ignore (no loading flash on tab switch)
     });
 
     return () => {

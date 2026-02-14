@@ -1,0 +1,27 @@
+-- ============================================================
+-- SAVEPOINT: Stable RLS State (Feb 14, 2026)
+-- ============================================================
+-- This migration marks a known-good checkpoint.
+--
+-- Applied migrations at this point:
+--   1. 20260214010855 - initial_schema_backup (empty placeholder)
+--   2. 20260214042916 - fix_slow_rls_policies
+--      → Optimized 10 tables: alumni_feedback, alumni_newsletters,
+--        alumni_surveys, batch_reunions, donations, forum_posts,
+--        job_applications, messages, notifications, reunion_attendees
+--      → All auth.uid() wrapped in (SELECT auth.uid())
+--      → Admin checks via profiles.role (no admins table)
+--   3. 20260214043500 - fix_profiles_rls_circular_reference
+--      → Created public.is_admin() SECURITY DEFINER function
+--      → Fixed profiles infinite recursion (500 error)
+--      → profiles: SELECT=all_auth, INSERT=own, UPDATE=own+admin, DELETE=admin
+--
+-- HOW TO ROLLBACK to this savepoint:
+--   If a future migration breaks the app, run:
+--     supabase migration repair --status reverted <broken_migration_timestamp>
+--   Then manually drop the broken changes using the rollback
+--   script at: supabase/rollbacks/rollback_reference.sql
+-- ============================================================
+
+-- No-op marker (Postgres requires at least one statement)
+SELECT 'SAVEPOINT: stable_rls_state_20260214' AS checkpoint;

@@ -1,0 +1,161 @@
+﻿1. Alumni Management
+Handles alumni records, verification, and data retrieval.
+1.1 Alumni Directory
+* Displays the complete list of registered alumni
+
+* Provides access to individual alumni profiles and activity history
+
+* Tracks alumni account status (Active, Pending, Verified)
+
+1.2 Alumni Registration Management
+   * Allows manual creation of alumni records
+
+   * Stores personal, academic, and graduation information
+
+   * Assigns initial account status and login credentials
+
+1.3 Alumni Verification System
+      * Reviews alumni registration submissions
+
+      * Approves or rejects alumni accounts based on validation rules
+
+      * Ensures only legitimate graduates gain system access
+
+1.4 Alumni Search & Filtering
+         * Searches alumni by name, batch year, course, or status
+
+         * Applies filters for fast data retrieval
+
+         * Supports administrative audits and alumni engagement activities
+
+________________
+
+
+2. Event Management
+Manages alumni events from creation to analytics.
+2.1 Event Creation & Publishing
+            * Creates and publishes alumni events (reunions, seminars, fundraisers)
+
+            * Defines event details such as date, location, capacity, and visibility
+
+            * Controls event availability and registration rules
+
+2.2 Event Directory
+               * Displays all events (Upcoming, Ongoing, Completed)
+
+               * Updates, deactivates, or removes events
+
+               * Monitors event lifecycle status
+
+2.3 Event Registration Management
+                  * Displays registered participants per event
+
+                  * Approves, rejects, or manages attendee lists
+
+                  * Tracks attendance and participation records
+
+2.4 Event Analytics & Reporting
+                     * Displays number of registrants and attendance rate
+
+                     * Analyzes alumni engagement per event
+
+                     * Supports data-driven event planning decisions
+
+________________
+
+
+3. Job Recommendation Management
+Controls job postings, approvals, and engagement tracking.
+3.1 Job Posting Management
+                        * Creates job postings for employers or alumni
+
+                        * Defines job details, qualifications, and application links
+
+                        * Controls job visibility and posting duration
+
+3.2 Job Listings Directory
+                           * Displays all job postings in the system
+
+                           * Edits, archives, or removes job listings
+
+                           * Tracks job status (Active, Expired, Pending)
+
+3.3 Job Posting Approval System
+                              * Reviews job postings submitted by alumni or partners
+
+                              * Approves or rejects postings for quality assurance
+
+                              * Prevents fraudulent or inappropriate listings
+
+3.4 Job Analytics & Insights
+                                 * Tracks number of job postings and views
+
+                                 * Monitors alumni interaction with job opportunities
+
+                                 * Generates insights for career support programs
+
+________________
+
+
+4. News & Announcements Management
+Handles official communication and content management.
+4.1 Content Publishing
+                                    * Publishes news, updates, and announcements
+
+                                    * Controls post visibility (Public, Alumni-Only, Internal)
+
+                                    * Supports scheduled publishing
+
+4.2 Content Management
+                                       * Displays all published and draft posts
+
+                                       * Manages post status (Active, Archived, Unpublished)
+
+                                       * Maintains content consistency across the portal
+
+4.3 Content Editing
+                                          * Updates or corrects existing announcements
+
+                                          * Modifies text, images, and publication settings
+
+                                          * Ensures accuracy and relevance of information
+
+4.4 Content Analytics
+                                             * Tracks post views and engagement
+
+                                             * Monitors interaction trends
+
+                                             * Evaluates communication effectiveness
+
+________________
+
+
+5. Donation Management
+Ensures transparent and organized donation tracking.
+5.1 Donation Records Management
+                                                * Displays all donation transactions
+
+                                                * Shows donor details, amounts, and purpose
+
+                                                * Ensures transparency and accountability
+
+5.2 Donation Filtering & Sorting
+                                                   * Filters donations by type (Event, Scholarship, General Fund)
+
+                                                   * Sorts by date, donor, or payment method
+
+                                                   * Supports financial monitoring
+
+5.3 Donation Reporting System
+                                                      * Generates summarized and detailed donation reports
+
+                                                      * Supports financial reviews and institutional reporting
+
+                                                      * Assists audit and compliance requirements
+
+5.4 Data Export & Sharing
+                                                         * Exports donation data to PDF or Excel
+
+                                                         * Enables offline review and record-keeping
+
+                                                         * Shares reports with authorized users

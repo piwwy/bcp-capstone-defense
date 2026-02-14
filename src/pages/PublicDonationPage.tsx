@@ -199,8 +199,8 @@ const PublicDonationPage = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-emerald-500 selection:text-white pb-20">
       <header className="p-6 border-b border-white/10 flex justify-between items-center bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
-        <Link to="/" className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
-          <ArrowLeft className="w-5 h-5" /> Back to Home
+        <Link to={searchParams.get('email') ? '/alumni/donations' : '/'} className="flex items-center gap-2 text-white/80 hover:text-white transition-colors">
+          <ArrowLeft className="w-5 h-5" /> {searchParams.get('email') ? 'Back to Portal' : 'Back to Home'}
         </Link>
 
     {/* --- ADD THIS INSIDE YOUR HEADER --- */}

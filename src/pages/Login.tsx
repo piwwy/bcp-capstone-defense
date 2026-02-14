@@ -46,65 +46,54 @@ export default function Login() {
 
       showToast('success', 'Login Successful', `Welcome back, ${profile.first_name || 'User'}!`);
 
-      // 3. INTELLIGENT REDIRECT
-      setTimeout(() => {
-        if (['admin', 'registrar'].includes(profile.role)) {
-          navigate('/admin/dashboard', { replace: true });
-          return;
-        }
+      // 3. INTELLIGENT REDIRECT — immediate, no setTimeout delay
+      if (['admin', 'registrar'].includes(profile.role)) {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
 
-        if (profile.role === 'superadmin') {
-          navigate('/superadmin/dashboard', { replace: true });
-          return;
-        }
+      if (profile.role === 'superadmin') {
+        navigate('/superadmin/dashboard', { replace: true });
+        return;
+      }
 
-        if (profile.role === 'alumni') {
-          switch (profile.status) {
-            case 'verified': {
-              // --- OTP SKIP LOGIC ---
-              // 1) Google/LinkedIn users already verified identity via OAuth — skip OTP
-              const isOAuthUser = profile.auth_provider === 'google' || profile.auth_provider === 'linkedin';
+      if (profile.role === 'alumni') {
+        switch (profile.status) {
+          case 'verified': {
+            const isOAuthUser = profile.auth_provider === 'google' || profile.auth_provider === 'linkedin';
+            const lastOtpKey = `otp_verified_${user.id}`;
+            const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
+            const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+            const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
 
-              // 2) Check if user verified OTP within last 30 days (monthly cycle)
-              const lastOtpKey = `otp_verified_${user.id}`;
-              const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
-              const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-              const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
-
-              if (isOAuthUser || isWithinMonth) {
-                // Skip OTP — go directly to dashboard
-                navigate('/alumni/dashboard', { replace: true });
-              } else {
-                // Generate 6-digit OTP and send via email
-                const otp = Math.floor(100000 + Math.random() * 900000).toString();
-                const expiry = Date.now() + 60 * 1000; // 60 seconds
-                sessionStorage.setItem('otp_code', otp);
-                sessionStorage.setItem('otp_expiry', expiry.toString());
-                sessionStorage.setItem('otp_email', user.email || '');
-                sessionStorage.setItem('otp_user_id', user.id);
-
-                // Send OTP email (non-blocking — don't await to keep UX fast)
-                EmailService.sendOTPEmail(user.email || '', profile.first_name || 'Alumni', otp);
-
-                navigate('/alumni/2fa', { replace: true });
-              }
-              break;
+            if (isOAuthUser || isWithinMonth) {
+              navigate('/alumni/dashboard', { replace: true });
+            } else {
+              const otp = Math.floor(100000 + Math.random() * 900000).toString();
+              const expiry = Date.now() + 60 * 1000;
+              sessionStorage.setItem('otp_code', otp);
+              sessionStorage.setItem('otp_expiry', expiry.toString());
+              sessionStorage.setItem('otp_email', user.email || '');
+              sessionStorage.setItem('otp_user_id', user.id);
+              EmailService.sendOTPEmail(user.email || '', profile.first_name || 'Alumni', otp);
+              navigate('/alumni/2fa', { replace: true });
             }
-            case 'pending_approval':
-              navigate('/pending-approval', { replace: true });
-              break;
-            case 'rejected':
-              supabase.auth.signOut();
-              showToast('error', 'Access Denied', 'Your application was declined.');
-              break;
-            default:
-              navigate('/onboarding', { replace: true });
+            break;
           }
-          return;
+          case 'pending_approval':
+            navigate('/pending-approval', { replace: true });
+            break;
+          case 'rejected':
+            supabase.auth.signOut();
+            showToast('error', 'Access Denied', 'Your application was declined.');
+            break;
+          default:
+            navigate('/onboarding', { replace: true });
         }
+        return;
+      }
 
-        throw new Error("Role not recognized. Contact support.");
-      }, 1500);
+      throw new Error("Role not recognized. Contact support.");
 
     } catch (err: any) {
       showToast('error', 'Login Failed', err.message);
