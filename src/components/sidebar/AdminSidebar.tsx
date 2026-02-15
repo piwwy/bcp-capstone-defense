@@ -29,7 +29,7 @@ const AdminSidebar: React.FC = () => {
     {
       name: "Alumni & Records", icon: Users, subItems: [
         { name: "Manage Users", path: "/admin/users", icon: Users },
-        { name: "Records", path: "/admin/records", icon: Database },
+        { name: "Alumni Records", path: "/admin/records", icon: Database },
         { name: "Master List", path: "/admin/upload", icon: UploadCloud },
       ]
     },
@@ -69,6 +69,7 @@ const AdminSidebar: React.FC = () => {
         { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
       ]
     },
+    { name: "Settings", icon: Settings, path: "/admin/settings" },
   ];
 
   useEffect(() => {
@@ -126,19 +127,17 @@ const AdminSidebar: React.FC = () => {
                 <div
                   onClick={() => item.path ? navigate(item.path) : toggleSubMenu(item)}
                   className={`relative flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                  style={isActive ? { animation: 'adminActivePulse 2.5s ease-in-out infinite' } : undefined}
                 >
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center">
-                      <span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(255,255,255,0.85)] animate-pulse" />
+                      <span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(59,130,246,0.6)]" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} />
                     </div>
                   )}
                   <div className="flex items-center gap-3.5 min-w-0">
                     <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-300 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
                     <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 ${collapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"}`}>{item.name}</span>
                   </div>
-                  {isActive && !collapsed && (
-                    <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[10px] font-black tracking-wider text-white/90 animate-pulse">...</span>
-                  )}
                   {!collapsed && item.subItems && (
                     <ChevronRight className={`w-4 h-4 transition-all duration-300 ${isExp ? "rotate-90" : ""} ${isActive ? "text-white/90" : "text-gray-400"}`} />
                   )}
@@ -149,10 +148,9 @@ const AdminSidebar: React.FC = () => {
                       const isSubActive = location.pathname === sub.path;
                       return (
                         <Link key={idx} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-blue-700 bg-blue-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
-                          {isSubActive && <span className="absolute left-1 h-4 w-0.5 rounded bg-blue-500 animate-pulse" />}
+                          {isSubActive && <span className="absolute left-1 h-4 w-0.5 rounded bg-blue-500" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} />}
                           <sub.icon className={`w-4 h-4 transition-all ${isSubActive ? "text-blue-600" : "text-gray-400 group-hover:text-blue-600"}`} />
                           {sub.name}
-                          {isSubActive && <span className="ml-auto text-[10px] font-black text-blue-400 animate-pulse">...</span>}
                         </Link>
                       );
                     })}
@@ -194,6 +192,18 @@ const AdminSidebar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Sidebar animation keyframes */}
+      <style>{`
+        @keyframes adminActivePulse {
+          0%, 100% { box-shadow: 0 4px 14px -3px rgba(37, 99, 235, 0.25); }
+          50% { box-shadow: 0 4px 20px -3px rgba(37, 99, 235, 0.45); }
+        }
+        @keyframes adminBarGlow {
+          0%, 100% { opacity: 0.7; box-shadow: 0 0 6px rgba(59, 130, 246, 0.4); }
+          50% { opacity: 1; box-shadow: 0 0 14px rgba(59, 130, 246, 0.8); }
+        }
+      `}</style>
 
       {/* LOGOUT MODAL */}
       {showLogoutModal && (

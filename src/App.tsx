@@ -101,6 +101,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     switch (user.role) {
       case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
       case 'admin': return <Navigate to="/admin/dashboard" replace />;
+      case 'staff': return <Navigate to="/staff/dashboard" replace />;
       case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
       default: return <Navigate to="/" replace />;
     }
@@ -108,16 +109,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   return <>{children}</>;
 };
-
-// --- PLACEHOLDER ---
-const ModulePlaceholder: React.FC<{ title: string; module: string }> = ({ title, module }) => (
-  <div className="p-8">
-    <div className="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-16 text-center shadow-sm">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">{title}</h1>
-      <p className="text-gray-500 mb-6">Module: {module}</p>
-    </div>
-  </div>
-);
 
 function AppRoutes() {
   return (
@@ -203,8 +194,66 @@ function AppRoutes() {
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="dashboard" element={<DashboardSuperAdmin />} />
-                  <Route path="settings" element={<ModulePlaceholder title="System Settings" module="SuperAdmin" />} />
+
+                  {/* User Management */}
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="records" element={<AllAlumniRecords />} />
+                  <Route path="upload" element={<MasterListUpload />} />
+
+                  {/* Career & Jobs */}
+                  <Route path="jobs" element={<ManageJobs />} />
+                  <Route path="job-placement" element={<ManageJobPlacement />} />
+                  <Route path="career-tracking" element={<CareerTracking />} />
+
+                  {/* Events & Reunions */}
+                  <Route path="events" element={<ManageEvents />} />
+                  <Route path="event-approvals" element={<EventApprovals />} />
+                  <Route path="batch-reunions" element={<ManageBatchReunions />} />
+
+                  {/* Communication */}
+                  <Route path="news" element={<ManageNews />} />
+                  <Route path="partner-inquiries" element={<PartnerInquiries />} />
+
+                  {/* Engagement */}
+                  <Route path="feedback" element={<ManageFeedback />} />
+                  <Route path="donations" element={<DonationManager />} />
+                  <Route path="collections" element={<DonationCollections />} />
+
+                  {/* Advanced */}
+                  <Route path="analytics" element={<DataAnalytics />} />
+                  <Route path="tracer-survey" element={<TracerSurvey />} />
+                  <Route path="reports" element={<ReportGenerator />} />
+                  <Route path="train-ai" element={<TrainAI />} />
+                  <Route path="audit-trail" element={<AuditTrail />} />
+
+                  {/* System */}
+                  <Route path="settings" element={<AdminSettings />} />
+
                   <Route path="*" element={<Navigate to="/superadmin/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* =========================================================
+            STAFF PORTAL (Limited Access)
+           ========================================================= */}
+        <Route path="/staff/*" element={
+          <ProtectedRoute allowedRoles={['staff']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<DashboardAdmin />} />
+                  <Route path="records" element={<AllAlumniRecords />} />
+                  <Route path="events/calendar" element={<ManageEvents />} />
+                  <Route path="events/approvals" element={<EventApprovals />} />
+                  <Route path="news/manage" element={<ManageNews />} />
+                  <Route path="feedback" element={<ManageFeedback />} />
+                  <Route path="batch-reunions" element={<ManageBatchReunions />} />
+                  <Route path="jobs/board" element={<ManageJobs />} />
+                  <Route path="partner-inquiries" element={<PartnerInquiries />} />
+                  <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
                 </Routes>
               </Suspense>
             </DashboardLayout>

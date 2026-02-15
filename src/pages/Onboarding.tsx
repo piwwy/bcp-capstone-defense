@@ -6,7 +6,6 @@ import {
   AlertCircle, Lock, Eye, EyeOff
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { debugToast } from '../utils/debugToast';
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -123,8 +122,6 @@ const Onboarding: React.FC = () => {
     setLoading(true);
 
     try {
-      debugToast(showToast, 'Onboarding Submit', `uid=${user.id}`);
-
       // 1. Try to update user password in Supabase Auth
       // Note: This might fail if password is the same - we handle it gracefully
       const { error: passwordError } = await supabase.auth.updateUser({
@@ -136,7 +133,6 @@ const Onboarding: React.FC = () => {
         throw passwordError;
       }
       // If password was same, just continue (user can still use that password)
-      debugToast(showToast, 'Password Update', passwordError ? 'Password unchanged; continuing' : 'Password updated');
 
       // 2. Save profile data
       const combinedVerification = `Adviser: ${formData.adviserName} | Section: ${formData.section}`;
@@ -164,15 +160,12 @@ const Onboarding: React.FC = () => {
       if (error) throw error;
 
       showToast({ type: 'success', title: 'Profile Completed!', message: 'Redirecting to status page...' });
-      debugToast(showToast, 'Onboarding Success', 'Profile upserted; redirecting to pending approval');
-
       setTimeout(() => {
         navigate('/pending-approval');
       }, 1500);
 
     } catch (error: any) {
       console.error("Onboarding Error:", error);
-      debugToast(showToast, 'Onboarding Error', error.message || 'Unknown onboarding error', { type: 'warning' });
       showToast({ type: 'error', title: 'System Error', message: error.message });
     } finally {
       setLoading(false);

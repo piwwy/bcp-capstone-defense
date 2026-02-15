@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
+import CreateUserModal from '../../components/modals/CreateUserModal';
 import {
-    Users, Loader2, Search, Mail, Calendar,
-    GraduationCap, Filter, RefreshCw, Eye
+    Users, Loader2, Search, Calendar, GraduationCap, Filter, RefreshCw,
+    Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2, CheckCircle,
+    XCircle, ChevronDown, AlertTriangle, Edit3
 } from 'lucide-react';
 
 interface User {
@@ -16,35 +20,47 @@ interface User {
     course: string;
     student_id?: string;
     status: string;
-    auth_provider?: string;
+    role: string;
     avatar_url?: string;
     created_at: string;
-    mobile_number?: string;
+    phone?: string;
 }
 
-type FilterType = 'all' | 'email' | 'google';
+type StatusFilter = 'all' | 'verified' | 'master_list' | 'pending_approval';
+type RoleFilter = 'all' | 'alumni' | 'staff' | 'admin';
 
 const AdminUsers: React.FC = () => {
+    const { showToast } = useToast();
+
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-    const [filter, setFilter] = useState<FilterType>('all');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [actionMenuId, setActionMenuId] = useState<string | null>(null);
 
-    // Fetch all users
+    // Confirmation modals
+    const [confirmAction, setConfirmAction] = useState<{ type: string; user: User } | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
+
+    // Edit role
+    const [editRoleUser, setEditRoleUser] = useState<User | null>(null);
+    const [newRole, setNewRole] = useState('alumni');
+
+    // Fetch ALL users (all roles)
     const fetchUsers = async () => {
         setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('role', 'alumni')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
             setUsers(data || []);
-            setFilteredUsers(data || []);
         } catch (err) {
             console.error("Error fetching users:", err);
         } finally {
@@ -52,155 +68,247 @@ const AdminUsers: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
+    useEffect(() => { fetchUsers(); }, []);
 
     // Filter users when filter or search changes
     useEffect(() => {
         let result = users;
 
-        // Apply auth provider filter
-        if (filter !== 'all') {
-            result = result.filter(u => (u.auth_provider || 'email') === filter);
+        if (statusFilter !== 'all') {
+            result = result.filter(u => u.status === statusFilter);
         }
-
-        // Apply search filter
+        if (roleFilter !== 'all') {
+            result = result.filter(u => u.role === roleFilter);
+        }
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             result = result.filter(u =>
-                u.first_name?.toLowerCase().includes(query) ||
-                u.last_name?.toLowerCase().includes(query) ||
+                `${u.first_name} ${u.last_name}`.toLowerCase().includes(query) ||
                 u.email?.toLowerCase().includes(query) ||
+                u.student_id?.toLowerCase().includes(query) ||
                 u.course?.toLowerCase().includes(query) ||
                 u.batch_year?.toString().includes(query)
             );
         }
 
         setFilteredUsers(result);
-    }, [filter, searchQuery, users]);
+    }, [statusFilter, roleFilter, searchQuery, users]);
 
-    // Count by auth provider
+    // Counts
     const counts = {
         all: users.length,
-        email: users.filter(u => !u.auth_provider || u.auth_provider === 'email').length,
-        google: users.filter(u => u.auth_provider === 'google').length,
+        alumni: users.filter(u => u.role === 'alumni').length,
+        staff: users.filter(u => u.role === 'staff').length,
+        admin: users.filter(u => u.role === 'admin' || u.role === 'super_admin' || u.role === 'superadmin').length,
+        verified: users.filter(u => u.status === 'verified').length,
+        master_list: users.filter(u => u.status === 'master_list').length,
+        pending: users.filter(u => u.status === 'pending_approval').length,
     };
 
-    // Status badge colors
+    // Status badge with colors
     const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'verified':
-                return <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">Verified</span>;
-            case 'pending_approval':
-                return <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">Pending</span>;
-            case 'rejected':
-                return <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">Rejected</span>;
-            default:
-                return <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded-full">{status}</span>;
-        }
+        const badges: Record<string, { bg: string; text: string; label: string }> = {
+            verified: { bg: 'bg-green-100', text: 'text-green-700', label: 'Verified' },
+            master_list: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Active' },
+            pending_approval: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending' },
+            rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected' },
+        };
+        const badge = badges[status] || { bg: 'bg-gray-100', text: 'text-gray-600', label: status };
+        return (
+            <span className={`${badge.bg} ${badge.text} text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${badge.text.replace('text-', 'bg-')}`}></span>
+                {badge.label}
+            </span>
+        );
     };
 
-    // Auth provider badge
-    const getProviderBadge = (provider?: string) => {
-        switch (provider) {
-            case 'google':
-                return (
-                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
-                        <svg className="w-3 h-3" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                        </svg>
-                        Google
-                    </span>
-                );
-            case 'linkedin':
-            case 'linkedin_oidc':
-                return (
-                    <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-xs font-bold px-2 py-1 rounded-full">
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                        </svg>
-                        LinkedIn
-                    </span>
-                );
-            default:
-                return (
-                    <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded-full">
-                        <Mail className="w-3 h-3" />
-                        Manual
-                    </span>
-                );
-        }
+    // Role badge
+    const getRoleBadge = (role: string) => {
+        const badges: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
+            admin: { bg: 'bg-red-50', text: 'text-red-700', icon: <Shield className="w-3 h-3" /> },
+            super_admin: { bg: 'bg-purple-50', text: 'text-purple-700', icon: <Shield className="w-3 h-3" /> },
+            superadmin: { bg: 'bg-purple-50', text: 'text-purple-700', icon: <Shield className="w-3 h-3" /> },
+            staff: { bg: 'bg-teal-50', text: 'text-teal-700', icon: <Users className="w-3 h-3" /> },
+            alumni: { bg: 'bg-indigo-50', text: 'text-indigo-700', icon: <GraduationCap className="w-3 h-3" /> },
+        };
+        const badge = badges[role] || { bg: 'bg-gray-50', text: 'text-gray-600', icon: null };
+        return (
+            <span className={`${badge.bg} ${badge.text} text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1`}>
+                {badge.icon}
+                {role.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            </span>
+        );
     };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
+            month: 'short', day: 'numeric', year: 'numeric',
         });
     };
 
+    // Quick Actions
+    const handleApprove = async (user: User) => {
+        setActionLoading(true);
+        try {
+            await supabase.from('profiles').update({ status: 'verified' }).eq('id', user.id);
+            await logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
+                module: 'User Management',
+                message: `Approved user: ${user.first_name} ${user.last_name}`,
+                userId: user.id, oldStatus: user.status, newStatus: 'verified'
+            });
+            showToast({ type: 'success', title: 'User Approved', message: `${user.first_name} ${user.last_name} has been verified.` });
+            fetchUsers();
+        } catch (err: any) {
+            showToast({ type: 'error', title: 'Error', message: err.message });
+        } finally {
+            setActionLoading(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const handleResetPassword = async (user: User) => {
+        setActionLoading(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                redirectTo: `${window.location.origin}/reset-password`
+            });
+            if (error) throw error;
+            await logAudit(AUDIT_ACTIONS.PASSWORD_CHANGED, {
+                module: 'User Management',
+                message: `Sent password reset email to ${user.email}`,
+                userId: user.id
+            });
+            showToast({ type: 'success', title: 'Reset Email Sent', message: `Password reset email sent to ${user.email}` });
+        } catch (err: any) {
+            showToast({ type: 'error', title: 'Error', message: err.message });
+        } finally {
+            setActionLoading(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const handleDeleteUser = async (user: User) => {
+        setActionLoading(true);
+        try {
+            await supabase.from('profiles').delete().eq('id', user.id);
+            await logAudit(AUDIT_ACTIONS.USER_DELETED, {
+                module: 'User Management',
+                message: `Deleted user: ${user.first_name} ${user.last_name} (${user.email})`,
+                userId: user.id
+            });
+            showToast({ type: 'success', title: 'User Deleted', message: `${user.first_name} ${user.last_name} has been removed.` });
+            fetchUsers();
+        } catch (err: any) {
+            showToast({ type: 'error', title: 'Error', message: err.message });
+        } finally {
+            setActionLoading(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const handleRoleChange = async () => {
+        if (!editRoleUser) return;
+        setActionLoading(true);
+        try {
+            await supabase.from('profiles').update({ role: newRole }).eq('id', editRoleUser.id);
+            await logAudit(AUDIT_ACTIONS.USER_ROLE_CHANGED, {
+                module: 'User Management',
+                message: `Changed role of ${editRoleUser.first_name} ${editRoleUser.last_name} from ${editRoleUser.role} to ${newRole}`,
+                userId: editRoleUser.id, oldRole: editRoleUser.role, newRole
+            });
+            showToast({ type: 'success', title: 'Role Updated', message: `${editRoleUser.first_name}'s role changed to ${newRole}` });
+            fetchUsers();
+        } catch (err: any) {
+            showToast({ type: 'error', title: 'Error', message: err.message });
+        } finally {
+            setActionLoading(false);
+            setEditRoleUser(null);
+        }
+    };
+
     return (
-        <AdminPageLayout
-            title="Manage Users"
-            subtitle="View and manage all alumni accounts"
-            icon={Users}
-        >
-            {/* Stats & Filters Row */}
-            <div className="flex flex-col lg:flex-row gap-4 mb-6">
-                {/* Filter Tabs */}
-                <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-full lg:w-auto">
-                    {[
-                        { key: 'all' as FilterType, label: 'All', count: counts.all },
-                        { key: 'email' as FilterType, label: 'Manual', count: counts.email },
-                        { key: 'google' as FilterType, label: 'Google', count: counts.google },
-                    ].map((tab) => (
-                        <button
-                            key={tab.key}
-                            onClick={() => setFilter(tab.key)}
-                            className={`flex-1 lg:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filter === tab.key
-                                ? 'bg-white text-blue-700 shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900'
-                                }`}
-                        >
-                            {tab.label}
-                            <span className={`ml-1.5 px-1.5 py-0.5 rounded text-xs ${filter === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
-                                }`}>
-                                {tab.count}
-                            </span>
-                        </button>
-                    ))}
+        <AdminPageLayout title="Manage Users" subtitle="Create, view, edit, and manage all system accounts" icon={Users}>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                {[
+                    { label: 'Total Users', value: counts.all, color: 'from-blue-500 to-indigo-600' },
+                    { label: 'Alumni', value: counts.alumni, color: 'from-indigo-500 to-purple-600' },
+                    { label: 'Staff', value: counts.staff, color: 'from-teal-500 to-cyan-600' },
+                    { label: 'Admins', value: counts.admin, color: 'from-red-500 to-pink-600' },
+                ].map((stat, i) => (
+                    <div key={i} className={`bg-gradient-to-br ${stat.color} rounded-xl p-4 text-white shadow-lg`}>
+                        <p className="text-xs font-bold text-white/70 uppercase tracking-wide">{stat.label}</p>
+                        <p className="text-2xl font-black mt-1">{stat.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Toolbar */}
+            <div className="flex flex-col lg:flex-row gap-3 mb-4">
+                {/* Search */}
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search by name, student ID, email, course..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm"
+                    />
                 </div>
 
-                {/* Search & Refresh */}
-                <div className="flex gap-3 flex-1">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by name, email, course..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
+                {/* Filters */}
+                <div className="flex gap-2 flex-wrap">
+                    {/* Status Filter */}
+                    <div className="relative">
+                        <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+                            className="appearance-none pl-3 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold cursor-pointer outline-none focus:ring-2 focus:ring-blue-200"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="verified">✅ Verified ({counts.verified})</option>
+                            <option value="master_list">🔵 Active ({counts.master_list})</option>
+                            <option value="pending_approval">⏳ Pending ({counts.pending})</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                     </div>
-                    <button
-                        onClick={fetchUsers}
-                        className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                    >
+
+                    {/* Role Filter */}
+                    <div className="relative">
+                        <select
+                            value={roleFilter}
+                            onChange={e => setRoleFilter(e.target.value as RoleFilter)}
+                            className="appearance-none pl-3 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold cursor-pointer outline-none focus:ring-2 focus:ring-blue-200"
+                        >
+                            <option value="all">All Roles</option>
+                            <option value="alumni">Alumni ({counts.alumni})</option>
+                            <option value="staff">Staff ({counts.staff})</option>
+                            <option value="admin">Admin ({counts.admin})</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                    </div>
+
+                    {/* Refresh */}
+                    <button onClick={fetchUsers} className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors" title="Refresh">
                         <RefreshCw className="w-4 h-4" />
-                        <span className="hidden sm:inline">Refresh</span>
+                    </button>
+
+                    {/* Create User Button */}
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2"
+                    >
+                        <UserPlus className="w-4 h-4" />
+                        Create User
                     </button>
                 </div>
             </div>
 
             {/* Results Info */}
-            <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
-                <Filter className="w-4 h-4" />
+            <div className="flex items-center gap-2 mb-3 text-sm text-gray-500">
+                <Filter className="w-3.5 h-3.5" />
                 Showing <span className="font-bold text-gray-700">{filteredUsers.length}</span> of {users.length} users
             </div>
 
@@ -213,7 +321,7 @@ const AdminUsers: React.FC = () => {
                 <div className="text-center p-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <h3 className="text-lg font-bold text-gray-700">No users found</h3>
-                    <p className="text-gray-500">Try adjusting your search or filter.</p>
+                    <p className="text-gray-500 text-sm">Try adjusting your search or filter, or create a new user.</p>
                 </div>
             ) : (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -221,63 +329,136 @@ const AdminUsers: React.FC = () => {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Course / Batch</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Full Name</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Student ID</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Course & Batch</th>
                                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Provider</th>
-                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Date Added</th>
-                                    <th className="px-4 py-3 text-center font-semibold text-gray-600">Action</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Role</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Created At</th>
+                                    <th className="px-4 py-3 text-center font-semibold text-gray-600">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredUsers.map((user, index) => (
                                     <tr
                                         key={user.id}
-                                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                                        className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
                                     >
+                                        {/* Full Name */}
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <img
-                                                    src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random`}
+                                                    src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random&bold=true&size=40`}
                                                     alt={user.first_name}
-                                                    className="w-8 h-8 rounded-full object-cover"
+                                                    className="w-9 h-9 rounded-full object-cover ring-2 ring-gray-100"
                                                 />
                                                 <div>
-                                                    <div className="font-semibold text-gray-900">
+                                                    <div className="font-bold text-gray-900">
                                                         {user.first_name} {user.middle_name ? user.middle_name.charAt(0) + '.' : ''} {user.last_name}
                                                     </div>
-                                                    {user.student_id && (
-                                                        <div className="text-xs text-gray-400 font-mono">ID: {user.student_id}</div>
-                                                    )}
+                                                    <div className="text-xs text-gray-400">{user.email}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-gray-600">{user.email}</td>
+
+                                        {/* Student ID */}
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <GraduationCap className="w-4 h-4 text-gray-400" />
-                                                <span className="font-medium text-gray-700">{user.course}</span>
-                                                <span className="text-gray-400">•</span>
-                                                <span className="text-gray-500">{user.batch_year}</span>
+                                            <span className="font-mono text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                                                {user.student_id || '—'}
+                                            </span>
+                                        </td>
+
+                                        {/* Course & Batch */}
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-1.5">
+                                                <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
+                                                <span className="font-semibold text-gray-700">{user.course || '—'}</span>
+                                                {user.batch_year && (
+                                                    <>
+                                                        <span className="text-gray-300">·</span>
+                                                        <span className="text-gray-500">{user.batch_year}</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
+
+                                        {/* Status */}
                                         <td className="px-4 py-3">{getStatusBadge(user.status)}</td>
-                                        <td className="px-4 py-3">{getProviderBadge(user.auth_provider)}</td>
+
+                                        {/* Role */}
+                                        <td className="px-4 py-3">{getRoleBadge(user.role)}</td>
+
+                                        {/* Created At */}
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center gap-1 text-gray-500">
+                                            <div className="flex items-center gap-1 text-gray-500 text-xs">
                                                 <Calendar className="w-3 h-3" />
                                                 {formatDate(user.created_at)}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <button
-                                                onClick={() => setSelectedUser(user)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
+
+                                        {/* Actions */}
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-center gap-1 relative">
+                                                {/* Quick Approve (only if pending) */}
+                                                {(user.status === 'pending_approval' || user.status === 'master_list') && (
+                                                    <button
+                                                        onClick={() => setConfirmAction({ type: 'approve', user })}
+                                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                        title="Approve User"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" />
+                                                    </button>
+                                                )}
+
+                                                {/* View Details */}
+                                                <button
+                                                    onClick={() => setSelectedUser(user)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+
+                                                {/* More Actions */}
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActionMenuId(actionMenuId === user.id ? null : user.id);
+                                                        }}
+                                                        className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    >
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </button>
+
+                                                    {actionMenuId === user.id && (
+                                                        <>
+                                                            <div className="fixed inset-0 z-40" onClick={() => setActionMenuId(null)} />
+                                                            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-50 animate-in fade-in zoom-in-95">
+                                                                <button
+                                                                    onClick={() => { setEditRoleUser(user); setNewRole(user.role); setActionMenuId(null); }}
+                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                                                >
+                                                                    <Edit3 className="w-3.5 h-3.5 text-indigo-500" /> Change Role
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => { setConfirmAction({ type: 'reset', user }); setActionMenuId(null); }}
+                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                                                >
+                                                                    <Key className="w-3.5 h-3.5 text-orange-500" /> Reset Password
+                                                                </button>
+                                                                <div className="h-px bg-gray-100 my-1" />
+                                                                <button
+                                                                    onClick={() => { setConfirmAction({ type: 'delete', user }); setActionMenuId(null); }}
+                                                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 text-left"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" /> Delete User
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -287,74 +468,178 @@ const AdminUsers: React.FC = () => {
                 </div>
             )}
 
-            {/* View Details Modal */}
+            {/* ========== View Details Modal ========== */}
             {selectedUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-start">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
                             <div className="flex items-center gap-4">
                                 <img
-                                    src={selectedUser.avatar_url || `https://ui-avatars.com/api/?name=${selectedUser.first_name}&background=random`}
+                                    src={selectedUser.avatar_url || `https://ui-avatars.com/api/?name=${selectedUser.first_name}+${selectedUser.last_name}&background=random&bold=true&size=56`}
                                     alt={selectedUser.first_name}
-                                    className="w-14 h-14 rounded-full object-cover border-2 border-gray-100"
+                                    className="w-14 h-14 rounded-full object-cover ring-3 ring-white/30"
                                 />
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">
+                                    <h3 className="text-lg font-bold text-white">
                                         {selectedUser.first_name} {selectedUser.middle_name || ''} {selectedUser.last_name}
                                     </h3>
-                                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                                    <p className="text-blue-200 text-sm">{selectedUser.email}</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setSelectedUser(null)}
-                                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
-                            >
-                                ×
-                            </button>
                         </div>
 
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
+                                    <p className="text-xs text-gray-400 uppercase font-bold mb-1">Student ID</p>
+                                    <p className="text-gray-800 font-mono font-bold">{selectedUser.student_id || 'N/A'}</p>
+                                </div>
+                                <div>
                                     <p className="text-xs text-gray-400 uppercase font-bold mb-1">Course</p>
-                                    <p className="text-gray-800 font-medium">{selectedUser.course}</p>
+                                    <p className="text-gray-800 font-semibold">{selectedUser.course || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 uppercase font-bold mb-1">Batch Year</p>
-                                    <p className="text-gray-800 font-medium">{selectedUser.batch_year}</p>
+                                    <p className="text-gray-800 font-semibold">{selectedUser.batch_year || 'N/A'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold mb-1">Student ID</p>
-                                    <p className="text-gray-800 font-medium font-mono">{selectedUser.student_id || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 uppercase font-bold mb-1">Mobile</p>
-                                    <p className="text-gray-800 font-medium">{selectedUser.mobile_number || 'N/A'}</p>
+                                    <p className="text-xs text-gray-400 uppercase font-bold mb-1">Phone</p>
+                                    <p className="text-gray-800 font-semibold">{selectedUser.phone || 'N/A'}</p>
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
-                                <span className="text-xs text-gray-400 uppercase font-bold">Status:</span>
+                            <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center gap-2">
                                 {getStatusBadge(selectedUser.status)}
-                                <span className="text-xs text-gray-400 uppercase font-bold ml-4">Account via:</span>
-                                {getProviderBadge(selectedUser.auth_provider)}
+                                {getRoleBadge(selectedUser.role)}
                             </div>
 
-                            <div className="pt-2 text-xs text-gray-400">
-                                Added on {formatDate(selectedUser.created_at)}
+                            <div className="text-xs text-gray-400 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                Account created on {formatDate(selectedUser.created_at)}
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-3">
                             <button
                                 onClick={() => setSelectedUser(null)}
-                                className="w-full py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-colors"
+                                className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors"
                             >
                                 Close
+                            </button>
+                            <button
+                                onClick={() => { setEditRoleUser(selectedUser); setNewRole(selectedUser.role); setSelectedUser(null); }}
+                                className="py-2.5 px-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                            >
+                                <Edit3 className="w-4 h-4" /> Edit Role
                             </button>
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ========== Confirm Action Modal ========== */}
+            {confirmAction && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="p-6 text-center">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 ${confirmAction.type === 'delete' ? 'bg-red-100' :
+                                    confirmAction.type === 'approve' ? 'bg-green-100' : 'bg-orange-100'
+                                }`}>
+                                {confirmAction.type === 'delete' && <Trash2 className="w-7 h-7 text-red-600" />}
+                                {confirmAction.type === 'approve' && <CheckCircle className="w-7 h-7 text-green-600" />}
+                                {confirmAction.type === 'reset' && <Key className="w-7 h-7 text-orange-600" />}
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                {confirmAction.type === 'delete' && 'Delete User?'}
+                                {confirmAction.type === 'approve' && 'Approve User?'}
+                                {confirmAction.type === 'reset' && 'Reset Password?'}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                {confirmAction.type === 'delete' && `This will permanently remove ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s account.`}
+                                {confirmAction.type === 'approve' && `This will verify ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s account.`}
+                                {confirmAction.type === 'reset' && `A password reset email will be sent to ${confirmAction.user.email}.`}
+                            </p>
+                        </div>
+                        <div className="flex gap-3 p-4 border-t border-gray-100 bg-gray-50">
+                            <button
+                                onClick={() => setConfirmAction(null)}
+                                disabled={actionLoading}
+                                className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (confirmAction.type === 'delete') handleDeleteUser(confirmAction.user);
+                                    if (confirmAction.type === 'approve') handleApprove(confirmAction.user);
+                                    if (confirmAction.type === 'reset') handleResetPassword(confirmAction.user);
+                                }}
+                                disabled={actionLoading}
+                                className={`flex-1 py-2.5 text-white font-bold rounded-xl flex items-center justify-center gap-2 ${confirmAction.type === 'delete' ? 'bg-red-600 hover:bg-red-700' :
+                                        confirmAction.type === 'approve' ? 'bg-green-600 hover:bg-green-700' :
+                                            'bg-orange-600 hover:bg-orange-700'
+                                    }`}
+                            >
+                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========== Edit Role Modal ========== */}
+            {editRoleUser && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">Change Role</h3>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Update role for <span className="font-bold">{editRoleUser.first_name} {editRoleUser.last_name}</span>
+                            </p>
+
+                            <div className="space-y-2">
+                                {(['alumni', 'staff', 'admin'] as const).map(role => (
+                                    <button
+                                        key={role}
+                                        onClick={() => setNewRole(role)}
+                                        className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${newRole === role
+                                                ? 'border-indigo-500 bg-indigo-50'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        {getRoleBadge(role)}
+                                        {editRoleUser.role === role && (
+                                            <span className="ml-auto text-xs text-gray-400 font-bold">Current</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex gap-3 p-4 border-t border-gray-100 bg-gray-50">
+                            <button
+                                onClick={() => setEditRoleUser(null)}
+                                className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleRoleChange}
+                                disabled={actionLoading || newRole === editRoleUser.role}
+                                className="flex-1 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ========== Create User Modal ========== */}
+            {showCreateModal && (
+                <CreateUserModal
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={fetchUsers}
+                />
             )}
         </AdminPageLayout>
     );

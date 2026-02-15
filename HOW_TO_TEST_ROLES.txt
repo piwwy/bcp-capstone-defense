@@ -1,0 +1,157 @@
+================================================================================
+  HOW TO TEST DIFFERENT USER ROLES (Staff, Admin, Alumni)
+  BCP Alumni Management System
+================================================================================
+
+Para ma-test mo ang STAFF at iba pang user types, kailangan mo muna mag-create
+ng test accounts sa Supabase Dashboard.
+
+================================================================================
+## OPTION 1: Via Supabase Dashboard (RECOMMENDED — pinaka-madali)
+================================================================================
+
+### STEP 1: Open Supabase Dashboard
+   1. Go to: https://supabase.com/dashboard
+   2. Select your project
+   3. Go to Authentication > Users tab
+
+### STEP 2: Create a Staff Test Account
+   1. Click "Add user" > "Create new user"
+   2. Fill in:
+      - Email: staff@bcp.edu.ph (or any test email)
+      - Password: Staff123!
+      - Check "Auto Confirm User" = YES
+   3. Click "Create user"
+   4. COPY the user's UUID from the list (you'll need it!)
+
+### STEP 3: Create the Profile Record
+   1. Go to Table Editor > profiles table
+   2. Click "Insert row" and fill in:
+      - id: (paste the UUID from Step 2)
+      - student_id: STAFF-001
+      - first_name: Test
+      - last_name: Staff
+      - email: staff@bcp.edu.ph
+      - role: staff          ← IMPORTANT! Must be exactly "staff"
+      - status: verified     ← So they can login immediately
+      - auth_provider: email
+      - course: N/A
+      - batch_year: 2025
+   3. Click "Save"
+
+### STEP 4: Login and Test
+   1. Go to http://localhost:5173/login
+   2. Login with: staff@bcp.edu.ph / Staff123!
+   3. You should be redirected to /staff/dashboard
+   4. The sidebar should show TEAL-colored Staff Portal with limited menu
+
+
+================================================================================
+## OPTION 2: Via SQL Editor in Supabase (for technical users)
+================================================================================
+
+Run this in SQL Editor (Authentication > SQL Editor):
+
+   -- Step 1: Create auth user (replace email/password as needed)
+   -- NOTE: This requires calling the Edge Function or using the Dashboard
+   -- because you can't directly insert into auth.users via SQL Editor
+
+   -- Step 2: After creating the auth user, get the UUID and run:
+   INSERT INTO public.profiles (id, student_id, first_name, last_name, email, role, status, auth_provider, course, batch_year)
+   VALUES (
+     'PASTE-UUID-HERE',
+     'STAFF-001',
+     'Test',
+     'Staff',
+     'staff@bcp.edu.ph',
+     'staff',
+     'verified',
+     'email',
+     'N/A',
+     '2025'
+   );
+
+
+================================================================================
+## OPTION 3: Quick Role Switch for Testing (change existing account)
+================================================================================
+
+If you already have an admin account and want to TEMPORARILY test as staff:
+
+   1. Go to Supabase Dashboard > Table Editor > profiles
+   2. Find your admin account row
+   3. Change the "role" column from "admin" to "staff"
+   4. Save
+   5. Logout from the system and log back in
+   6. You'll now see the Staff Portal!
+   7. When done testing, change the role back to "admin"
+
+   ⚠️ WARNING: Don't forget to change it back!
+
+
+================================================================================
+## ALL AVAILABLE ROLES AND THEIR DASHBOARDS
+================================================================================
+
+   | Role        | Login Redirects To          | Sidebar               |
+   |-------------|----------------------------|-----------------------|
+   | superadmin  | /superadmin/dashboard      | SuperAdminSidebar     |
+   | admin       | /admin/dashboard           | AdminSidebar          |
+   | staff       | /staff/dashboard           | StaffSidebar (teal)   |
+   | alumni      | /alumni/dashboard          | AlumniSidebar         |
+
+### Staff Can Access:
+   ✅ Dashboard (same as admin for now)
+   ✅ Records (view alumni records)
+   ✅ Event Calendar
+   ✅ Event Approvals
+   ✅ Batch Reunions
+   ✅ News Feed
+   ✅ Feedback & Surveys
+   ✅ Job Board
+   ✅ Partner Inquiries
+
+### Staff CANNOT Access:
+   ❌ Master List Upload
+   ❌ Train AI
+   ❌ Report Generator (PDF)
+   ❌ Settings
+   ❌ Donation Manager
+   ❌ Data Analytics
+   ❌ Audit Trail
+   ❌ Career Tracking
+
+
+================================================================================
+## DPA CONSENT MODAL TEST
+================================================================================
+
+   1. For ANY user role, the first time they login after the update,
+      a DPA 2012 consent modal will appear
+   2. They MUST check the box and click "I Accept" to proceed
+   3. After accepting, it won't show again (saved to profiles.dpa_consented_at)
+   4. To test it again, go to Supabase > profiles table and set
+      dpa_consented_at = NULL for that user
+
+
+================================================================================
+## TROUBLESHOOTING
+================================================================================
+
+   Q: "I'm getting redirected to /login after logging in"
+   A: Check if the profile's STATUS is "verified".
+      If it's "master_list" or "pending_approval", the system blocks login.
+
+   Q: "I see the admin dashboard instead of staff"
+   A: Make sure the role column is exactly "staff" (lowercase, no spaces)
+
+   Q: "DPA modal not appearing"
+   A: Check if dpa_consented_at is already set. Set it to NULL to re-trigger.
+
+   Q: "Audit trail page is empty"
+   A: The audit_logs table might not have entries yet.
+      Login/logout events will auto-log after this update.
+      Run the migration SQL to create the table:
+      supabase/migrations/20260215054000_audit_logs_and_dpa_consent.sql
+
+================================================================================

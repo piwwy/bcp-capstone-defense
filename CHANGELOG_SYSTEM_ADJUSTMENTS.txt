@@ -1,0 +1,181 @@
+================================================================================
+  BCP ALUMNI MANAGEMENT SYSTEM — SYSTEM CHANGELOG
+  Last Updated: February 15, 2026
+================================================================================
+
+# OVERVIEW
+Ang document na ito ay summary ng LAHAT ng changes na ginawa sa system 
+para sa defense preparations at panel suggestion compliance.
+
+================================================================================
+## PHASE 1: REGISTRATION FLOW REMOVAL (Admin-Provided Accounts Model)
+================================================================================
+
+ANG DATING FLOW:
+  Alumni → Landing Page → "Sign Up" → Choose Google/Manual → Register → 
+  Wait for Admin Approval → Approved → Login
+
+ANG BAGONG FLOW:
+  Admin → Upload Master List (CSV with emails) → Auto-create accounts → 
+  Alumni receives credentials → Login → Accept DPA Consent → Dashboard
+
+### Files Modified:
+
+1. Navbar.tsx
+   - REMOVED: "Sign Up" button (desktop + mobile)
+   - KEPT: "Log In" button only
+   - Log In button now uses the primary gradient style
+
+2. Login.tsx
+   - REMOVED: "Don't have an account? Register Here" link
+   - ADDED: "Contact your administrator for access" info box
+   - CHANGED: Error message from "Profile not found. Please register first" 
+     to "Account not found. Please contact your administrator"
+   - CHANGED: pending_approval status now signs out user and shows toast
+
+3. EventsSection.tsx
+   - CHANGED: "Register Now" → "Log In to Join"
+   - CHANGED: All /register links → /login
+
+4. JobsSection.tsx
+   - CHANGED: "Apply Now" → "Log In to Apply" (3 locations)
+   - CHANGED: All /register links → /login
+
+5. AdminSidebar.tsx
+   - REMOVED: "Registered Users" menu item
+   - REMOVED: "Approvals" menu item
+   - ADDED: "Manage Users" menu item (replaces Registered Users)
+   - KEPT: "Records" and "Master List"
+
+6. AdminUsers.tsx (renamed to "Manage Users")
+   - RENAMED: Page title from "Registered Users" → "Manage Users"
+   - RENAMED: Subtitle to "View and manage all alumni accounts"
+   - RENAMED: Table column "Registered" → "Date Added"
+   - RENAMED: Modal label "Registered via" → "Account via"
+
+7. DashboardAdmin.tsx
+   - REPLACED: "Pending Approvals" card → "Master List" (Unclaimed Accounts)
+   - REPLACED: "Rejected/Issues" card → "Inactive/Issues" linking to /admin/users
+   - REPLACED: "Registration Status" section → "Account Status" 
+     (Verified / Unclaimed / Inactive)
+   - RENAMED: "Recent Registrations" → "Recent Alumni"
+   - CHANGED: "View All" link from /admin/approvals → /admin/records
+   - UPDATED: Stats query now counts master_list instead of pending_approval
+
+8. App.tsx (Route Cleanup)
+   - REMOVED Routes: /register, /signup-options, /pending-approval, /onboarding
+   - REMOVED Route: /admin/approvals
+   - REMOVED Imports: Register, SignUpOptions, PendingApproval, Onboarding, 
+     RegistrationApprovals
+   - KEPT: /auth/callback (for Google OAuth support)
+
+9. AuthCallback.tsx
+   - CHANGED: No-profile users now get signed out + redirected to /login
+     (instead of going to onboarding)
+   - CHANGED: pending_approval status → sign out + redirect to login
+   - CHANGED: Unknown/default status → sign out + redirect to login
+
+10. SessionTimeoutContext.tsx
+    - CLEANED: Removed dead routes from EXCLUDED_ROUTES list
+
+### Files That Are Now Dead Code (still in codebase but unused):
+   - Register.tsx (40KB)
+   - SignUpOptions.tsx
+   - PendingApproval.tsx
+   - Onboarding.tsx
+   - ApplicationSubmitted.tsx
+   - RegistrationApprovals.tsx
+
+================================================================================
+## PHASE 2: PANEL SUGGESTION COMPLIANCE
+================================================================================
+
+### 2A. Master List Upload Enhancement — Auto-Generate Credentials
+   - ENHANCED: MasterListUpload.tsx now supports email column in CSV
+   - NEW: Supabase Edge Function (create-users) for server-side auth user creation
+   - NEW: Auto-generates temporary passwords for new accounts
+   - NEW: Downloadable credentials sheet (CSV) after bulk upload
+   - NEW CSV Format: StudentID, LastName, FirstName, Course, BatchYear, Email
+
+### 2B. DPA 2012 (Data Privacy Act) Consent
+   - NEW: DPAConsentModal.tsx — shows on first login
+   - Shows full DPA 2012 consent text
+   - Required checkbox before accessing dashboard
+   - Saves consent timestamp to profiles.dpa_consented_at
+   - Integrated into DashboardLayout.tsx — blocks access until accepted
+
+### 2C. Staff Role (New User Type)
+   - NEW: StaffSidebar.tsx — limited access sidebar for staff users
+   - Staff can access: Records, Events, News, Feedback, Batch Reunions
+   - Staff CANNOT access: Master List, Train AI, Report Generator, Settings,
+     Donations, Analytics, Audit Trail
+   - UPDATED: App.tsx — added /staff/* routes
+   - UPDATED: Login.tsx — staff role routing
+   - UPDATED: AuthCallback.tsx — staff role handling
+   - UPDATED: ProtectedRoute — staff role support
+
+### 2D. Updated User Type Matrix
+   | Role               | Dashboard      | Status    |
+   |--------------------|---------------|-----------|
+   | Super Admin        | /superadmin/* | ✅ EXISTS  |
+   | Admin              | /admin/*      | ✅ EXISTS  |
+   | Staff              | /staff/*      | ✅ NEW     |
+   | Alumni             | /alumni/*     | ✅ EXISTS  |
+   | Graduating Student | Via alumni    | via status |
+
+### 2E. Features Already Implemented (from Panel Sheet)
+   ✅ Email + OTP Login (Alumni2FA.tsx)
+   ✅ Cloud Server (Supabase)
+   ✅ Report Generator with PDF Password (jsPDF encryption)
+   ✅ Data Analytics Dashboard
+   ✅ Train AI Page
+   ✅ Donation — Scholarship Category
+   ✅ Career Tracking / Employment Opportunity
+   ✅ Job Board
+   ✅ Tracer Survey
+   ✅ Audit Trail
+
+================================================================================
+## HOW TO TEST
+================================================================================
+
+1. Run the dev server:
+   cd c:\Users\arabino\Downloads\bcp-alumni-system\bcp-alumni-system
+   npm run dev
+
+2. Check Landing Page:
+   - Should show only "Log In" button (NO "Sign Up")
+   - Event buttons say "Log In to Join"
+   - Job buttons say "Log In to Apply"
+
+3. Check Login Page:
+   - No "Register Here" link
+   - Shows "Contact your administrator for access" box
+
+4. Admin Dashboard:
+   - Sidebar shows "Manage Users" instead of "Registered Users"
+   - No "Approvals" link
+   - Dashboard cards show "Master List" and "Inactive/Issues"
+
+5. Master List Upload:
+   - Upload CSV with email column
+   - Should auto-create auth accounts
+   - Download credentials sheet
+
+6. First Login as Alumni:
+   - DPA 2012 consent modal should appear
+   - Must accept before accessing dashboard
+
+================================================================================
+## DEPLOYMENT NOTES
+================================================================================
+
+IMPORTANT: The Supabase Edge Function (create-users) must be deployed:
+
+   supabase functions deploy create-users
+
+This function handles server-side user creation with the service role key.
+Without it, the Master List Upload will only create profile records
+(accounts won't be loginable).
+
+================================================================================

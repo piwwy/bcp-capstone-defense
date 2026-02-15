@@ -8,7 +8,6 @@ import {
   Phone, Mail, UserCheck, Clock, FileText, Grid3X3,
   Edit2, X, Save
 } from 'lucide-react';
-import { debugToast } from '../../utils/debugToast';
 
 interface Alumni {
   id: string;
@@ -207,7 +206,6 @@ const AllAlumniRecords: React.FC = () => {
 
       if (error) throw error;
 
-      debugToast(showToast, 'Record Saved', `${editForm.first_name} ${editForm.last_name} updated.`);
       showToast({ type: 'success', title: 'Updated', message: 'Alumni record has been updated.' });
       setEditingRecord(null);
       fetchRecords();

@@ -1,4 +1,4 @@
-StudentID,LastName,FirstName,Course,BatchYear
+StudentID,LastName,FirstName,Course,BatchYear,Email
 2020-00001,Dela Cruz,Juan,BSIT,2024
 2020-00002,Santos,Maria,BSIT,2024
 2020-00003,Reyes,Carlos,BSIT,2023

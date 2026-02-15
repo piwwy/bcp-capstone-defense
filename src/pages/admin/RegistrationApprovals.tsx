@@ -3,7 +3,6 @@ import { supabase } from '../../services/supabaseClient';
 import AdminPageLayout from './AdminPageLayout';
 import EmailService from '../../services/emailService';
 import { useToast } from '../../context/ToastContext';
-import { debugToast } from '../../utils/debugToast';
 import {
   CheckCircle, XCircle,
   Loader2, UserCheck, GraduationCap, Mail
@@ -33,7 +32,6 @@ const RegistrationApprovals: React.FC = () => {
   const fetchPendingUsers = async () => {
     setLoading(true);
     try {
-      debugToast(showToast, 'Approvals Fetch', 'Loading pending alumni approvals');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -42,10 +40,8 @@ const RegistrationApprovals: React.FC = () => {
 
       if (error) throw error;
       setUsers(data || []);
-      debugToast(showToast, 'Approvals Loaded', `pending=${(data || []).length}`);
     } catch (err) {
       console.error("Error fetching pending:", err);
-      debugToast(showToast, 'Approvals Fetch Error', 'Failed to load pending approvals', { type: 'warning' });
     } finally {
       setLoading(false);
     }
@@ -59,8 +55,6 @@ const RegistrationApprovals: React.FC = () => {
   const handleApprove = async (user: Alumni) => {
     if (!window.confirm(`Verify ${user.first_name} ${user.last_name}?\nAn email notification will be sent to ${user.email}.`)) return;
     setActionLoading(user.id);
-    debugToast(showToast, 'Approve Action', `user=${user.id}`);
-
     try {
       // Update status in database
       const { error } = await supabase
@@ -78,12 +72,9 @@ const RegistrationApprovals: React.FC = () => {
       } else {
         showToast({ type: 'warning', title: 'Verified with Email Issue', message: `Verification succeeded but email failed: ${emailResult.error}` });
       }
-      debugToast(showToast, 'Approve Completed', `emailSuccess=${emailResult.success}`);
-
       // Remove from list visually
       setUsers(users.filter(u => u.id !== user.id));
     } catch (err: any) {
-      debugToast(showToast, 'Approve Error', err.message || 'Unknown approval error', { type: 'warning' });
       showToast({ type: 'error', title: 'Approval Failed', message: err.message || 'Unable to verify this user.' });
     } finally {
       setActionLoading(null);
@@ -94,8 +85,6 @@ const RegistrationApprovals: React.FC = () => {
   const handleReject = async (user: Alumni) => {
     if (!window.confirm(`Reject ${user.first_name} ${user.last_name}?\nThis action cannot be undone.`)) return;
     setActionLoading(user.id);
-    debugToast(showToast, 'Reject Action', `user=${user.id}`);
-
     try {
       const { error } = await supabase
         .from('profiles')
@@ -109,9 +98,7 @@ const RegistrationApprovals: React.FC = () => {
 
       setUsers(users.filter(u => u.id !== user.id));
       showToast({ type: 'success', title: 'Application Rejected', message: `${user.first_name}'s application was rejected.` });
-      debugToast(showToast, 'Reject Completed', `user=${user.id}`);
     } catch (err: any) {
-      debugToast(showToast, 'Reject Error', err.message || 'Unknown rejection error', { type: 'warning' });
       showToast({ type: 'error', title: 'Rejection Failed', message: err.message || 'Unable to reject this application.' });
     } finally {
       setActionLoading(null);

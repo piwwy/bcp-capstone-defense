@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, Facebook, Linkedin, Twitter, Clock, Building2, Globe, ShieldCheck, Users, Briefcase, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
-import { debugToast } from '../../utils/debugToast';
 
 const ContactSection: React.FC = () => {
   const { showToast } = useToast();
@@ -58,8 +57,6 @@ const ContactSection: React.FC = () => {
           ? 'Your company inquiry was submitted and is now pending admin review.'
           : 'Your message was sent successfully. We will get back to you soon.',
       });
-
-      debugToast(showToast, 'Contact Inquiry Saved', `type=${formTab}`);
 
       setFormData({
         name: '',

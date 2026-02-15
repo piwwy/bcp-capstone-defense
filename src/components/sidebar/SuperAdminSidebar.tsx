@@ -3,10 +3,12 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, BarChart3, Shield, Database,
-  ChevronRight, LogOut, Settings, Repeat,
-  MoreVertical, AlertTriangle, Loader2, Crown,
-  ClipboardCheck, FileText, Bell, Key
+  LayoutDashboard, Users, BarChart3, Database,
+  LogOut, Settings, Repeat, UploadCloud,
+  MoreVertical, AlertTriangle, Loader2, User2,
+  ClipboardCheck, FileText, Briefcase, DollarSign,
+  CalendarDays, Newspaper, MessageSquare, Bot, Mail, PieChart,
+  ListPlus, TrendingUp, PartyPopper, ChevronRight
 } from "lucide-react";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
@@ -25,27 +27,50 @@ const SuperAdminSidebar: React.FC = () => {
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/superadmin/dashboard" },
-    { name: "User Management", icon: Users, subItems: [
-      { name: "All Users", path: "/superadmin/users", icon: Users },
-      { name: "Admin Accounts", path: "/superadmin/users/admins", icon: Shield },
-      { name: "Alumni Accounts", path: "/superadmin/users/alumni", icon: Users },
-    ]},
-    { name: "Access Control", icon: Shield, subItems: [
-      { name: "Roles & Permissions", path: "/superadmin/roles", icon: Key },
-      { name: "Audit Logs", path: "/superadmin/logs", icon: ClipboardCheck },
-    ]},
-    { name: "Reports & Analytics", icon: BarChart3, subItems: [
-      { name: "System Analytics", path: "/superadmin/analytics", icon: BarChart3 },
-      { name: "Generated Reports", path: "/superadmin/reports", icon: FileText },
-    ]},
-    { name: "Database & Config", icon: Database, subItems: [
-      { name: "Backup & Restore", path: "/superadmin/database", icon: Database },
-      { name: "System Settings", path: "/superadmin/config", icon: Settings },
-    ]},
-    { name: "Preferences", icon: Settings, subItems: [
-      { name: "Account Settings", path: "/superadmin/settings", icon: Settings },
-      { name: "Notifications", path: "/superadmin/notifications", icon: Bell },
-    ]},
+    {
+      name: "Alumni & Records", icon: Users, subItems: [
+        { name: "Manage Users", path: "/superadmin/users", icon: Users },
+        { name: "Alumni Records", path: "/superadmin/records", icon: Database },
+        { name: "Master List", path: "/superadmin/upload", icon: UploadCloud },
+      ]
+    },
+    {
+      name: "Career & Jobs", icon: Briefcase, subItems: [
+        { name: "Manage Jobs", path: "/superadmin/jobs", icon: ListPlus },
+        { name: "Placement Logs", path: "/superadmin/job-placement", icon: TrendingUp },
+        { name: "Status Tracker", path: "/superadmin/career-tracking", icon: Briefcase },
+      ]
+    },
+    {
+      name: "Events & Reunions", icon: CalendarDays, subItems: [
+        { name: "Event Calendar", path: "/superadmin/events", icon: CalendarDays },
+        { name: "Event Approvals", path: "/superadmin/event-approvals", icon: ClipboardCheck },
+        { name: "Batch Reunions", path: "/superadmin/batch-reunions", icon: PartyPopper },
+      ]
+    },
+    {
+      name: "Communication & Updates", icon: Mail, subItems: [
+        { name: "News Feed", path: "/superadmin/news", icon: Newspaper },
+        { name: "Partner Inquiries", path: "/superadmin/partner-inquiries", icon: Briefcase },
+      ]
+    },
+    {
+      name: "Engagement", icon: MessageSquare, subItems: [
+        { name: "Feedback & Surveys", path: "/superadmin/feedback", icon: MessageSquare },
+        { name: "Donations", path: "/superadmin/donations", icon: DollarSign },
+        { name: "Financial Collections", path: "/superadmin/collections", icon: DollarSign },
+      ]
+    },
+    {
+      name: "Advanced Tools", icon: BarChart3, subItems: [
+        { name: "Analytics", path: "/superadmin/analytics", icon: PieChart },
+        { name: "Tracer Survey", path: "/superadmin/tracer-survey", icon: Mail },
+        { name: "Report Generator", path: "/superadmin/reports", icon: FileText },
+        { name: "Train AI", path: "/superadmin/train-ai", icon: Bot },
+        { name: "Audit Trail", path: "/superadmin/audit-trail", icon: ClipboardCheck },
+      ]
+    },
+    { name: "Settings", icon: Settings, path: "/superadmin/settings" },
   ];
 
   useEffect(() => {
@@ -85,8 +110,8 @@ const SuperAdminSidebar: React.FC = () => {
               <img src="/images/logosmss.png" alt="AMS Logo" className={`w-8 h-8 max-w-none object-contain transition-all duration-500 ease-in-out ${collapsed ? "rotate-[360deg]" : "rotate-0"} group-hover:scale-125`} />
             </div>
             <div className={`flex flex-col overflow-hidden transition-all duration-300 whitespace-nowrap ${collapsed ? "w-0 opacity-0" : "w-40 opacity-100"}`}>
-              <h1 className="text-sm font-extrabold text-gray-800 tracking-tight leading-none">AMS SUPER ADMIN</h1>
-              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">System Control Panel</p>
+              <h1 className="text-sm font-extrabold text-gray-800 tracking-tight leading-none">SUPER ADMIN</h1>
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">Full System Access</p>
             </div>
           </div>
         </div>
@@ -102,8 +127,18 @@ const SuperAdminSidebar: React.FC = () => {
               <div key={item.name} className="relative">
                 <div
                   onClick={() => item.path ? navigate(item.path) : toggleSubMenu(item)}
-                  className={`relative flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-purple-600 text-white shadow-lg shadow-purple-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                  className={`relative flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 group
+                    ${isActive
+                      ? "bg-purple-600 text-white shadow-lg shadow-purple-200 translate-x-1"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    }`}
+                  style={isActive ? { animation: 'saActivePulse 2.5s ease-in-out infinite' } : undefined}
                 >
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center">
+                      <span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(147,51,234,0.6)]" style={{ animation: 'saBarGlow 2s ease-in-out infinite' }} />
+                    </div>
+                  )}
                   <div className="flex items-center gap-3.5 min-w-0">
                     <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-300 ${isActive ? "text-white" : "text-gray-400 group-hover:text-purple-600"}`} />
                     <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 ${collapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"}`}>{item.name}</span>
@@ -117,7 +152,8 @@ const SuperAdminSidebar: React.FC = () => {
                     {item.subItems?.map((sub, idx) => {
                       const isSubActive = location.pathname === sub.path;
                       return (
-                        <Link key={idx} to={sub.path} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-purple-700 bg-purple-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
+                        <Link key={idx} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-purple-700 bg-purple-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
+                          {isSubActive && <span className="absolute left-1 h-4 w-0.5 rounded bg-purple-500" style={{ animation: 'saBarGlow 2s ease-in-out infinite' }} />}
                           <sub.icon className={`w-4 h-4 transition-all ${isSubActive ? "text-purple-600" : "text-gray-400 group-hover:text-purple-600"}`} />
                           {sub.name}
                         </Link>
@@ -148,19 +184,31 @@ const SuperAdminSidebar: React.FC = () => {
           )}
           <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} p-2 rounded-xl hover:bg-white hover:shadow-sm cursor-pointer transition-all group`} onClick={() => !collapsed && setShowUserMenu(!showUserMenu)}>
             <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center border border-purple-200 shadow-sm">
-                <Crown className="w-5 h-5 text-purple-600 group-hover:scale-110 transition-all" />
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-200 shadow-sm text-gray-600">
+                <User2 className="w-5 h-5 text-gray-600 group-hover:text-purple-600 transition-all" />
               </div>
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
             </div>
             <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
               <p className="text-sm font-bold text-gray-900 truncate">{user?.name || 'Super Admin'}</p>
-              <p className="text-xs text-purple-600 truncate font-medium">Super Admin</p>
+              <p className="text-xs text-gray-500 truncate">Super Administrator</p>
             </div>
             {!collapsed && <MoreVertical className="w-4 h-4 text-gray-400" />}
           </div>
         </div>
       </div>
+
+      {/* Sidebar animation keyframes */}
+      <style>{`
+        @keyframes saActivePulse {
+          0%, 100% { box-shadow: 0 4px 14px -3px rgba(147, 51, 234, 0.25); }
+          50% { box-shadow: 0 4px 20px -3px rgba(147, 51, 234, 0.45); }
+        }
+        @keyframes saBarGlow {
+          0%, 100% { opacity: 0.7; box-shadow: 0 0 6px rgba(147, 51, 234, 0.4); }
+          50% { opacity: 1; box-shadow: 0 0 14px rgba(147, 51, 234, 0.8); }
+        }
+      `}</style>
 
       {/* LOGOUT MODAL */}
       {showLogoutModal && (

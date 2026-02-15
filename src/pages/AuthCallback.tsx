@@ -48,9 +48,15 @@ const AuthCallback: React.FC = () => {
                 setStatus(`Welcome back, ${profile.first_name || 'User'}!`);
 
                 setTimeout(async () => {
-                    // Admin/Staff go to admin dashboard
+                    // Admin/SuperAdmin go to admin dashboard
                     if (['admin', 'registrar', 'superadmin'].includes(profile.role)) {
-                        navigate('/admin/dashboard', { replace: true });
+                        navigate(profile.role === 'superadmin' ? '/superadmin/dashboard' : '/admin/dashboard', { replace: true });
+                        return;
+                    }
+
+                    // Staff go to staff dashboard
+                    if (profile.role === 'staff') {
+                        navigate('/staff/dashboard', { replace: true });
                         return;
                     }
 

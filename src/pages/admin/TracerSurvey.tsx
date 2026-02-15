@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import EmailService from '../../services/emailService';
 import { useToast } from '../../context/ToastContext';
-import { debugToast } from '../../utils/debugToast';
 import AdminPageLayout from './AdminPageLayout';
 import { Mail, Loader2, Send, Search, CheckCircle2, AlertTriangle } from 'lucide-react';
 
@@ -105,7 +104,6 @@ const TracerSurvey: React.FC = () => {
       showToast({ type: 'warning', title: 'Partial Send', message: `Sent ${sent}, failed ${failed}. Check email service configuration.` });
     }
 
-    debugToast(showToast, 'Tracer Survey Summary', `total:${recipients.length} sent:${sent} failed:${failed}`);
     setSending(false);
   };
 

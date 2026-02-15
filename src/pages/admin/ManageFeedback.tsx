@@ -3,8 +3,8 @@ import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import {
-  MessageSquare, Star, Loader2, Search, X, Eye, Send,
-  Clock, CheckCircle2, Filter, Plus, ClipboardList, Trash2,
+  MessageSquare, Star, Loader2, Search, X, Send,
+  CheckCircle2, Plus, ClipboardList, Trash2,
   BarChart3
 } from 'lucide-react';
 
@@ -100,7 +100,21 @@ const ManageFeedback: React.FC = () => {
         .update({ admin_reply: replyText, status: 'reviewed' })
         .eq('id', selectedFeedback.id);
       if (error) throw error;
-      showToast({ title: 'Reply Sent', message: 'Your response has been saved.', type: 'success' });
+
+      // Send notification to the alumni who submitted the feedback
+      if (selectedFeedback.alumni_id) {
+        try {
+          await supabase.from('notifications').insert({
+            user_id: selectedFeedback.alumni_id,
+            title: 'Admin Replied to Your Feedback',
+            message: `Your feedback "${selectedFeedback.subject}" has received a reply from the admin.`,
+            type: 'message',
+            is_read: false,
+          });
+        } catch { }
+      }
+
+      showToast({ title: 'Reply Sent', message: 'Your response has been saved and the alumni has been notified.', type: 'success' });
       setSelectedFeedback(null);
       setReplyText('');
       fetchFeedbacks();

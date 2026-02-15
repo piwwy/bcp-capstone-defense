@@ -123,6 +123,21 @@ const AlumniFeedback: React.FC = () => {
         }
         throw error;
       }
+      // Notify all admins about new feedback
+      try {
+        const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'superadmin']).limit(10);
+        if (admins && admins.length > 0) {
+          const notifs = admins.map(a => ({
+            user_id: a.id,
+            title: 'New Feedback Received',
+            message: `${user?.name || 'An alumni'} submitted feedback: "${subject}".`,
+            type: 'message',
+            is_read: false,
+          }));
+          await supabase.from('notifications').insert(notifs);
+        }
+      } catch { }
+
       showToast({ title: 'Feedback Sent!', message: 'Thank you for sharing your thoughts.', type: 'success' });
       setSubject('');
       setMessage('');
@@ -145,6 +160,23 @@ const AlumniFeedback: React.FC = () => {
         answers: surveyAnswers
       }]);
       if (error) throw error;
+
+      // Notify all admins about the new survey response
+      try {
+        const { data: admins } = await supabase.from('profiles').select('id').in('role', ['admin', 'superadmin']).limit(10);
+        if (admins && admins.length > 0) {
+          const notifs = admins.map(a => ({
+            user_id: a.id,
+            title: 'New Survey Response',
+            message: `${user?.name || 'An alumni'} responded to "${activeSurvey.title}".`,
+            type: 'survey',
+            event_id: activeSurvey.id,
+            is_read: false,
+          }));
+          await supabase.from('notifications').insert(notifs);
+        }
+      } catch { }
+
       showToast({ title: 'Survey Submitted!', message: 'Your responses have been recorded.', type: 'success' });
       setActiveSurvey(null);
       setSurveyAnswers({});

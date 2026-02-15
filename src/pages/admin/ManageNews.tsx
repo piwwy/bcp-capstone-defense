@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import {
     Newspaper, Plus, Edit2, Trash2, Eye, EyeOff,
     Loader2, X, Calendar, User, Search, RefreshCw,
-    Image, AlertTriangle, Clock, CheckCircle, UploadCloud
+    Image, AlertTriangle, Clock, CheckCircle, UploadCloud, Star, Crown
 } from 'lucide-react';
 
 interface NewsArticle {
@@ -16,6 +16,7 @@ interface NewsArticle {
     thumbnail_url: string | null;
     category: string;
     is_published: boolean;
+    is_featured: boolean;
     published_at: string | null;
     created_at: string;
     author_id: string;
@@ -62,7 +63,8 @@ const ManageNews = () => {
         excerpt: '',
         thumbnail_url: '',
         category: 'campus',
-        is_published: false
+        is_published: false,
+        is_featured: false
     });
 
     useEffect(() => {
@@ -97,7 +99,7 @@ const ManageNews = () => {
     };
 
     const openCreateModal = () => {
-        setForm({ title: '', content: '', excerpt: '', thumbnail_url: '', category: 'campus', is_published: false });
+        setForm({ title: '', content: '', excerpt: '', thumbnail_url: '', category: 'campus', is_published: false, is_featured: false });
         setEditingArticle(null);
         setCoverFile(null);
         setCoverPreview(null);
@@ -111,7 +113,8 @@ const ManageNews = () => {
             excerpt: article.excerpt || '',
             thumbnail_url: article.thumbnail_url || '',
             category: article.category,
-            is_published: article.is_published
+            is_published: article.is_published,
+            is_featured: article.is_featured || false
         });
         setEditingArticle(article);
         setCoverFile(null);
@@ -148,6 +151,11 @@ const ManageNews = () => {
                 finalImageUrl = publicUrl;
             }
 
+            // If setting as featured, unfeature all others first
+            if (form.is_featured) {
+                await supabase.from('news_articles').update({ is_featured: false }).eq('is_featured', true);
+            }
+
             const articleData = {
                 title: form.title,
                 content: form.content,
@@ -155,6 +163,7 @@ const ManageNews = () => {
                 thumbnail_url: finalImageUrl,
                 category: form.category,
                 is_published: form.is_published,
+                is_featured: form.is_featured,
                 published_at: form.is_published ? new Date().toISOString() : null,
                 author_id: user?.id
             };
@@ -261,6 +270,20 @@ const ManageNews = () => {
 
     const publishedCount = articles.filter(a => a.is_published).length;
     const draftCount = articles.filter(a => !a.is_published).length;
+    const featuredArticle = articles.find(a => a.is_featured && a.is_published);
+
+    const setAsFeatured = async (articleId: string) => {
+        try {
+            // Unfeature all first
+            await supabase.from('news_articles').update({ is_featured: false }).eq('is_featured', true);
+            // Set the selected one as featured
+            await supabase.from('news_articles').update({ is_featured: true }).eq('id', articleId);
+            showToast({ title: 'Featured!', message: 'This article is now the main banner.', type: 'success' });
+            fetchArticles();
+        } catch (error: any) {
+            showToast({ title: 'Error', message: error.message, type: 'error' });
+        }
+    };
 
     return (
         <AdminPageLayout title="News Feed" subtitle="Manage news articles and campus updates" icon={Newspaper}>
@@ -338,6 +361,37 @@ const ManageNews = () => {
                 </button>
             </div>
 
+            {/* Featured Banner Preview */}
+            {featuredArticle && (
+                <div className="mb-8 bg-gradient-to-r from-slate-900 to-blue-900 rounded-3xl overflow-hidden shadow-2xl relative group">
+                    <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-full text-[10px] font-black uppercase">
+                        <Crown className="w-3.5 h-3.5" /> Main Banner
+                    </div>
+                    <div className="flex flex-col md:flex-row">
+                        <div className="md:w-2/5 h-48 md:h-auto relative">
+                            {featuredArticle.thumbnail_url ? (
+                                <img src={featuredArticle.thumbnail_url} alt={featuredArticle.title} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                                    <Newspaper className="w-16 h-16 text-white/30" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1 p-8 flex flex-col justify-center">
+                            <span className={`inline-block w-fit px-3 py-1 rounded-full text-[10px] font-bold uppercase mb-3 ${getCategoryStyle(featuredArticle.category)}`}>
+                                {getCategoryLabel(featuredArticle.category)}
+                            </span>
+                            <h2 className="text-2xl font-black text-white mb-2 leading-tight">{featuredArticle.title}</h2>
+                            <p className="text-sm text-blue-200 line-clamp-2 mb-4">{featuredArticle.excerpt}</p>
+                            <div className="flex items-center gap-3 text-xs text-blue-300">
+                                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {featuredArticle.profiles?.first_name} {featuredArticle.profiles?.last_name}</span>
+                                <span>{featuredArticle.published_at ? new Date(featuredArticle.published_at).toLocaleDateString() : ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Articles Grid */}
             {loading ? (
                 <div className="flex items-center justify-center py-20">
@@ -352,7 +406,7 @@ const ManageNews = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredArticles.map(article => (
-                        <div key={article.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
+                        <div key={article.id} className={`bg-white rounded-2xl border overflow-hidden hover:shadow-lg transition-all group ${article.is_featured ? 'border-yellow-300 ring-2 ring-yellow-200' : 'border-gray-200'}`}>
                             {/* Thumbnail */}
                             <div className="h-40 bg-gradient-to-br from-blue-100 to-purple-100 relative overflow-hidden">
                                 {article.thumbnail_url ? (
@@ -360,6 +414,12 @@ const ManageNews = () => {
                                 ) : (
                                     <div className="absolute inset-0 flex items-center justify-center">
                                         <Image className="w-12 h-12 text-blue-300" />
+                                    </div>
+                                )}
+                                {/* Featured Badge */}
+                                {article.is_featured && (
+                                    <div className="absolute top-3 left-3 flex items-center gap-1 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-lg text-[10px] font-bold">
+                                        <Crown className="w-3 h-3" /> Banner
                                     </div>
                                 )}
                                 {/* Status Badge */}
@@ -385,6 +445,13 @@ const ManageNews = () => {
                                         {article.profiles?.first_name} {article.profiles?.last_name}
                                     </div>
                                     <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setAsFeatured(article.id)}
+                                            className={`p-2 rounded-lg transition-colors ${article.is_featured ? 'text-yellow-600 bg-yellow-50' : 'text-gray-400 hover:bg-yellow-50 hover:text-yellow-600'}`}
+                                            title={article.is_featured ? 'Currently Featured' : 'Set as Main Banner'}
+                                        >
+                                            <Crown className="w-4 h-4" />
+                                        </button>
                                         <button
                                             onClick={() => togglePublish(article)}
                                             className={`p-2 rounded-lg transition-colors ${article.is_published ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'
@@ -492,6 +559,23 @@ const ManageNews = () => {
                                         <span>{form.is_published ? 'Published' : 'Draft'}</span>
                                         {form.is_published ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Featured Banner Toggle */}
+                            <div
+                                onClick={() => setForm({ ...form, is_featured: !form.is_featured })}
+                                className={`flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all border-2 ${form.is_featured ? 'bg-yellow-50 border-yellow-300 text-yellow-800 shadow-lg shadow-yellow-100' : 'bg-slate-50 border-transparent text-slate-400'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl ${form.is_featured ? 'bg-yellow-200' : 'bg-slate-200'}`}><Crown className="w-5 h-5" /></div>
+                                    <div>
+                                        <span className="font-black uppercase text-xs tracking-widest">Set as Main Banner</span>
+                                        <p className="text-[10px] font-medium mt-0.5 opacity-60">This article will be displayed as the hero card on the news page</p>
+                                    </div>
+                                </div>
+                                <div className={`w-12 h-6 rounded-full p-1 transition-colors ${form.is_featured ? 'bg-yellow-400' : 'bg-slate-300'}`}>
+                                    <div className={`w-4 h-4 rounded-full shadow-md transform transition-transform ${form.is_featured ? 'translate-x-6 bg-white' : 'translate-x-0 bg-white'}`} />
                                 </div>
                             </div>
 

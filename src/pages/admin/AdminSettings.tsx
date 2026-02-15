@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { seedAllModules } from '../../utils/seedData';
 import {
   User2, Lock, Eye, EyeOff, Shield, Save, Loader2,
-  Repeat, Crown, Phone, Camera
+  Repeat, Crown, Phone, Camera, Database
 } from 'lucide-react';
 
 const AdminSettings = () => {
@@ -32,6 +33,10 @@ const AdminSettings = () => {
   const [saving, setSaving] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Seed
+  const [seeding, setSeeding] = useState(false);
+  const [seedLog, setSeedLog] = useState<string[]>([]);
 
   useEffect(() => {
     if (user?.id) fetchSettings();
@@ -277,6 +282,36 @@ const AdminSettings = () => {
           {savingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
           {savingPassword ? 'Updating...' : 'Update Password'}
         </button>
+      </div>
+
+      {/* ====== DEVELOPER TOOLS ====== */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Database className="w-5 h-5 text-purple-600" /> Developer Tools</h2>
+        <p className="text-xs text-gray-400 mb-4">Seed sample data into all modules for testing and analytics.</p>
+        <button
+          onClick={async () => {
+            setSeeding(true);
+            setSeedLog([]);
+            try {
+              await seedAllModules((msg) => setSeedLog(prev => [...prev, msg]));
+              showToast({ type: 'success', title: 'Seed Complete', message: 'Sample data inserted into all modules.' });
+            } catch (err: any) {
+              showToast({ type: 'error', title: 'Seed Failed', message: err.message });
+            } finally {
+              setSeeding(false);
+            }
+          }}
+          disabled={seeding}
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg"
+        >
+          {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+          {seeding ? 'Seeding...' : 'Seed Demo Data (All Modules)'}
+        </button>
+        {seedLog.length > 0 && (
+          <div className="mt-3 bg-gray-50 rounded-xl p-3 max-h-40 overflow-y-auto">
+            {seedLog.map((msg, i) => <p key={i} className="text-xs text-gray-600 font-mono">{msg}</p>)}
+          </div>
+        )}
       </div>
 
       {/* ====== SWITCH ROLE MODAL ====== */}

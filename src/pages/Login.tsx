@@ -4,7 +4,7 @@ import { supabase } from '../services/supabaseClient';
 import { Eye, EyeOff, Loader2, LogIn, ArrowLeft } from 'lucide-react';
 import EmailService from '../services/emailService';
 import { useToast } from '../context/ToastContext';
-import { debugToast } from '../utils/debugToast';
+import { logLogin } from '../services/auditLogger';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,8 +19,6 @@ export default function Login() {
     setLoading(true);
 
     try {
-      debugToast(showToast, 'Login Attempt', `email=${email}`);
-
       // 1. Authenticate with Supabase Auth
       const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -29,8 +27,6 @@ export default function Login() {
 
       if (authError) throw new Error("Invalid email or password.");
       if (!user) throw new Error("User not found.");
-
-      debugToast(showToast, 'Auth Success', `uid=${user.id}`);
 
       // 2. Fetch Profile to check ROLE, STATUS, and AUTH_PROVIDER
       const { data: profile, error: profileError } = await supabase
@@ -43,19 +39,23 @@ export default function Login() {
         throw new Error("Account not found. Please contact your administrator.");
       }
 
-      debugToast(showToast, 'Profile Loaded', `role=${profile.role} status=${profile.status}`);
-
       showToast({ type: 'success', title: 'Login Successful', message: `Welcome back, ${profile.first_name || 'User'}!` });
+
+      // Log to audit trail
+      logLogin(email, 'email');
 
       // 3. INTELLIGENT REDIRECT — immediate, no setTimeout delay
       if (['admin', 'registrar'].includes(profile.role)) {
-        debugToast(showToast, 'Redirect', 'Routing to /admin/dashboard');
         navigate('/admin/dashboard', { replace: true });
         return;
       }
 
+      if (profile.role === 'staff') {
+        navigate('/staff/dashboard', { replace: true });
+        return;
+      }
+
       if (profile.role === 'superadmin') {
-        debugToast(showToast, 'Redirect', 'Routing to /superadmin/dashboard');
         navigate('/superadmin/dashboard', { replace: true });
         return;
       }
@@ -70,7 +70,6 @@ export default function Login() {
             const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
 
             if (isOAuthUser || isWithinMonth) {
-              debugToast(showToast, '2FA Bypass', isOAuthUser ? 'OAuth user bypassed 2FA' : 'Recent 2FA still valid');
               navigate('/alumni/dashboard', { replace: true });
             } else {
               const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -80,7 +79,6 @@ export default function Login() {
               sessionStorage.setItem('otp_expiry', expiry.toString());
               sessionStorage.setItem('otp_email', user.email || '');
               sessionStorage.setItem('otp_user_id', user.id);
-              debugToast(showToast, '2FA Required', 'Sending OTP email for alumni login');
               EmailService.sendOTPEmail(user.email || '', profile.first_name || 'Alumni', otp);
               navigate('/alumni/2fa', { replace: true });
             }
@@ -97,7 +95,6 @@ export default function Login() {
             showToast({ type: 'error', title: 'Access Denied', message: 'Your application was declined.' });
             break;
           default:
-            debugToast(showToast, 'Redirect', 'Routing to /onboarding');
             navigate('/onboarding', { replace: true });
         }
         return;
@@ -107,7 +104,6 @@ export default function Login() {
       throw new Error("Role not recognized. Contact support.");
 
     } catch (err: any) {
-      debugToast(showToast, 'Login Error', err.message || 'Unknown login error', { type: 'warning' });
       showToast({ type: 'error', title: 'Login Failed', message: err.message });
       if (err.message.includes("declined")) {
         await supabase.auth.signOut();
