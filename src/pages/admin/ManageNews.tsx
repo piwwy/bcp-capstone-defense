@@ -288,74 +288,93 @@ const ManageNews = () => {
     return (
         <AdminPageLayout title="News Feed" subtitle="Manage news articles and campus updates" icon={Newspaper}>
 
+            {/* Hero Banner */}
+            <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-rose-700 via-pink-600 to-fuchsia-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+                <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+                <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+                <div className="relative z-10 flex items-center justify-between w-full">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Content</span>
+                        </div>
+                        <h2 className="text-3xl font-black text-white tracking-tighter">News Feed</h2>
+                        <p className="text-rose-100 text-sm font-medium mt-1">Publish articles and campus updates for alumni</p>
+                    </div>
+                    <div className="hidden md:flex items-center gap-3">
+                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+                            <p className="text-2xl font-black text-white">{publishedCount}</p>
+                            <p className="text-[10px] font-bold text-rose-200 uppercase tracking-widest">Published</p>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+                            <p className="text-2xl font-black text-white">{draftCount}</p>
+                            <p className="text-[10px] font-bold text-rose-200 uppercase tracking-widest">Drafts</p>
+                        </div>
+                    </div>
+                </div>
+                <Newspaper className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+            </div>
+
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-blue-100 rounded-xl"><Newspaper className="w-5 h-5 text-blue-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">Total Articles</p>
-                            <p className="text-2xl font-black text-gray-900">{articles.length}</p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-blue-100 rounded-xl"><Newspaper className="w-5 h-5 text-blue-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Articles</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">{articles.length}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-emerald-100 rounded-xl"><CheckCircle className="w-5 h-5 text-emerald-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">Published</p>
-                            <p className="text-2xl font-black text-gray-900">{publishedCount}</p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-emerald-100 rounded-xl"><CheckCircle className="w-5 h-5 text-emerald-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Published</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">{publishedCount}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-amber-100 rounded-xl"><Clock className="w-5 h-5 text-amber-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">Drafts</p>
-                            <p className="text-2xl font-black text-gray-900">{draftCount}</p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-amber-100 rounded-xl"><Clock className="w-5 h-5 text-amber-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Drafts</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">{draftCount}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-purple-100 rounded-xl"><Calendar className="w-5 h-5 text-purple-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">This Month</p>
-                            <p className="text-2xl font-black text-gray-900">
-                                {articles.filter(a => new Date(a.created_at).getMonth() === new Date().getMonth()).length}
-                            </p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-purple-100 rounded-xl"><Calendar className="w-5 h-5 text-purple-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">This Month</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">
+                        {articles.filter(a => new Date(a.created_at).getMonth() === new Date().getMonth()).length}
+                    </p>
                 </div>
             </div>
 
             {/* Search & Filters */}
             <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex-1 min-w-[200px] relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input
                         type="text"
                         placeholder="Search articles..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl font-medium focus:ring-2 focus:ring-blue-200 outline-none"
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-slate-100 rounded-2xl font-medium focus:ring-2 focus:ring-blue-200 outline-none"
                     />
                 </div>
                 <select
                     value={filterCategory}
                     onChange={e => setFilterCategory(e.target.value)}
-                    className="px-4 py-3 bg-white border border-gray-200 rounded-2xl font-bold focus:ring-2 focus:ring-blue-200 outline-none"
+                    className="px-4 py-3 bg-white border border-slate-100 rounded-2xl font-bold focus:ring-2 focus:ring-blue-200 outline-none"
                 >
                     <option value="all">All Categories</option>
                     {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
-                <button onClick={fetchArticles} className="p-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50">
-                    <RefreshCw className={`w-5 h-5 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
+                <button onClick={fetchArticles} className="p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50">
+                    <RefreshCw className={`w-5 h-5 text-slate-500 ${loading ? 'animate-spin' : ''}`} />
                 </button>
                 <button
                     onClick={openCreateModal}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all"
                 >
                     <Plus className="w-5 h-5" /> New Article
                 </button>

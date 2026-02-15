@@ -295,23 +295,62 @@ const MasterListUpload = () => {
   return (
     <AdminPageLayout title="Master List" subtitle="Official list of graduates — Upload CSV to auto-generate alumni accounts" icon={Upload}>
 
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-violet-700 via-purple-600 to-indigo-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Database</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Master List</h2>
+            <p className="text-violet-100 text-sm font-medium mt-1">Upload CSV to auto-generate alumni accounts</p>
+          </div>
+          <div className="hidden md:flex items-center gap-3">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{records.length}</p>
+              <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest">Records</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{Object.keys(courseStats).length}</p>
+              <p className="text-[10px] font-bold text-violet-200 uppercase tracking-widest">Courses</p>
+            </div>
+          </div>
+        </div>
+        <Upload className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><Users className="w-4 h-4 text-blue-600" /><span className="text-xs font-bold text-blue-600 uppercase">Total Records</span></div>
-          <p className="text-2xl font-black text-blue-900">{records.length}</p>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-blue-100 rounded-xl"><Users className="w-5 h-5 text-blue-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Records</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{records.length}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><GraduationCap className="w-4 h-4 text-purple-600" /><span className="text-xs font-bold text-purple-600 uppercase">Courses</span></div>
-          <p className="text-2xl font-black text-purple-900">{Object.keys(courseStats).length}</p>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-purple-100 rounded-xl"><GraduationCap className="w-5 h-5 text-purple-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Courses</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{Object.keys(courseStats).length}</p>
         </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><Key className="w-4 h-4 text-green-600" /><span className="text-xs font-bold text-green-600 uppercase">With Accounts</span></div>
-          <p className="text-2xl font-black text-green-900">{credentials.filter(c => c.status === 'created').length || '—'}</p>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-emerald-100 rounded-xl"><Key className="w-5 h-5 text-emerald-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">With Accounts</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{credentials.filter(c => c.status === 'created').length || '—'}</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><Mail className="w-4 h-4 text-amber-600" /><span className="text-xs font-bold text-amber-600 uppercase">Pending</span></div>
-          <p className="text-2xl font-black text-amber-900">{records.filter(r => !r.email || r.email.startsWith('unregistered_')).length}</p>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-amber-100 rounded-xl"><Mail className="w-5 h-5 text-amber-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pending</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{records.filter(r => !r.email || r.email.startsWith('unregistered_')).length}</p>
         </div>
       </div>
 
@@ -334,11 +373,10 @@ const MasterListUpload = () => {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => !uploading && !generatingAccounts && fileRef.current?.click()}
-            className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
-              isDragging ? 'border-blue-500 bg-blue-50/80 scale-[1.01]' :
-              uploading || generatingAccounts ? 'border-slate-200 bg-slate-50 cursor-wait' :
-              'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30'
-            }`}
+            className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragging ? 'border-blue-500 bg-blue-50/80 scale-[1.01]' :
+                uploading || generatingAccounts ? 'border-slate-200 bg-slate-50 cursor-wait' :
+                  'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30'
+              }`}
           >
             <input ref={fileRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
 

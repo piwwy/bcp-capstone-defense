@@ -143,20 +143,46 @@ const RegistrationApprovals: React.FC = () => {
       subtitle="Verify identity against Master List"
       icon={UserCheck}
     >
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Verification Queue</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Registration Approvals</h2>
+            <p className="text-emerald-100 text-sm font-medium mt-1">Review & verify alumni identity against the Master List</p>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{users.length}</p>
+              <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Pending</p>
+            </div>
+          </div>
+        </div>
+        <UserCheck className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
+
       {loading ? (
-        <div className="flex justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="flex flex-col items-center justify-center p-16 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+          <p className="text-sm text-slate-400 font-bold">Loading pending registrations...</p>
         </div>
       ) : users.length === 0 ? (
-        <div className="text-center p-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-gray-700">All caught up!</h3>
-          <p className="text-gray-500">No pending registrations at the moment.</p>
+        <div className="text-center p-16 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-black text-slate-800">All caught up!</h3>
+          <p className="text-slate-400 font-medium mt-1">No pending registrations at the moment.</p>
         </div>
       ) : (
         <div className="grid gap-4">
           {users.map((user) => (
-            <div key={user.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-6 items-start">
+            <div key={user.id} className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row gap-6 items-start">
 
               {/* Left: Info */}
               <div className="flex-1">
@@ -165,32 +191,32 @@ const RegistrationApprovals: React.FC = () => {
                     <img
                       src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random`}
                       alt={user.first_name}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-100"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
                     />
-                    <h3 className="text-lg font-bold text-gray-900">{user.first_name} {user.last_name}</h3>
+                    <h3 className="text-lg font-black text-slate-900">{user.first_name} {user.last_name}</h3>
                   </div>
-                  <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                  <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
                     Pending
                   </span>
                   {getProviderBadge(user.auth_provider)}
                 </div>
 
-                <p className="text-sm text-gray-500 mb-3">{user.email}</p>
+                <p className="text-sm text-slate-500 mb-3">{user.email}</p>
 
-                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600 mb-3">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-slate-600 mb-3">
                   <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-gray-400" />
+                    <GraduationCap className="w-4 h-4 text-slate-400" />
                     {user.course} (Batch {user.batch_year})
                   </div>
-                  <div className="font-mono text-gray-500">
+                  <div className="font-mono text-slate-500">
                     ID: {user.student_id || 'N/A'}
                   </div>
                 </div>
 
                 {/* Verification Answer (Adviser/Section) */}
-                <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-sm">
-                  <p className="text-xs font-bold text-blue-600 uppercase mb-1">Verification Proof Provided:</p>
-                  <p className="text-blue-900 font-medium">"{user.verification_answer}"</p>
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-sm">
+                  <p className="text-[10px] font-black text-blue-600 uppercase mb-1 tracking-widest">Verification Proof Provided:</p>
+                  <p className="text-blue-900 font-bold">"{user.verification_answer}"</p>
                 </div>
               </div>
 
@@ -199,14 +225,14 @@ const RegistrationApprovals: React.FC = () => {
                 <button
                   onClick={() => handleReject(user)}
                   disabled={actionLoading === user.id}
-                  className="flex-1 md:flex-none px-4 py-2 border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 md:flex-none px-5 py-2.5 border border-rose-200 text-rose-600 font-black rounded-2xl hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
                 >
                   <XCircle className="w-4 h-4" /> Reject
                 </button>
                 <button
                   onClick={() => handleApprove(user)}
                   disabled={actionLoading === user.id}
-                  className="flex-1 md:flex-none px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  className="flex-1 md:flex-none px-6 py-2.5 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
                 >
                   {actionLoading === user.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                   Approve

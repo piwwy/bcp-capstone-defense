@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../../services/supabaseClient';
+import { supabase } from '../../services/supabaseClient'; // The main client (Admin session)
+import { createClient } from '@supabase/supabase-js'; // For temporary client
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import {
@@ -52,20 +53,44 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
         setTimeout(() => setCopiedField(null), 2000);
     };
 
+    // Validation Handlers
+    const handleNameChange = (field: 'first_name' | 'last_name', value: string) => {
+        // Allow only letters, spaces, hyphens, and dots (no numbers)
+        if (/^[a-zA-Z\s.-]*$/.test(value)) {
+            setForm({ ...form, [field]: value });
+        }
+    };
+
+    const handleBatchYearChange = (value: string) => {
+        // Allow only numbers
+        if (/^\d*$/.test(value)) {
+            setForm({ ...form, batch_year: value });
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.first_name || !form.last_name || !form.email) {
             showToast({ type: 'warning', title: 'Missing Fields', message: 'Please fill in all required fields.' });
             return;
         }
+
+        // Additional validation before submit
+        if (form.batch_year && form.batch_year.length !== 4) {
+            showToast({ type: 'warning', title: 'Invalid Batch Year', message: 'Batch year must be a 4-digit number.' });
+            return;
+        }
+
         setLoading(true);
 
         try {
-            // Save current session so we can restore it after signUp
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            // Use a temporary client to avoid logging out the current admin
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const tempClient = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } });
 
-            // Step 1: Create auth user via signUp (no edge function needed)
-            const { data: authData, error: signUpError } = await supabase.auth.signUp({
+            // Step 1: Create auth user via signUp using temporary client
+            const { data: authData, error: signUpError } = await tempClient.auth.signUp({
                 email: form.email,
                 password: form.password,
                 options: {
@@ -78,9 +103,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
             });
 
             if (signUpError) throw signUpError;
-            if (!authData.user) throw new Error('User creation failed — no user returned.');
+            if (!authData.user) throw new Error('User creation failed — no user returned. Check network or email settings.');
 
-            // Step 2: Upsert profile record
+            // Step 2: Upsert profile record using the MAIN client (Admin session)
+            // This ensures we have permission to insert/update regardless of the new user's verified status
             const { error: profileError } = await supabase
                 .from('profiles')
                 .upsert({
@@ -92,28 +118,26 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                     course: form.course,
                     batch_year: form.batch_year,
                     role: form.role,
-                    status: 'verified',
+                    status: 'verified', // Admin-created accounts are verified/active by default
                     auth_provider: 'email',
                     avatar_url: `https://ui-avatars.com/api/?name=${form.first_name}+${form.last_name}&background=random`,
                 }, { onConflict: 'id' });
 
             if (profileError) {
                 console.error('Profile upsert error:', profileError);
-            }
-
-            // Step 3: Restore admin session (signUp may have switched the active session)
-            if (currentSession) {
-                await supabase.auth.setSession({
-                    access_token: currentSession.access_token,
-                    refresh_token: currentSession.refresh_token,
-                });
+                // If profile fails, we should probably warn, but the auth user exists now.
+                showToast({ type: 'warning', title: 'Profile Warning', message: 'User created but profile details may not be fully saved.' });
             }
 
             // Log to audit trail
-            await logAudit(AUDIT_ACTIONS.USER_CREATED, {
-                module: 'User Management',
-                message: `Created ${form.role} account for ${form.first_name} ${form.last_name} (${form.email})`,
-            });
+            try {
+                await logAudit(AUDIT_ACTIONS.USER_CREATED, {
+                    module: 'User Management',
+                    message: `Created ${form.role} account for ${form.first_name} ${form.last_name} (${form.email})`,
+                });
+            } catch (err) {
+                console.error('Audit log error:', err);
+            }
 
             setCreated(true);
             showToast({
@@ -233,10 +257,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                                     type="button"
                                     onClick={() => setForm({ ...form, role })}
                                     className={`py-2.5 rounded-xl text-sm font-bold transition-all ${form.role === role
-                                            ? role === 'admin' ? 'bg-red-500 text-white shadow-lg shadow-red-200'
-                                                : role === 'staff' ? 'bg-teal-500 text-white shadow-lg shadow-teal-200'
-                                                    : 'bg-blue-500 text-white shadow-lg shadow-blue-200'
-                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                        ? role === 'admin' ? 'bg-red-500 text-white shadow-lg shadow-red-200'
+                                            : role === 'staff' ? 'bg-teal-500 text-white shadow-lg shadow-teal-200'
+                                                : 'bg-blue-500 text-white shadow-lg shadow-blue-200'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                         }`}
                                 >
                                     {role.charAt(0).toUpperCase() + role.slice(1)}
@@ -252,7 +276,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                             <input
                                 type="text"
                                 value={form.first_name}
-                                onChange={e => setForm({ ...form, first_name: e.target.value })}
+                                onChange={e => handleNameChange('first_name', e.target.value)}
                                 className="w-full p-3 bg-gray-50 rounded-xl border-none font-semibold outline-none focus:ring-2 focus:ring-indigo-200 transition-all"
                                 placeholder="Juan"
                                 required
@@ -263,7 +287,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                             <input
                                 type="text"
                                 value={form.last_name}
-                                onChange={e => setForm({ ...form, last_name: e.target.value })}
+                                onChange={e => handleNameChange('last_name', e.target.value)}
                                 className="w-full p-3 bg-gray-50 rounded-xl border-none font-semibold outline-none focus:ring-2 focus:ring-indigo-200 transition-all"
                                 placeholder="Dela Cruz"
                                 required
@@ -317,8 +341,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Batch Year</label>
                         <input
                             type="text"
+                            inputMode="numeric"
                             value={form.batch_year}
-                            onChange={e => setForm({ ...form, batch_year: e.target.value })}
+                            onChange={e => handleBatchYearChange(e.target.value)}
+                            maxLength={4}
                             className="w-full p-3 bg-gray-50 rounded-xl border-none font-semibold outline-none focus:ring-2 focus:ring-indigo-200 transition-all"
                             placeholder="2025"
                         />

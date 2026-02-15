@@ -268,67 +268,84 @@ const Announcements = () => {
     return (
         <AdminPageLayout title="Announcements" subtitle="Send announcements to alumni batches" icon={Megaphone}>
 
+            {/* Hero Banner */}
+            <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-indigo-700 via-blue-700 to-sky-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+                <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+                <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+                <div className="relative z-10 flex items-center justify-between w-full">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Communications</span>
+                        </div>
+                        <h2 className="text-3xl font-black text-white tracking-tighter">Announcements</h2>
+                        <p className="text-blue-100 text-sm font-medium mt-1">Broadcast messages and updates to alumni groups</p>
+                    </div>
+                    <div className="hidden md:flex items-center gap-3">
+                        <button
+                            onClick={openModal}
+                            className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
+                        >
+                            <Plus className="w-3.5 h-3.5" /> New Announcement
+                        </button>
+                    </div>
+                </div>
+                <Megaphone className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+            </div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-blue-100 rounded-xl"><Megaphone className="w-5 h-5 text-blue-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">Total</p>
-                            <p className="text-2xl font-black text-gray-900">{announcements.length}</p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-blue-100 rounded-xl"><Megaphone className="w-5 h-5 text-blue-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">{announcements.length}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-purple-100 rounded-xl"><Users className="w-5 h-5 text-purple-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">Total Batches</p>
-                            <p className="text-2xl font-black text-gray-900">{batches.length}</p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-purple-100 rounded-xl"><Users className="w-5 h-5 text-purple-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Batches</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">{batches.length}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-emerald-100 rounded-xl"><Users className="w-5 h-5 text-emerald-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">Total Courses</p>
-                            <p className="text-2xl font-black text-gray-900">{courses.length}</p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-emerald-100 rounded-xl"><Users className="w-5 h-5 text-emerald-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Courses</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">{courses.length}</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-amber-100 rounded-xl"><Calendar className="w-5 h-5 text-amber-600" /></div>
-                        <div>
-                            <p className="text-sm text-gray-500">This Month</p>
-                            <p className="text-2xl font-black text-gray-900">
-                                {announcements.filter(a => new Date(a.created_at).getMonth() === new Date().getMonth()).length}
-                            </p>
-                        </div>
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-amber-100 rounded-xl"><Calendar className="w-5 h-5 text-amber-600" /></div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">This Month</span>
                     </div>
+                    <p className="text-3xl font-black text-slate-900">
+                        {announcements.filter(a => new Date(a.created_at).getMonth() === new Date().getMonth()).length}
+                    </p>
                 </div>
             </div>
 
             {/* Header with Button */}
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
+                <h3 className="font-black text-slate-800 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-400" />
                     Announcement History
                 </h3>
                 <button
                     onClick={openModal}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all md:hidden"
                 >
                     <Plus className="w-5 h-5" /> New Announcement
                 </button>
             </div>
 
             {/* Announcements List */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                    <span className="text-sm text-gray-500">{announcements.length} announcements</span>
-                    <button onClick={fetchAnnouncements} className="text-gray-400 hover:text-gray-600">
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-slate-50 flex items-center justify-between">
+                    <span className="text-sm text-slate-500 font-bold">{announcements.length} announcements</span>
+                    <button onClick={fetchAnnouncements} className="text-slate-400 hover:text-slate-600">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>

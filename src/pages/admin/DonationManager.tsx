@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
-// Dagdag natin ang 'Image' as ImageIcon dito para hindi mag-error
-import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCircle, UploadCloud, Eye, EyeOff } from 'lucide-react';
+import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCircle, UploadCloud, Eye, EyeOff, Heart, DollarSign, Users } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 import AdminResourceCard from './AdminResourceCard';
 import { useToast } from '../../context/ToastContext';
@@ -271,42 +270,75 @@ const DonationManager = () => {
   return (
     <AdminPageLayout title="Donation & Campaigns" subtitle="Verify transactions and track fundraising impact" icon={TrendingUp}>
 
-      {/* 1. Statistics Row */}
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-rose-600 via-pink-600 to-purple-700 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Fundraising</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Donation Manager</h2>
+            <p className="text-pink-100 text-sm font-medium mt-1">Track campaigns, verify payments & manage fundraising</p>
+          </div>
+          <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={() => setShowAmounts(!showAmounts)}
+              className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
+            >
+              {showAmounts ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showAmounts ? 'Hide Amounts' : 'Show Amounts'}
+            </button>
+          </div>
+        </div>
+        <Heart className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
+
+      {/* Stats Row */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div className="flex gap-3 w-full md:w-auto items-center">
-          <div className="bg-white px-5 py-4 rounded-2xl border border-gray-100 shadow-sm flex-1 md:flex-none">
-            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1">Active</p>
-            <p className="text-2xl font-black text-gray-800">{campaigns.filter(c => c.status === 'active').length}</p>
+        <div className="flex gap-4 w-full md:w-auto items-center">
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 flex-1 md:flex-none hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-blue-100 rounded-xl"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active</span>
+            </div>
+            <p className="text-3xl font-black text-slate-900">{campaigns.filter(c => c.status === 'active').length}</p>
           </div>
-          <div className="bg-white px-5 py-4 rounded-2xl border border-gray-100 shadow-sm flex-1 md:flex-none">
-            <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1">Total Raised</p>
-            <p className="text-2xl font-black text-blue-600">{maskAmount(campaigns.reduce((acc, curr) => acc + (curr.current_amount || 0), 0))}</p>
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 flex-1 md:flex-none hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-emerald-100 rounded-xl"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Raised</span>
+            </div>
+            <p className="text-3xl font-black text-blue-600">{maskAmount(campaigns.reduce((acc, curr) => acc + (curr.current_amount || 0), 0))}</p>
           </div>
-          <button
-            onClick={() => setShowAmounts(!showAmounts)}
-            className="p-3 bg-white border border-gray-200 rounded-2xl text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
-            title={showAmounts ? 'Hide amounts' : 'Show amounts'}
-          >
-            {showAmounts ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-          </button>
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 flex-1 md:flex-none hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-amber-100 rounded-xl"><Users className="w-5 h-5 text-amber-600" /></div>
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pending</span>
+            </div>
+            <p className="text-3xl font-black text-slate-900">{donations.filter(d => d.status === 'pending').length}</p>
+          </div>
         </div>
         <button
           onClick={openCreateModal}
-          className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all hover:-translate-y-0.5 w-full md:w-auto justify-center"
+          className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all hover:-translate-y-0.5 w-full md:w-auto justify-center"
         >
           <Plus className="w-4 h-4" /> New Campaign
         </button>
       </div>
 
       {/* 2. Pending Verifications Table */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-12">
-        <div className="p-6 border-b border-gray-50 flex items-center gap-2">
-          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-          <h3 className="font-bold text-gray-800">Pending Proof of Payments</h3>
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-12">
+        <div className="p-6 border-b border-slate-50 flex items-center gap-2">
+          <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+          <h3 className="font-black text-slate-800">Pending Proof of Payments</h3>
+          <span className="text-xs font-bold text-slate-400 ml-1">({donations.filter(d => d.status === 'pending').length})</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50/50 text-gray-400 font-bold uppercase text-[10px] tracking-widest">
+            <thead className="bg-slate-50 text-slate-400 font-black uppercase text-[10px] tracking-widest">
               <tr>
                 <th className="p-5">Donor Name</th>
                 <th className="p-5">Amount</th>

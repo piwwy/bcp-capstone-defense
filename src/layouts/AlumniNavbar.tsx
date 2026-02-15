@@ -7,7 +7,8 @@ import {
   Menu, X, Bell, ChevronDown,
   Search, Users, MessageSquare, Settings,
   Info, Calendar as CalendarIcon,
-  Newspaper, PartyPopper, TrendingUp, Heart, ClipboardList
+  Newspaper, PartyPopper, TrendingUp, Heart, ClipboardList,
+  BookOpen, Mail, FolderOpen
 } from 'lucide-react';
 
 // --- Types ---
@@ -125,7 +126,13 @@ const AlumniNavbar: React.FC = () => {
       children: [
         { name: 'Feedback & Surveys', path: '/alumni/feedback', icon: MessageSquare, description: 'Share your thoughts' },
         { name: 'Donations', path: '/alumni/donations', icon: Heart, description: 'Give back to the school' },
+        { name: 'Messages', path: '/alumni/messages', icon: Mail, description: 'Chat with fellow alumni' },
       ],
+    },
+    {
+      name: 'Resources',
+      icon: FolderOpen,
+      path: '/alumni/resources',
     },
   ];
 
@@ -201,11 +208,10 @@ const AlumniNavbar: React.FC = () => {
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                      active
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${active
                         ? 'text-blue-700 bg-blue-50'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <item.icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
                     {item.name}
@@ -222,17 +228,15 @@ const AlumniNavbar: React.FC = () => {
                   onMouseLeave={handleMouseLeave}
                 >
                   <button
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                      active
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${active
                         ? 'text-blue-700 bg-blue-50'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <item.icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
                     {item.name}
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      openDropdown === item.name ? 'rotate-180' : ''
-                    } ${active ? 'text-blue-500' : 'text-gray-400'}`} />
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''
+                      } ${active ? 'text-blue-500' : 'text-gray-400'}`} />
                   </button>
 
                   {/* Dropdown Panel */}
@@ -243,15 +247,13 @@ const AlumniNavbar: React.FC = () => {
                           key={child.path}
                           to={child.path}
                           onClick={() => setOpenDropdown(null)}
-                          className={`flex items-start gap-3 px-4 py-3 transition-all ${
-                            isChildActive(child.path)
+                          className={`flex items-start gap-3 px-4 py-3 transition-all ${isChildActive(child.path)
                               ? 'bg-blue-50 text-blue-700'
                               : 'text-gray-700 hover:bg-gray-50'
-                          }`}
+                            }`}
                         >
-                          <div className={`p-1.5 rounded-lg mt-0.5 ${
-                            isChildActive(child.path) ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-                          }`}>
+                          <div className={`p-1.5 rounded-lg mt-0.5 ${isChildActive(child.path) ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                            }`}>
                             <child.icon className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -414,9 +416,8 @@ const AlumniNavbar: React.FC = () => {
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                      active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     <item.icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
                     {item.name}
@@ -429,23 +430,20 @@ const AlumniNavbar: React.FC = () => {
                 <div key={item.name}>
                   <button
                     onClick={() => setMobileExpanded(isExpanded ? null : item.name)}
-                    className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                      active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <item.icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
                       {item.name}
                     </div>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
-                      isExpanded ? 'rotate-180' : ''
-                    } ${active ? 'text-blue-500' : 'text-gray-400'}`} />
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+                      } ${active ? 'text-blue-500' : 'text-gray-400'}`} />
                   </button>
 
                   {/* Accordion Content */}
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}>
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                    }`}>
                     <div className="ml-6 pl-4 border-l-2 border-gray-100 mt-1 mb-2 space-y-0.5">
                       {item.children?.map((child) => {
                         const childActive = isChildActive(child.path);
@@ -453,11 +451,10 @@ const AlumniNavbar: React.FC = () => {
                           <Link
                             key={child.path}
                             to={child.path}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                              childActive
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${childActive
                                 ? 'bg-blue-50 text-blue-700 font-semibold'
                                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                            }`}
+                              }`}
                           >
                             <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-blue-600' : 'text-gray-400'}`} />
                             <div>

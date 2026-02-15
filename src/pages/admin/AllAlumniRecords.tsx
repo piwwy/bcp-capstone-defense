@@ -218,22 +218,63 @@ const AllAlumniRecords: React.FC = () => {
 
   return (
     <AdminPageLayout title="All Alumni Records" subtitle="Organized by Course, Batch Year & Section" icon={Database}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><Users className="w-4 h-4 text-blue-600" /><span className="text-xs font-bold text-blue-600 uppercase">Total Records</span></div>
-          <p className="text-2xl font-black text-blue-900">{stats.total}</p>
+
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-800 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Database</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Alumni Records</h2>
+            <p className="text-blue-100 text-sm font-medium mt-1">Complete database organized by course, batch & section</p>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{stats.total}</p>
+              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Records</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{stats.verified}</p>
+              <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Verified</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><UserCheck className="w-4 h-4 text-green-600" /><span className="text-xs font-bold text-green-600 uppercase">Verified</span></div>
-          <p className="text-2xl font-black text-green-900">{stats.verified}</p>
+        <Database className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-blue-100 rounded-xl"><Users className="w-5 h-5 text-blue-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Records</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{stats.total}</p>
         </div>
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><Clock className="w-4 h-4 text-orange-600" /><span className="text-xs font-bold text-orange-600 uppercase">Pending</span></div>
-          <p className="text-2xl font-black text-orange-900">{stats.pending}</p>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-emerald-100 rounded-xl"><UserCheck className="w-5 h-5 text-emerald-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Verified</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{stats.verified}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-1"><FileText className="w-4 h-4 text-purple-600" /><span className="text-xs font-bold text-purple-600 uppercase">Master List</span></div>
-          <p className="text-2xl font-black text-purple-900">{stats.masterList}</p>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-amber-100 rounded-xl"><Clock className="w-5 h-5 text-amber-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pending</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{stats.pending}</p>
+        </div>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-purple-100 rounded-xl"><FileText className="w-5 h-5 text-purple-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Master List</span>
+          </div>
+          <p className="text-3xl font-black text-slate-900">{stats.masterList}</p>
         </div>
       </div>
 

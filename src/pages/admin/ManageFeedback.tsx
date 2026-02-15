@@ -238,6 +238,33 @@ const ManageFeedback: React.FC = () => {
   return (
     <AdminPageLayout title="Feedback & Surveys" subtitle="Review alumni feedback and manage surveys" icon={MessageSquare}>
 
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Engagement</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Feedback & Surveys</h2>
+            <p className="text-amber-100 text-sm font-medium mt-1">Review alumni feedback and manage satisfaction surveys</p>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{feedbackCounts.all}</p>
+              <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Feedback</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{surveys.length}</p>
+              <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Surveys</p>
+            </div>
+          </div>
+        </div>
+        <MessageSquare className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
+
       {/* Tab Switcher */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div className="flex bg-slate-100 p-1 rounded-2xl">
@@ -266,18 +293,25 @@ const ManageFeedback: React.FC = () => {
       {activeTab === 'feedback' && (
         <div className="space-y-6 animate-in fade-in duration-500">
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total', count: feedbackCounts.all, color: 'bg-slate-50 text-slate-600' },
-              { label: 'Pending', count: feedbackCounts.pending, color: 'bg-yellow-50 text-yellow-600' },
-              { label: 'Reviewed', count: feedbackCounts.reviewed, color: 'bg-blue-50 text-blue-600' },
-              { label: 'Resolved', count: feedbackCounts.resolved, color: 'bg-green-50 text-green-600' },
-            ].map(s => (
-              <div key={s.label} className={`${s.color} rounded-2xl p-4 text-center`}>
-                <p className="text-2xl font-black">{s.count}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{s.label}</p>
-              </div>
-            ))}
+              { label: 'Total', count: feedbackCounts.all, icon: MessageSquare, color: 'slate' },
+              { label: 'Pending', count: feedbackCounts.pending, icon: Star, color: 'amber' },
+              { label: 'Reviewed', count: feedbackCounts.reviewed, icon: CheckCircle2, color: 'blue' },
+              { label: 'Resolved', count: feedbackCounts.resolved, icon: CheckCircle2, color: 'emerald' },
+            ].map(s => {
+              const bgMap: Record<string, string> = { slate: 'bg-slate-100', amber: 'bg-amber-100', blue: 'bg-blue-100', emerald: 'bg-emerald-100' };
+              const textMap: Record<string, string> = { slate: 'text-slate-600', amber: 'text-amber-600', blue: 'text-blue-600', emerald: 'text-emerald-600' };
+              return (
+                <div key={s.label} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2.5 ${bgMap[s.color]} rounded-xl`}><s.icon className={`w-5 h-5 ${textMap[s.color]}`} /></div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{s.label}</span>
+                  </div>
+                  <p className="text-3xl font-black text-slate-900">{s.count}</p>
+                </div>
+              );
+            })}
           </div>
 
           {/* Filters */}
@@ -328,7 +362,7 @@ const ManageFeedback: React.FC = () => {
                         <span>{new Date(fb.created_at).toLocaleDateString()}</span>
                         {fb.rating > 0 && (
                           <span className="flex items-center gap-1">
-                            {[1,2,3,4,5].map(s => <Star key={s} className={`w-3 h-3 ${s <= fb.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />)}
+                            {[1, 2, 3, 4, 5].map(s => <Star key={s} className={`w-3 h-3 ${s <= fb.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />)}
                           </span>
                         )}
                       </div>
