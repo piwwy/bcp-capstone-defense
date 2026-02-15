@@ -211,21 +211,30 @@ const AlumniJobs: React.FC = () => {
     <PageTransition>
     <div className="max-w-7xl mx-auto space-y-6 pb-10">
 
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
-            <Zap className="w-8 h-8 text-blue-600 fill-blue-600" /> Career Port
-          </h1>
-          <p className="text-slate-400 font-bold text-sm">Exclusive career opportunities for Linker Alumni graduates.</p>
-        </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto shadow-inner">
-          <button onClick={() => { setMainView('discover'); setShowDetail(false); }} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mainView === 'discover' ? 'bg-white text-blue-600 shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-            <Briefcase className="w-4 h-4" /> Find Work
-          </button>
-          <button onClick={() => { setMainView('my-apps'); setShowDetail(false); }} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mainView === 'my-apps' ? 'bg-white text-blue-600 shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-            <History className="w-4 h-4" /> My Tracks {myApplications.length > 0 && <span className="ml-1 bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md text-[9px]">{myApplications.length}</span>}
-          </button>
+      {/* Hero Banner */}
+      <div className="relative h-[240px] rounded-[2.5rem] bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 overflow-hidden shadow-2xl flex items-end px-10 pb-8">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-white/5 rounded-full -mb-28" />
+        <div className="absolute top-1/2 right-24 w-40 h-40 bg-white/5 rounded-full -mt-20" />
+        <Briefcase className="absolute right-12 bottom-8 w-32 h-32 text-white/5" strokeWidth={1} />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between w-full gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Career Port</span>
+            </div>
+            <h1 className="text-4xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
+              <Zap className="w-8 h-8 text-blue-400 fill-blue-400" /> Career Port
+            </h1>
+            <p className="text-blue-200 text-sm font-medium max-w-md">Exclusive career opportunities for Linker Alumni graduates.</p>
+          </div>
+          <div className="flex bg-white/10 backdrop-blur-sm border border-white/20 p-1.5 rounded-2xl w-full md:w-auto">
+            <button onClick={() => { setMainView('discover'); setShowDetail(false); }} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mainView === 'discover' ? 'bg-white text-blue-600 shadow-lg' : 'text-white/60 hover:text-white'}`}>
+              <Briefcase className="w-4 h-4" /> Find Work
+            </button>
+            <button onClick={() => { setMainView('my-apps'); setShowDetail(false); }} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${mainView === 'my-apps' ? 'bg-white text-blue-600 shadow-lg' : 'text-white/60 hover:text-white'}`}>
+              <History className="w-4 h-4" /> My Tracks {myApplications.length > 0 && <span className="ml-1 bg-blue-400/20 text-blue-200 px-1.5 py-0.5 rounded-md text-[9px]">{myApplications.length}</span>}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -240,10 +249,10 @@ const AlumniJobs: React.FC = () => {
               <input placeholder="Search jobs, companies..." className="w-full pl-11 pr-4 py-3.5 bg-white rounded-2xl border border-slate-100 text-sm font-medium focus:ring-2 focus:ring-blue-200 outline-none shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
 
-            {/* Feed Tabs (Upwork style) */}
-            <div className="flex items-center gap-1 border-b border-slate-100 bg-white rounded-t-2xl px-4 pt-3">
+            {/* Feed Tabs (Pill style) */}
+            <div className="flex items-center gap-1 bg-white/80 p-1.5 rounded-2xl border border-slate-100 shadow-sm">
               {FEED_TABS.map(tab => (
-                <button key={tab.id} onClick={() => setFeedTab(tab.id)} className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 ${feedTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                <button key={tab.id} onClick={() => setFeedTab(tab.id)} className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${feedTab === tab.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
                   {tab.label}
                 </button>
               ))}
@@ -261,13 +270,7 @@ const AlumniJobs: React.FC = () => {
             {/* Job List */}
             <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
               {loading ? (
-                [...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white p-5 rounded-2xl border border-slate-100 animate-pulse">
-                    <div className="h-5 bg-slate-100 rounded w-3/4 mb-3"></div>
-                    <div className="h-4 bg-slate-100 rounded w-1/2 mb-2"></div>
-                    <div className="h-3 bg-slate-100 rounded w-full"></div>
-                  </div>
-                ))
+                <JobListSkeleton count={5} />
               ) : displayJobs.length === 0 ? (
                 <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
                   <Briefcase className="w-12 h-12 text-slate-200 mx-auto mb-3" />
@@ -283,7 +286,7 @@ const AlumniJobs: React.FC = () => {
                   <div
                     key={job.id}
                     onClick={() => openJobDetail(job)}
-                    className={`group bg-white p-5 rounded-2xl border cursor-pointer transition-all hover:shadow-md ${isSelected ? 'border-blue-500 bg-blue-50/30 shadow-md' : 'border-slate-100 hover:border-blue-200'}`}
+                    className={`group bg-white p-5 rounded-2xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${isSelected ? 'border-blue-500 bg-blue-50/30 shadow-md' : 'border-slate-100 hover:border-blue-200'}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -311,7 +314,7 @@ const AlumniJobs: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                        <button onClick={e => { e.stopPropagation(); toggleSaveJob(job.id); }} className={`p-2 rounded-full transition-all ${isSaved ? 'text-red-500 bg-red-50' : 'text-slate-300 hover:text-red-400 hover:bg-red-50'}`}>
+                        <button onClick={e => { e.stopPropagation(); toggleSaveJob(job.id); }} className={`p-2 rounded-full transition-all active:scale-90 ${isSaved ? 'text-red-500 bg-red-50' : 'text-slate-300 hover:text-red-400 hover:bg-red-50'}`}>
                           <Heart className={`w-4 h-4 ${isSaved ? 'fill-red-500' : ''}`} />
                         </button>
                         {isBestMatch && <Sparkles className="w-4 h-4 text-rose-500 animate-pulse" />}
@@ -327,7 +330,7 @@ const AlumniJobs: React.FC = () => {
           {/* RIGHT: Job Detail Panel (slide in) */}
           {showDetail && selectedJob && (
             <div className="w-[55%] animate-in slide-in-from-right-5 duration-300">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm sticky top-20 max-h-[calc(100vh-140px)] overflow-y-auto">
+              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl sticky top-20 max-h-[calc(100vh-140px)] overflow-y-auto">
                 {/* Detail Header */}
                 <div className="p-6 border-b border-slate-50">
                   <div className="flex items-center justify-between mb-4">
@@ -369,7 +372,7 @@ const AlumniJobs: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => setShowApplyModal(true)} className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all text-sm flex items-center justify-center gap-2">
+                    <button onClick={() => setShowApplyModal(true)} className="w-full py-3.5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-2xl shadow-blue-200 transition-all text-sm flex items-center justify-center gap-2 active:scale-95">
                       <Send className="w-4 h-4" /> Apply Now
                     </button>
                   )}
@@ -421,7 +424,7 @@ const AlumniJobs: React.FC = () => {
         /* MY TRACKS / APPLICATIONS */
         <div className="space-y-4">
           {loading ? (
-            <div className="text-center py-20"><Loader2 className="w-8 h-8 animate-spin text-slate-300 mx-auto" /></div>
+            <JobListSkeleton count={3} />
           ) : myApplications.length === 0 ? (
             <div className="py-20 text-center bg-white rounded-2xl border border-dashed border-slate-200">
               <History className="w-12 h-12 text-slate-200 mx-auto mb-3" />
@@ -432,7 +435,7 @@ const AlumniJobs: React.FC = () => {
               </button>
             </div>
           ) : myApplications.map(app => (
-            <div key={app.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all space-y-4">
+            <div key={app.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100">
@@ -464,14 +467,14 @@ const AlumniJobs: React.FC = () => {
 
       {/* APPLICATION MODAL */}
       {showApplyModal && selectedJob && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-10 pb-6 border-b border-slate-50 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-black text-slate-900">Apply to {selectedJob.company}</h3>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tighter">Apply to {selectedJob.company}</h3>
                 <p className="text-xs text-slate-400 mt-1">{selectedJob.title}</p>
               </div>
-              <button onClick={() => setShowApplyModal(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowApplyModal(false)} className="p-3 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 hover:rotate-90 transition-all"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-8 space-y-6">
               <div className="space-y-2">

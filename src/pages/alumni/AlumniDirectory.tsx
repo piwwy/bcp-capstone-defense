@@ -183,33 +183,48 @@ const AlumniDirectory = () => {
     <>
       <div className="max-w-6xl mx-auto space-y-8 pb-20">
 
-        {/* Header */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
-            <Users className="w-3.5 h-3.5" /> Alumni Network
+        {/* Hero Banner */}
+        <div className="relative h-[280px] rounded-[2.5rem] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 overflow-hidden shadow-2xl flex items-end px-10 pb-10">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-20 -mt-20" />
+          <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-white/5 rounded-full -mb-28" />
+          <div className="absolute top-1/2 right-24 w-40 h-40 bg-white/5 rounded-full -mt-20" />
+          <div className="relative z-10 flex items-end justify-between w-full">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Network</span>
+              </div>
+              <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Connect With Alumni</h1>
+              <p className="text-blue-100 text-sm font-medium max-w-md">Browse and connect with fellow alumni from Linker College of the Philippines.</p>
+            </div>
+            <div className="hidden md:flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3">
+              <Users className="w-6 h-6 text-white" />
+              <div>
+                <p className="text-3xl font-black text-white">{alumni.length}</p>
+                <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Total Alumni</p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Connect With Alumni</h1>
-          <p className="text-slate-400 mt-2 max-w-md mx-auto">Browse and connect with fellow alumni from Linker College of the Philippines.</p>
+          <Users className="absolute right-12 bottom-8 w-32 h-32 text-white/5" strokeWidth={1} />
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 text-center">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-blue-500">
             <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
             <p className="text-2xl font-black text-slate-900">{alumni.length}</p>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Alumni</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 text-center">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-purple-500">
             <GraduationCap className="w-6 h-6 text-purple-600 mx-auto mb-2" />
             <p className="text-2xl font-black text-slate-900">{batchYears.length - 1}</p>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Batch Years</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 text-center">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500">
             <Globe className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
             <p className="text-2xl font-black text-slate-900">{locationStats.filter(l => l.name !== 'Unknown').length}</p>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Locations</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 text-center">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-500">
             <Briefcase className="w-6 h-6 text-amber-600 mx-auto mb-2" />
             <p className="text-2xl font-black text-slate-900">{alumni.filter(a => a.employment_status === 'employed' || a.employment_status === 'self-employed').length}</p>
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Employed</p>
@@ -348,11 +363,11 @@ const AlumniDirectory = () => {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredAlumni.map(alum => (
-              <div key={alum.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all p-6 flex flex-col items-center text-center group">
+              <div key={alum.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 p-6 flex flex-col items-center text-center group">
                 <img
                   src={alum.avatar_url || `https://ui-avatars.com/api/?name=${alum.first_name}+${alum.last_name}&background=random&size=80`}
                   alt={`${alum.first_name} ${alum.last_name}`}
-                  className="w-20 h-20 rounded-full mb-4 border-4 border-slate-50 group-hover:border-blue-100 transition-colors object-cover cursor-pointer"
+                  className="w-20 h-20 rounded-full mb-4 border-4 border-slate-50 group-hover:border-blue-200 group-hover:ring-4 group-hover:ring-blue-100 transition-all duration-300 object-cover cursor-pointer"
                   onClick={() => setSelectedAlumni(alum)}
                 />
                 <h3 className="font-black text-slate-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => setSelectedAlumni(alum)}>{alum.first_name} {alum.last_name}</h3>
@@ -404,8 +419,8 @@ const AlumniDirectory = () => {
 
       {/* PUBLIC PROFILE VIEW MODAL */}
       {selectedAlumni && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setSelectedAlumni(null)} onAnimationStart={() => fetchConnectionCounts(selectedAlumni.id)}>
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in" onClick={() => setSelectedAlumni(null)} onAnimationStart={() => fetchConnectionCounts(selectedAlumni.id)}>
+          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white text-center">
               <button onClick={() => setSelectedAlumni(null)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -499,7 +514,7 @@ const AlumniDirectory = () => {
               <div className="p-6 border-t border-slate-100 flex gap-3">
                 <button
                   onClick={() => { toggleConnect(selectedAlumni.id, `${selectedAlumni.first_name} ${selectedAlumni.last_name}`); }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${connections.has(selectedAlumni.id) ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${connections.has(selectedAlumni.id) ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
                 >
                   {connections.has(selectedAlumni.id) ? <><UserCheck className="w-4 h-4" /> Connected</> : <><UserPlus className="w-4 h-4" /> Connect</>}
                 </button>

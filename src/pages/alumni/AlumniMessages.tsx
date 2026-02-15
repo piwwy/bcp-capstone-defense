@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import PageTransition from '../../components/ui/PageTransition';
 import {
   MessageCircle, Search, Send, X, Loader2,
   ChevronLeft, Circle, Trash2, UserCircle, Paperclip, FileText, Download
@@ -319,22 +320,54 @@ const AlumniMessages = () => {
   const selectedProfile = selectedPartner ? getProfile(selectedPartner) : null;
 
   if (loading) {
-    return <div className="flex items-center justify-center py-32"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>;
+    return (
+      <div className="max-w-6xl mx-auto pb-4">
+        <div className="mb-6">
+          <div className="h-5 w-24 bg-slate-100 rounded-full mb-3 animate-pulse" />
+          <div className="h-8 w-48 bg-slate-100 rounded animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-slate-100 rounded animate-pulse" />
+        </div>
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl overflow-hidden" style={{ height: 'calc(100vh - 240px)' }}>
+          <div className="flex h-full">
+            <div className="w-[340px] border-r border-slate-100 p-4 space-y-4">
+              <div className="h-10 bg-slate-100 rounded-2xl animate-pulse" />
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-11 h-11 rounded-full bg-slate-100" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-slate-100 rounded w-2/3 mb-2" />
+                    <div className="h-3 bg-slate-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-4 animate-pulse" />
+                <div className="h-5 bg-slate-100 rounded w-40 mx-auto mb-2 animate-pulse" />
+                <div className="h-4 bg-slate-100 rounded w-56 mx-auto animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-in fade-in duration-700 pb-4">
+    <PageTransition>
+    <div className="max-w-6xl mx-auto pb-4">
       {/* Header */}
       <div className="mb-6">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-3">
           <MessageCircle className="w-3.5 h-3.5" /> Messages
         </div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Messaging</h1>
-        <p className="text-slate-400 text-sm mt-1">Chat with fellow alumni and admins.</p>
+        <p className="text-slate-400 text-sm mt-1">Chat with fellow alumni and admins. <span className="text-slate-300">{conversations.length} conversations</span></p>
       </div>
 
       {/* Main chat area */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden" style={{ height: 'calc(100vh - 240px)', minHeight: '500px' }}>
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl overflow-hidden" style={{ height: 'calc(100vh - 240px)', minHeight: '500px' }}>
         <div className="flex h-full">
 
           {/* Sidebar - Conversation List */}
@@ -345,7 +378,7 @@ const AlumniMessages = () => {
                 <h2 className="text-lg font-black text-slate-800">Chats</h2>
                 <button
                   onClick={() => setShowNewChat(true)}
-                  className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                  className="p-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-90"
                   title="New message"
                 >
                   <MessageCircle className="w-4 h-4" />
@@ -358,7 +391,7 @@ const AlumniMessages = () => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 rounded-2xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
             </div>
@@ -368,11 +401,11 @@ const AlumniMessages = () => {
               {filteredConversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
                   <MessageCircle className="w-12 h-12 text-slate-200 mb-3" />
-                  <p className="text-sm font-bold text-slate-400">No conversations yet</p>
+                  <p className="text-sm font-black text-slate-400">No conversations yet</p>
                   <p className="text-xs text-slate-300 mt-1">Start a new chat with a fellow alumni or admin.</p>
                   <button
                     onClick={() => setShowNewChat(true)}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors"
+                    className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-xs font-black hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
                   >
                     Start a Conversation
                   </button>
@@ -382,16 +415,17 @@ const AlumniMessages = () => {
                   <div
                     key={conv.partnerId}
                     onClick={() => setSelectedPartner(conv.partnerId)}
-                    className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-all border-b border-slate-50 group ${
-                      selectedPartner === conv.partnerId ? 'bg-blue-50' : 'hover:bg-slate-50'
+                    className={`flex items-center gap-3 px-4 py-4 cursor-pointer transition-all border-b border-slate-50 group ${
+                      selectedPartner === conv.partnerId ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-slate-50'
                     }`}
                   >
                     <div className="relative flex-shrink-0">
                       <img
                         src={conv.partnerAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.partnerName)}&background=random&size=48`}
-                        className="w-11 h-11 rounded-full object-cover border-2 border-slate-100"
+                        className={`w-11 h-11 rounded-full object-cover border-2 ${selectedPartner === conv.partnerId ? 'border-blue-200 ring-2 ring-blue-400' : 'border-slate-100'}`}
                         alt=""
                       />
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -401,7 +435,7 @@ const AlumniMessages = () => {
                       <div className="flex items-center justify-between mt-0.5">
                         <p className="text-xs text-slate-400 truncate">{conv.lastMessage}</p>
                         {conv.unreadCount > 0 && (
-                          <span className="ml-2 flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                          <span className="ml-2 flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse">
                             {conv.unreadCount}
                           </span>
                         )}
@@ -425,7 +459,7 @@ const AlumniMessages = () => {
             {selectedPartner && selectedProfile ? (
               <>
                 {/* Chat Header */}
-                <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-white">
+                <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-white to-slate-50/50 shadow-sm">
                   <button
                     onClick={() => setSelectedPartner(null)}
                     className="md:hidden p-1.5 hover:bg-slate-100 rounded-lg"
@@ -458,16 +492,23 @@ const AlumniMessages = () => {
                     groupedMessages.map((group, gi) => (
                       <div key={gi}>
                         <div className="flex justify-center my-4">
-                          <span className="px-3 py-1 bg-slate-200/70 rounded-full text-[10px] font-bold text-slate-500">{group.date}</span>
+                          <span className="px-3 py-1 bg-slate-100 rounded-full border border-slate-200 text-[10px] font-bold text-slate-500">{group.date}</span>
                         </div>
                         {group.messages.map(msg => {
                           const isMine = msg.sender_id === user?.id;
                           return (
                             <div key={msg.id} className={`flex mb-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${
+                              {!isMine && selectedProfile && (
+                                <img
+                                  src={selectedProfile.avatar_url || `https://ui-avatars.com/api/?name=${selectedProfile.first_name}+${selectedProfile.last_name}&background=random&size=28`}
+                                  className="w-7 h-7 rounded-full object-cover mr-2 mt-auto flex-shrink-0 border border-slate-100"
+                                  alt=""
+                                />
+                              )}
+                              <div className={`max-w-[70%] px-4 py-2.5 ${
                                 isMine
-                                  ? 'bg-blue-600 text-white rounded-br-md'
-                                  : 'bg-white text-slate-700 border border-slate-100 rounded-bl-md shadow-sm'
+                                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-[1.25rem] rounded-br-sm shadow-md'
+                                  : 'bg-white text-slate-700 border border-slate-100 rounded-[1.25rem] rounded-bl-sm shadow-sm'
                               }`}>
                                 {msg.attachment_url && msg.attachment_type === 'image' && (
                                   <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
@@ -486,7 +527,7 @@ const AlumniMessages = () => {
                                 )}
                                 <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-200' : 'text-slate-300'}`}>
                                   {formatMessageTime(msg.created_at)}
-                                  {isMine && <span className="ml-1">{msg.read ? '✓✓' : '✓'}</span>}
+                                  {isMine && <span className={`ml-1 ${msg.read ? 'text-emerald-300' : ''}`}>{msg.read ? '✓✓' : '✓'}</span>}
                                 </p>
                               </div>
                             </div>
@@ -500,7 +541,7 @@ const AlumniMessages = () => {
 
                 {/* File Preview */}
                 {selectedFile && (
-                  <div className="px-5 py-2 border-t border-slate-100 bg-blue-50 flex items-center gap-2">
+                  <div className="px-5 py-2 border-t border-slate-100 bg-blue-50 rounded-2xl mx-4 mt-2 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
                     <span className="text-xs font-bold text-blue-700 truncate flex-1">{selectedFile.name}</span>
                     <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="p-1 hover:bg-blue-100 rounded">
@@ -515,7 +556,7 @@ const AlumniMessages = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-3 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-2xl transition-colors"
+                      className="p-3 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-2xl transition-all hover:rotate-12"
                       title="Attach file"
                     >
                       <Paperclip className="w-5 h-5" />
@@ -532,7 +573,7 @@ const AlumniMessages = () => {
                     <button
                       onClick={sendMessage}
                       disabled={!newMessage.trim() && !selectedFile}
-                      className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
+                      className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all active:scale-90 shadow-lg shadow-blue-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
                     >
                       {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
@@ -541,14 +582,14 @@ const AlumniMessages = () => {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                  <MessageCircle className="w-10 h-10 text-blue-300" />
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full flex items-center justify-center mb-4">
+                  <MessageCircle className="w-12 h-12 text-blue-300" />
                 </div>
-                <h3 className="text-xl font-black text-slate-800">Your Messages</h3>
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">Your Messages</h3>
                 <p className="text-sm text-slate-400 mt-2 max-w-xs">Select a conversation or start a new chat with fellow alumni and admins.</p>
                 <button
                   onClick={() => setShowNewChat(true)}
-                  className="mt-5 px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-colors"
+                  className="mt-5 px-6 py-3 bg-blue-600 text-white rounded-2xl text-sm font-black hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
                 >
                   New Message
                 </button>
@@ -560,12 +601,12 @@ const AlumniMessages = () => {
 
       {/* New Chat Modal */}
       {showNewChat && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4" onClick={() => setShowNewChat(false)}>
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-800">New Message</h3>
-              <button onClick={() => setShowNewChat(false)} className="p-2 hover:bg-slate-100 rounded-xl">
-                <X className="w-5 h-5 text-slate-400" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4" onClick={() => setShowNewChat(false)}>
+          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="p-8 pb-4 border-b border-slate-50 flex items-center justify-between">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter">New Message</h3>
+              <button onClick={() => setShowNewChat(false)} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 hover:rotate-90 transition-all">
+                <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4">
@@ -589,12 +630,12 @@ const AlumniMessages = () => {
                   <button
                     key={p.id}
                     onClick={() => startNewChat(p.id)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-50 transition-all text-left"
                   >
                     <div className="relative">
                       <img
                         src={p.avatar_url || `https://ui-avatars.com/api/?name=${p.first_name}+${p.last_name}&background=random&size=40`}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100"
+                        className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 ring-2 ring-slate-50"
                         alt=""
                       />
                     </div>
@@ -610,6 +651,7 @@ const AlumniMessages = () => {
         </div>
       )}
     </div>
+    </PageTransition>
   );
 };
 
