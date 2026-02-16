@@ -3,6 +3,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
+import ResetPassword from './pages/ResetPassword';
 
 // USE THE REAL AUTH CONTEXT
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -123,6 +124,7 @@ function AppRoutes() {
         <Route path="/alumni/2fa" element={<Alumni2FA />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="donate" element={<PublicDonationPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* =========================================================
       ADMIN PORTAL
