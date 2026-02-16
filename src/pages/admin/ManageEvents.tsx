@@ -417,22 +417,31 @@ const ManageEvents = () => {
 
           {/* Calendar Grid */}
           <div className="grid grid-cols-7">
-            {calendarDays.map((day, idx) => (
+            {calendarDays.map((day, idx) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const isPast = day ? day < today : false;
+              const isToday = day ? day.toDateString() === new Date().toDateString() : false;
+              return (
               <div
                 key={idx}
                 onClick={() => {
                   if (day) {
+                    if (isPast) {
+                      showToast({ title: 'Invalid Date', message: 'You cannot schedule an event in the past. Please pick a future date.', type: 'warning' });
+                      return;
+                    }
                     const y = day.getFullYear();
                     const m = (day.getMonth() + 1).toString().padStart(2, '0');
                     const d = day.getDate().toString().padStart(2, '0');
                     openCreateModalWithDate(`${y}-${m}-${d}`);
                   }
                 }}
-                className={`min-h-[140px] border-r border-b border-slate-700/50 p-3 transition-colors ${!day ? 'bg-slate-800/30' : 'hover:bg-slate-700/30 cursor-pointer'}`}
+                className={`min-h-[140px] border-r border-b border-slate-700/50 p-3 transition-colors ${!day ? 'bg-slate-800/30' : isPast ? 'bg-slate-800/50 cursor-not-allowed opacity-40' : 'hover:bg-slate-700/30 cursor-pointer'}`}
               >
                 {day && (
                   <>
-                    <span className={`text-sm font-black ${day.toDateString() === new Date().toDateString() ? 'bg-blue-600 text-white w-7 h-7 flex items-center justify-center rounded-full shadow-lg shadow-blue-500/30' : 'text-slate-400'}`}>
+                    <span className={`text-sm font-black ${isToday ? 'bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-blue-500/50 ring-2 ring-blue-400/30' : isPast ? 'text-slate-600 line-through' : 'text-slate-400'}`}>
                       {day.getDate()}
                     </span>
                     <div className="mt-2 space-y-1">
@@ -446,7 +455,8 @@ const ManageEvents = () => {
                   </>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       ) : (
@@ -657,6 +667,7 @@ const ManageEvents = () => {
                 <div className="relative">
                   <input
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full p-5 bg-blue-50 border-2 border-blue-100 rounded-[2rem] text-lg font-black text-blue-900 focus:ring-4 focus:ring-blue-200 transition-all outline-none"
                     value={datePart}
                     onChange={e => handleDatePartChange(e.target.value)}
