@@ -198,6 +198,33 @@ const ManageBatchReunions: React.FC = () => {
   return (
     <AdminPageLayout title="Batch Reunions" subtitle="Schedule and manage batch reunion events" icon={PartyPopper}>
 
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-purple-700 via-fuchsia-600 to-pink-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Reunion Events</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Batch Reunions</h2>
+            <p className="text-purple-100 text-sm font-medium mt-1">Schedule and manage batch reunion events for alumni</p>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{eventCounts.active}</p>
+              <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Upcoming</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{reunions.length}</p>
+              <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest">Total</p>
+            </div>
+          </div>
+        </div>
+        <PartyPopper className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
+
       {/* Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div className="flex gap-2 bg-white/80 p-1.5 rounded-2xl border border-slate-100 shadow-sm">

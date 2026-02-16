@@ -104,6 +104,30 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return date.toLocaleDateString();
   };
 
+  // Current date and time state
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatDateTime = () => {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    };
+    return currentDateTime.toLocaleString('en-US', options);
+  };
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-100 via-blue-50/40 to-indigo-100/30 text-gray-900 font-sans">
 
@@ -121,15 +145,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* 2. RIGHT: Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
 
-        {/* --- TOP NAVBAR (Glass) --- */}
-        <header className="flex items-center justify-between px-8 py-4 bg-white/60 backdrop-blur-xl border-b border-white/40 sticky top-0 z-20 shadow-sm shadow-black/[0.03]">
+        {/* --- TOP NAVBAR --- */}
+        <header className="flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
 
-          {/* Left: Title */}
+          {/* Left: Title & Date/Time */}
           <div>
             <h1 className="text-xl font-bold text-gray-800">{getHeaderTitle()}</h1>
             <p className="flex items-center gap-2 text-xs text-gray-500 font-medium mt-1">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              System Online
+              {formatDateTime()}
             </p>
           </div>
 

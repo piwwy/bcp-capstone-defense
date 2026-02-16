@@ -187,6 +187,33 @@ const CareerTracking = () => {
             icon={Briefcase}
         >
             <div className="space-y-8">
+                {/* Hero Banner */}
+                <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-700 overflow-hidden shadow-2xl flex items-center px-10">
+                    <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+                    <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+                    <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+                    <div className="relative z-10 flex items-center justify-between w-full">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Employment Analytics</span>
+                            </div>
+                            <h2 className="text-3xl font-black text-white tracking-tighter">Career Tracking</h2>
+                            <p className="text-emerald-100 text-sm font-medium mt-1">Monitor alumni employment status & career progression</p>
+                        </div>
+                        <div className="hidden md:flex items-center gap-4">
+                            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+                                <p className="text-2xl font-black text-white">{employmentRate}%</p>
+                                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Employed</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+                                <p className="text-2xl font-black text-white">{alumni.length}</p>
+                                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Alumni</p>
+                            </div>
+                        </div>
+                    </div>
+                    <Briefcase className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+                </div>
+
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-6 shadow-lg">

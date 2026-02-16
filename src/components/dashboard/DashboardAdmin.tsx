@@ -4,7 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import {
   Users, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Activity, Calendar, Loader2,
-  Briefcase, Heart, Newspaper, BarChart3
+  Briefcase, Heart, Newspaper, BarChart3, Sparkles, TrendingUp, Shield
 } from 'lucide-react';
 
 const DashboardAdmin: React.FC = () => {
@@ -128,14 +128,74 @@ const DashboardAdmin: React.FC = () => {
 
   return (
     <div className="p-8 space-y-8 bg-gray-50/50 min-h-screen animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-500 text-sm">System Overview & Recent Activities</p>
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-12 shadow-2xl">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 right-10 w-72 h-72 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-10 left-10 w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
-        <div className="text-sm text-gray-500 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-green-500" /> System Online
+        
+        {/* Content */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm text-white rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20">
+              <Shield className="w-3.5 h-3.5" /> Admin Control Center
+            </div>
+            <h1 className="text-5xl font-black text-white tracking-tighter mb-3">
+              Welcome Back, Admin
+            </h1>
+            <p className="text-blue-100 text-lg max-w-2xl leading-relaxed">
+              Monitor system performance, manage alumni records, and oversee all platform activities from your central dashboard.
+            </p>
+            
+            {/* Quick Stats Row */}
+            <div className="flex items-center gap-6 mt-8">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                  <TrendingUp className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-white">{stats.total}</p>
+                  <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Total Alumni</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                  <Activity className="w-6 h-6 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-white">{stats.verified}</p>
+                  <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Verified</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                  <Sparkles className="w-6 h-6 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black text-white">{moduleCounts.events + moduleCounts.jobs + moduleCounts.campaigns + moduleCounts.news}</p>
+                  <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Active Content</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right Side - System Status */}
+          <div className="hidden lg:flex flex-col gap-3">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span className="text-xs font-black text-white uppercase tracking-wider">System Status</span>
+              </div>
+              <p className="text-2xl font-black text-white">Online</p>
+              <p className="text-xs text-blue-200 mt-1">All services operational</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
+              <p className="text-xs font-black text-blue-200 uppercase tracking-wider mb-1">Last Updated</p>
+              <p className="text-sm font-bold text-white">{new Date().toLocaleTimeString()}</p>
+            </div>
+          </div>
         </div>
       </div>
 

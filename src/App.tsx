@@ -47,6 +47,8 @@ const ManageJobPlacement = React.lazy(() => import('./pages/admin/ManageJobPlace
 const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
 const TracerSurvey = React.lazy(() => import('./pages/admin/TracerSurvey'));
 const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries'));
+const ManageNewsletter = React.lazy(() => import('./pages/admin/ManageNewsletter'));
+const ManageResources = React.lazy(() => import('./pages/admin/ManageResources'));
 
 // Alumni pages
 const AlumniDashboard = React.lazy(() => import('./components/dashboard/AlumniDashboard'));
@@ -64,6 +66,7 @@ const AlumniBatchReunions = React.lazy(() => import('./pages/alumni/AlumniBatchR
 const AlumniJobPlacement = React.lazy(() => import('./pages/alumni/AlumniJobPlacement'));
 const AlumniSettings = React.lazy(() => import('./pages/alumni/AlumniSettings'));
 const AlumniMessages = React.lazy(() => import('./pages/alumni/AlumniMessages'));
+const AlumniNewsletter = React.lazy(() => import('./pages/alumni/AlumniNewsletter'));
 
 // Dashboards
 const DashboardAdmin = React.lazy(() => import('./components/dashboard/DashboardAdmin'));
@@ -175,6 +178,12 @@ function AppRoutes() {
                   {/* Job Placement Logs */}
                   <Route path="job-placement" element={<ManageJobPlacement />} />
 
+                  {/* Newsletter */}
+                  <Route path="newsletter" element={<ManageNewsletter />} />
+
+                  {/* Alumni Resources Management */}
+                  <Route path="resources" element={<ManageResources />} />
+
                   {/* Admin Settings */}
                   <Route path="settings" element={<AdminSettings />} />
 
@@ -226,6 +235,12 @@ function AppRoutes() {
                   <Route path="train-ai" element={<TrainAI />} />
                   <Route path="audit-trail" element={<AuditTrail />} />
 
+                  {/* Newsletter */}
+                  <Route path="newsletter" element={<ManageNewsletter />} />
+
+                  {/* Alumni Resources Management */}
+                  <Route path="resources" element={<ManageResources />} />
+
                   {/* System */}
                   <Route path="settings" element={<AdminSettings />} />
 
@@ -253,6 +268,8 @@ function AppRoutes() {
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />
                   <Route path="jobs/board" element={<ManageJobs />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
+                  <Route path="newsletter" element={<ManageNewsletter />} />
+                  <Route path="settings" element={<AdminSettings />} />
                   <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
                 </Routes>
               </Suspense>
@@ -290,7 +307,7 @@ function AppRoutes() {
                   {/* New Modules */}
                   <Route path="messages" element={<AlumniMessages />} />
                   <Route path="feedback" element={<AlumniFeedback />} />
-                  {/* Newsletter removed — consolidated into News Feed */}
+                  <Route path="newsletter" element={<AlumniNewsletter />} />
                   <Route path="batch-reunions" element={<AlumniBatchReunions />} />
                   <Route path="job-placement" element={<AlumniJobPlacement />} />
 

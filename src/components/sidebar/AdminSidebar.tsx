@@ -7,7 +7,7 @@ import {
   ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
   PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
   Bot, Settings, Repeat, MoreVertical, AlertTriangle, Loader2,
-  MessageSquare, PartyPopper, TrendingUp
+  MessageSquare, PartyPopper, TrendingUp, List, Layers
 } from "lucide-react";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
@@ -23,6 +23,7 @@ const AdminSidebar: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [flatView, setFlatView] = useState(false);
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
@@ -50,6 +51,7 @@ const AdminSidebar: React.FC = () => {
     {
       name: "Communication & Updates", icon: Mail, subItems: [
         { name: "News Feed", path: "/admin/news/manage", icon: Newspaper },
+        { name: "Newsletter", path: "/admin/newsletter", icon: Mail },
         { name: "Partner Inquiries", path: "/admin/partner-inquiries", icon: Briefcase },
       ]
     },
@@ -69,6 +71,7 @@ const AdminSidebar: React.FC = () => {
         { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
       ]
     },
+    { name: "Alumni Resources", icon: FileText, path: "/admin/resources" },
     { name: "Settings", icon: Settings, path: "/admin/settings" },
   ];
 
@@ -87,13 +90,13 @@ const AdminSidebar: React.FC = () => {
 
   const handleLogoutConfirm = async () => { setIsLoggingOut(true); await logout(); navigate('/login'); };
 
-  const handleSwitchToSuperAdmin = async () => {
+  const handleSwitchRole = async (role: 'superadmin' | 'staff') => {
     setShowUserMenu(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        await supabase.from('profiles').update({ role: 'superadmin' }).eq('id', session.user.id);
-        window.location.href = '/superadmin/dashboard';
+        await supabase.from('profiles').update({ role }).eq('id', session.user.id);
+        window.location.href = `/${role}/dashboard`;
       }
     } catch (err) { console.error('Switch role error:', err); }
   };
@@ -115,50 +118,95 @@ const AdminSidebar: React.FC = () => {
           </div>
         </div>
 
+        {/* VIEW TOGGLE */}
+        {!collapsed && (
+          <div className="px-3 py-2 border-b border-gray-100">
+            <button
+              onClick={() => setFlatView(!flatView)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+              title={flatView ? "Switch to Grouped View" : "Switch to Flat View"}
+            >
+              {flatView ? <Layers className="w-4 h-4" /> : <List className="w-4 h-4" />}
+              <span>{flatView ? "Grouped View" : "Flat View"}</span>
+            </button>
+          </div>
+        )}
+
         {/* NAVIGATION */}
         <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
-          {menuItems.map((item) => {
-            const isDirectActive = item.path === location.pathname;
-            const hasActiveSub = item.subItems?.some(sub => location.pathname.includes(sub.path));
-            const isActive = isDirectActive || hasActiveSub;
-            const isExp = expanded === item.name;
-            return (
-              <div key={item.name} className="relative">
-                <div
-                  onClick={() => item.path ? navigate(item.path) : toggleSubMenu(item)}
-                  className={`relative flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
-                  style={isActive ? { animation: 'adminActivePulse 2.5s ease-in-out infinite' } : undefined}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center">
-                      <span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(59,130,246,0.6)]" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} />
+          {flatView ? (
+            // FLAT VIEW - All items in single list
+            <>
+              {menuItems.map((item) => {
+                if (item.path) {
+                  const isActive = item.path === location.pathname;
+                  return (
+                    <Link key={item.name} to={item.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}>
+                      {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2"><span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(59,130,246,0.6)]" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} /></div>}
+                      <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
+                      <span className={`text-sm font-semibold ${collapsed ? "hidden" : "block"}`}>{item.name}</span>
+                    </Link>
+                  );
+                }
+                return item.subItems?.map((sub) => {
+                  const isActive = location.pathname === sub.path;
+                  return (
+                    <Link key={sub.path} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}>
+                      {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2"><span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(59,130,246,0.6)]" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} /></div>}
+                      <sub.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
+                      <span className={`text-sm font-semibold ${collapsed ? "hidden" : "block"}`}>{sub.name}</span>
+                    </Link>
+                  );
+                });
+              })}
+            </>
+          ) : (
+            // GROUPED VIEW - Original with dropdowns
+            <>
+              {menuItems.map((item) => {
+                const isDirectActive = item.path === location.pathname;
+                const hasActiveSub = item.subItems?.some(sub => location.pathname.includes(sub.path));
+                const isActive = isDirectActive || hasActiveSub;
+                const isExp = expanded === item.name;
+                return (
+                  <div key={item.name} className="relative">
+                    <div
+                      onClick={() => item.path ? navigate(item.path) : toggleSubMenu(item)}
+                      className={`relative flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                      style={isActive ? { animation: 'adminActivePulse 2.5s ease-in-out infinite' } : undefined}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center">
+                          <span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(59,130,246,0.6)]" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-300 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
+                        <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 ${collapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"}`}>{item.name}</span>
+                      </div>
+                      {!collapsed && item.subItems && (
+                        <ChevronRight className={`w-4 h-4 transition-all duration-300 ${isExp ? "rotate-90" : ""} ${isActive ? "text-white/90" : "text-gray-400"}`} />
+                      )}
                     </div>
-                  )}
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-300 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
-                    <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 ${collapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"}`}>{item.name}</span>
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${!collapsed && isExp && item.subItems ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
+                      <div className="ml-4 pl-4 border-l-2 border-gray-100 space-y-1">
+                        {item.subItems?.map((sub, idx) => {
+                          const isSubActive = location.pathname === sub.path;
+                          return (
+                            <Link key={idx} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-blue-700 bg-blue-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
+                              {isSubActive && <span className="absolute left-1 h-4 w-0.5 rounded bg-blue-500" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} />}
+                              <sub.icon className={`w-4 h-4 transition-all ${isSubActive ? "text-blue-600" : "text-gray-400 group-hover:text-blue-600"}`} />
+                              {sub.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                  {!collapsed && item.subItems && (
-                    <ChevronRight className={`w-4 h-4 transition-all duration-300 ${isExp ? "rotate-90" : ""} ${isActive ? "text-white/90" : "text-gray-400"}`} />
-                  )}
-                </div>
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${!collapsed && isExp && item.subItems ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
-                  <div className="ml-4 pl-4 border-l-2 border-gray-100 space-y-1">
-                    {item.subItems?.map((sub, idx) => {
-                      const isSubActive = location.pathname === sub.path;
-                      return (
-                        <Link key={idx} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-blue-700 bg-blue-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
-                          {isSubActive && <span className="absolute left-1 h-4 w-0.5 rounded bg-blue-500" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} />}
-                          <sub.icon className={`w-4 h-4 transition-all ${isSubActive ? "text-blue-600" : "text-gray-400 group-hover:text-blue-600"}`} />
-                          {sub.name}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* FOOTER */}
@@ -168,8 +216,12 @@ const AdminSidebar: React.FC = () => {
               <button onClick={() => { setShowUserMenu(false); navigate('/admin/settings'); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
                 <Settings className="w-4 h-4 text-gray-400" /> Account Settings
               </button>
-              <button onClick={handleSwitchToSuperAdmin} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
+              <div className="h-px bg-gray-100 my-1"></div>
+              <button onClick={() => handleSwitchRole('superadmin')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
                 <Repeat className="w-4 h-4 text-gray-400" /> Switch to Super Admin
+              </button>
+              <button onClick={() => handleSwitchRole('staff')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
+                <Repeat className="w-4 h-4 text-gray-400" /> Switch to Staff
               </button>
               <div className="h-px bg-gray-100 my-1"></div>
               <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg text-left font-medium">

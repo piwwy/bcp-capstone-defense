@@ -1,10 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ArrowUp } from 'lucide-react';
+import { Heart, ArrowUp, Loader2, CheckCircle } from 'lucide-react';
+import { supabase } from '../../services/supabaseClient';
 
 const Footer: React.FC = () => {
+  const [subEmail, setSubEmail] = useState('');
+  const [subLoading, setSubLoading] = useState(false);
+  const [subSuccess, setSubSuccess] = useState(false);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subEmail.trim() || !subEmail.includes('@')) return;
+    setSubLoading(true);
+    try {
+      const { error } = await supabase.from('newsletter_subscribers').upsert({
+        email: subEmail.trim(),
+        alumni_name: 'Guest Subscriber',
+        subscribed: true,
+      }, { onConflict: 'email' });
+      if (error) throw error;
+      setSubSuccess(true);
+      setSubEmail('');
+      setTimeout(() => setSubSuccess(false), 4000);
+    } catch (err) {
+      console.error('Subscribe error:', err);
+    } finally {
+      setSubLoading(false);
+    }
   };
 
   const currentYear = new Date().getFullYear();
@@ -98,17 +124,21 @@ const Footer: React.FC = () => {
             <p className="text-blue-200/60 text-sm mb-4">
               Subscribe to our newsletter for the latest alumni news and events.
             </p>
-            <form className="space-y-3">
+            <form className="space-y-3" onSubmit={handleSubscribe}>
               <input
                 type="email"
                 placeholder="Enter your email"
+                value={subEmail}
+                onChange={e => setSubEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-300"
+                required
               />
               <button
                 type="submit"
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 text-sm"
+                disabled={subLoading}
+                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Subscribe
+                {subLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : subSuccess ? <><CheckCircle className="w-4 h-4" /> Subscribed!</> : 'Subscribe'}
               </button>
             </form>
           </div>

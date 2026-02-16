@@ -118,7 +118,10 @@ const AlumniNavbar: React.FC = () => {
     {
       name: 'Updates',
       icon: Newspaper,
-      path: '/alumni/news',
+      children: [
+        { name: 'News Feed', path: '/alumni/news', icon: Newspaper, description: 'Latest alumni news & updates' },
+        { name: 'Newsletter', path: '/alumni/newsletter', icon: Mail, description: 'Browse & subscribe to newsletters' },
+      ],
     },
     {
       name: 'Engage',

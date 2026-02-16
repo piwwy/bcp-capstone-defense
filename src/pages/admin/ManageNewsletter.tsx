@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { EmailService } from '../../services/emailService';
 import AdminPageLayout from './AdminPageLayout';
 import {
   Newspaper, Plus, X, Loader2, Search, Eye, Edit3,
-  Send, Users, Clock, Archive, UploadCloud, Mail
+  Send, Users, Archive, UploadCloud, Mail
 } from 'lucide-react';
 
 interface Newsletter {
@@ -178,6 +179,71 @@ const ManageNewsletter: React.FC = () => {
     }
   };
 
+  const [sending, setSending] = useState(false);
+
+  const handleSendToSubscribers = async (nl: Newsletter) => {
+    if (subscribers.length === 0) {
+      showToast({ title: 'No Subscribers', message: 'There are no active subscribers to send to.', type: 'warning' });
+      return;
+    }
+    setSending(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%);padding:40px 30px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:bold;">LCP Alumni Newsletter</h1>
+              <p style="color:#bfdbfe;margin:10px 0 0 0;font-size:14px;">${nl.category || 'General'}</p>
+            </td>
+          </tr>
+          ${nl.cover_image ? `<tr><td><img src="${nl.cover_image}" style="width:100%;max-height:300px;object-fit:cover;" alt="Cover" /></td></tr>` : ''}
+          <tr>
+            <td style="padding:40px 30px;">
+              <h2 style="color:#1e3a8a;margin:0 0 15px 0;font-size:22px;">${nl.title}</h2>
+              ${nl.summary ? `<p style="color:#6b7280;font-size:14px;font-style:italic;margin:0 0 20px 0;">${nl.summary}</p>` : ''}
+              <div style="color:#4b5563;font-size:16px;line-height:1.7;white-space:pre-wrap;">${nl.content}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#1f2937;padding:25px 30px;text-align:center;">
+              <p style="color:#9ca3af;font-size:13px;margin:0 0 8px 0;">Linker College of the Philippines - Alumni Portal</p>
+              <p style="color:#6b7280;font-size:12px;margin:0;">&copy; ${new Date().getFullYear()} LCP Alumni. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    for (const sub of subscribers) {
+      try {
+        const result = await EmailService.sendEmail({
+          to: sub.email,
+          toName: sub.alumni_name || 'Alumni',
+          subject: `LCP Newsletter: ${nl.title}`,
+          htmlContent,
+        });
+        if (result.success) successCount++;
+        else failCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setSending(false);
+    showToast({
+      title: 'Newsletter Sent!',
+      message: `Successfully sent to ${successCount} subscriber${successCount !== 1 ? 's' : ''}${failCount > 0 ? `. ${failCount} failed.` : '.'}`,
+      type: failCount > 0 ? 'warning' : 'success',
+    });
+  };
+
   const filtered = useMemo(() => {
     return newsletters.filter(n => {
       const matchStatus = statusFilter === 'all' || n.status === statusFilter;
@@ -205,6 +271,33 @@ const ManageNewsletter: React.FC = () => {
 
   return (
     <AdminPageLayout title="Newsletter Manager" subtitle="Create and publish newsletters for alumni" icon={Newspaper}>
+
+      {/* Hero Banner */}
+      <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-sky-700 via-blue-600 to-indigo-700 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Communications</span>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Newsletter Manager</h2>
+            <p className="text-blue-100 text-sm font-medium mt-1">Create and publish newsletters for alumni subscribers</p>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{newsletters.length}</p>
+              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Newsletters</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+              <p className="text-2xl font-black text-white">{subscribers.length}</p>
+              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Subscribers</p>
+            </div>
+          </div>
+        </div>
+        <Mail className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+      </div>
 
       {/* Top Controls */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -279,6 +372,16 @@ const ManageNewsletter: React.FC = () => {
                   {nl.status === 'draft' && (
                     <button onClick={() => handlePublish(nl.id)} className="p-2.5 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all" title="Publish">
                       <Send className="w-4 h-4" />
+                    </button>
+                  )}
+                  {nl.status === 'published' && (
+                    <button
+                      onClick={() => handleSendToSubscribers(nl)}
+                      disabled={sending}
+                      className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all disabled:opacity-50"
+                      title="Send to Subscribers"
+                    >
+                      {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                     </button>
                   )}
                   {nl.status === 'published' && (
