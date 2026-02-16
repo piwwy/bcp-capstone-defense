@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, BookOpen, GraduationCap, Loader2, File, Image } from 'lucide-react';
+import { FileText, Download, BookOpen, GraduationCap, Loader2, File, Image, ExternalLink, Briefcase } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import PageTransition from '../../components/ui/PageTransition';
@@ -105,6 +105,38 @@ const AlumniResources = () => {
                    ))}
                 </div>
              )}
+          </div>
+
+          {/* Post-Grad Career Links */}
+          <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500">
+             <div className="flex items-center gap-3 mb-5">
+                <div className="p-3 bg-emerald-100 rounded-xl"><Briefcase className="w-6 h-6 text-emerald-600"/></div>
+                <div>
+                   <h3 className="text-xl font-black text-slate-900 tracking-tight">Post-Grad Career Links</h3>
+                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Explore Opportunities</p>
+                </div>
+             </div>
+             <div className="space-y-2">
+                {[
+                   { name: 'LinkedIn', url: 'https://www.linkedin.com/jobs/', desc: 'Professional networking & job search', color: 'bg-blue-50 text-blue-600 border-blue-100', icon: '💼' },
+                   { name: 'Upwork', url: 'https://www.upwork.com/', desc: 'Freelance & remote work opportunities', color: 'bg-green-50 text-green-600 border-green-100', icon: '🌐' },
+                   { name: 'Indeed Philippines', url: 'https://ph.indeed.com/', desc: 'Job listings across all industries', color: 'bg-indigo-50 text-indigo-600 border-indigo-100', icon: '🔍' },
+                   { name: 'JobStreet', url: 'https://www.jobstreet.com.ph/', desc: 'Top PH job board for fresh grads', color: 'bg-purple-50 text-purple-600 border-purple-100', icon: '📋' },
+                   { name: 'OnlineJobs.ph', url: 'https://www.onlinejobs.ph/', desc: 'Remote jobs for Filipino professionals', color: 'bg-amber-50 text-amber-600 border-amber-100', icon: '🏠' },
+                   { name: 'Coursera', url: 'https://www.coursera.org/', desc: 'Free & paid online certifications', color: 'bg-cyan-50 text-cyan-600 border-cyan-100', icon: '🎓' },
+                   { name: 'Google Certificates', url: 'https://grow.google/certificates/', desc: 'Industry-recognized Google certs', color: 'bg-red-50 text-red-600 border-red-100', icon: '📜' },
+                   { name: 'Civil Service Exam', url: 'https://www.csc.gov.ph/', desc: 'Government career eligibility', color: 'bg-slate-50 text-slate-600 border-slate-100', icon: '🏛️' },
+                ].map(link => (
+                   <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer ${link.color}`}>
+                      <span className="text-lg">{link.icon}</span>
+                      <div className="flex-1 min-w-0">
+                         <p className="text-xs font-black">{link.name}</p>
+                         <p className="text-[10px] opacity-70 truncate">{link.desc}</p>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 opacity-50 flex-shrink-0" />
+                   </a>
+                ))}
+             </div>
           </div>
 
           {/* Other Resources */}

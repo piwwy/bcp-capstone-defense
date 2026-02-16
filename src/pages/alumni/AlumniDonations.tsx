@@ -162,7 +162,7 @@ const AlumniDonations = () => {
                     className="group cursor-pointer bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 overflow-hidden flex flex-col"
                   >
                     <div className="h-44 bg-slate-100 relative overflow-hidden">
-                      <img src={camp.image_url || 'https://via.placeholder.com/400x200'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={camp.title} />
+                      <img src={camp.image_url || `https://picsum.photos/seed/${camp.id}/400/200`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={camp.title} />
                       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-blue-600 uppercase border border-blue-100 shadow-sm">{camp.category}</div>
                     </div>
                     <div className="p-6 flex flex-col flex-1">

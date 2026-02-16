@@ -269,7 +269,7 @@ const AlumniCommunity = () => {
    };
 
    const handleDeletePost = async (postId: string) => {
-      if (!confirm('Are you sure you want to delete this post?')) return;
+      // Proceed with deletion
 
       try {
          await supabase.from('forum_posts').delete().eq('id', postId);

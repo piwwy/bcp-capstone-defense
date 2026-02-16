@@ -127,7 +127,7 @@ const CoursesSection: React.FC = () => {
 
         {/* View All Button CTA Fix */}
         <div className="text-center mt-12">
-          <Link to="/register" className="inline-block px-8 py-3 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300">
+          <Link to="/login" className="inline-block px-8 py-3 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300">
             View All Programs
           </Link>
         </div>

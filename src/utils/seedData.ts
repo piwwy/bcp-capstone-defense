@@ -208,6 +208,63 @@ export async function seedAllModules(onProgress?: (msg: string) => void) {
   if (notifErr) log(`Notifications error: ${notifErr.message}`);
   else log('Notifications seeded: 6 entries');
 
+  // ========== 10. COMMUNITY FORUM POSTS (4 per category = 20 entries) ==========
+  log('Seeding community forum posts...');
+  const forumPosts = [
+    // General (4)
+    { content: 'Kamusta mga ka-batch! Sino dito nagwo-work na sa Makati? Tara coffee meetup this weekend! ☕', category: 'general', user_id: adminId },
+    { content: 'Just visited the campus today — ang laki na ng pagbabago! New buildings and renovated labs. Proud to be an LCP alumni! 🏫', category: 'general', user_id: adminId },
+    { content: 'Does anyone know if the alumni ID works for discounts sa SM and Robinsons? Asking for a friend 😅', category: 'general', user_id: adminId },
+    { content: 'Throwback to our thesis defense days! Those were stressful but memorable times. Miss you all, batchmates! 💪', category: 'general', user_id: adminId },
+    // Career Tips (4)
+    { content: 'Pro tip for fresh grads: Build your LinkedIn profile ASAP. I got my current job through a recruiter who found me on LinkedIn. Make sure to add your LCP education and any projects you worked on.', category: 'career', user_id: adminId },
+    { content: 'If you\'re into freelancing, start with Upwork or OnlineJobs.ph. I started earning $15/hr as a virtual assistant right after graduation. Now I\'m at $35/hr doing web development. The key is to keep upskilling! 💻', category: 'career', user_id: adminId },
+    { content: 'Resume tip: Use action verbs and quantify your achievements. Instead of "Handled social media," write "Managed social media accounts with 50K+ followers, increasing engagement by 35%." Trust me, it makes a difference!', category: 'career', user_id: adminId },
+    { content: 'For those preparing for interviews: Practice the STAR method (Situation, Task, Action, Result). Most behavioral questions can be answered using this framework. Good luck sa mga mag-aapply! 🌟', category: 'career', user_id: adminId },
+    // Success Stories (4)
+    { content: '🎉 Just got promoted to Senior Developer at my company! From intern to senior in 3 years. Thank you LCP for the solid foundation in programming. Never stop learning, mga kapatid!', category: 'success', user_id: adminId },
+    { content: 'Sharing my story: I was a working student at LCP, juggling classes and a part-time job. Now I\'m a project manager at a multinational company. If I can do it, you can too! 💪🔥', category: 'success', user_id: adminId },
+    { content: 'Passed the CPA board exam on my first take! Shoutout to our accounting professors who pushed us to excel. LCP BSA program is no joke! 📊✅', category: 'success', user_id: adminId },
+    { content: 'Just opened my own restaurant in Valenzuela! From BSHM student to restaurant owner. Dreams do come true if you work hard for them. Visit us sometime! 🍽️', category: 'success', user_id: adminId },
+    // Questions (4)
+    { content: 'Anyone here who took the Civil Service Exam after graduating? How did you prepare? Any tips for a first-timer? 📝', category: 'question', user_id: adminId },
+    { content: 'Is there a way to request our Transcript of Records online? I\'m currently based in Cebu and can\'t visit the campus easily.', category: 'question', user_id: adminId },
+    { content: 'For IT alumni: What certifications do you recommend for someone who wants to get into cybersecurity? AWS? CompTIA? CISSP?', category: 'question', user_id: adminId },
+    { content: 'Sino po dito nag-apply sa government positions? Kumusta ang process? Gaano katagal bago ma-hire? Interested ako sa DOST or DICT positions.', category: 'question', user_id: adminId },
+    // Events (4)
+    { content: '📅 BSIT Batch 2024 is organizing a reunion dinner on March 15! Venue: Vikings SM North EDSA. Please confirm attendance in the comments. Spread the word!', category: 'event', user_id: adminId },
+    { content: 'LCP Alumni Basketball League is back! 🏀 Games every Saturday at the LCP gym. Open to all batches. Message me if your batch wants to form a team!', category: 'event', user_id: adminId },
+    { content: 'Free webinar this Friday: "How to Start Your Own Business" by alumnus Mark Reyes (BSBA 2019), now CEO of a startup. Register through the Events page! 🚀', category: 'event', user_id: adminId },
+    { content: 'Volunteer opportunity: LCP Alumni Association is organizing a gift-giving activity for Barangay Malinta kids this December. Who\'s in? 🎁❤️', category: 'event', user_id: adminId },
+  ];
+  const { error: forumErr } = await supabase.from('forum_posts').insert(forumPosts);
+  if (forumErr) log(`Forum posts error: ${forumErr.message}`);
+  else log('Forum posts seeded: 20 entries (4 per category)');
+
+  // ========== 11. BATCH REUNION EVENTS (3 entries) ==========
+  log('Seeding batch reunion events...');
+  const reunions = [
+    { title: 'BSIT Batch 2022 Grand Reunion', description: 'Calling all BSIT Batch 2022 graduates! Join us for a night of fun, food, and catching up. Formal attire required.', date: futureDate(60), location: 'Sambo Kojin, SM Valenzuela', category: 'Reunions', status: 'active', is_featured: false },
+    { title: 'BSBA Batch 2023 Reunion Dinner', description: 'Business administration graduates, let\'s reconnect! Dinner buffet with program and raffle prizes.', date: futureDate(75), location: 'Cabalen Restaurant, Trinoma', category: 'Reunions', status: 'active', is_featured: false },
+    { title: 'BSHM & BSTM Joint Batch 2024 Reunion', description: 'Hospitality and tourism management graduates unite! Beach outing and team building activities.', date: futureDate(90), location: 'Crystal Beach Resort, Zambales', category: 'Reunions', status: 'active', is_featured: true },
+  ];
+  const { error: reunionErr } = await supabase.from('alumni_events').insert(reunions);
+  if (reunionErr) log(`Reunion events error: ${reunionErr.message}`);
+  else log('Batch reunion events seeded: 3 entries');
+
+  // ========== 12. JOB PLACEMENT LOGS (sample entries) ==========
+  log('Seeding job placement logs...');
+  const placements = [
+    { alumni_id: adminId, alumni_name: 'Juan Dela Cruz', company_name: 'Accenture Philippines', job_title: 'Software Engineer', industry: 'Information Technology', location: 'BGC, Taguig', salary_range: '₱45,000', employment_type: 'Full-time', start_date: '2025-06-01', is_current: true, status: 'verified' },
+    { alumni_id: adminId, alumni_name: 'Maria Santos', company_name: 'Google Singapore', job_title: 'Software Engineer II', industry: 'Information Technology', location: 'Singapore', salary_range: '₱250,000+', employment_type: 'Full-time', start_date: '2024-09-01', is_current: true, status: 'verified' },
+    { alumni_id: adminId, alumni_name: 'Carlos Mendoza', company_name: 'SM Supermalls', job_title: 'Marketing Manager', industry: 'Retail', location: 'Pasay City', salary_range: '₱55,000', employment_type: 'Full-time', start_date: '2024-03-15', is_current: true, status: 'verified' },
+    { alumni_id: adminId, alumni_name: 'Ana Reyes', company_name: 'Marriott Manila', job_title: 'Front Office Supervisor', industry: 'Hospitality', location: 'Pasay City', salary_range: '₱35,000', employment_type: 'Full-time', start_date: '2025-01-10', is_current: true, status: 'verified' },
+    { alumni_id: adminId, alumni_name: 'Mark Lim', company_name: 'SGV & Co.', job_title: 'Audit Associate', industry: 'Accounting', location: 'Makati City', salary_range: '₱30,000', employment_type: 'Full-time', start_date: '2025-02-01', is_current: true, status: 'verified' },
+  ];
+  const { error: placementErr } = await supabase.from('job_placement_logs').insert(placements);
+  if (placementErr) log(`Placement logs error: ${placementErr.message}`);
+  else log('Job placement logs seeded: 5 entries');
+
   log('Seed complete!');
   return true;
 }

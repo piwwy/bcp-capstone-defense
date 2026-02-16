@@ -163,11 +163,9 @@ const AboutSection: React.FC = () => {
               ))}
             </div>
 
-            <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-blue-500/30">
-              <Link to="/register" >
-  Learn More About LCP
-</Link>
-            </button>
+            <Link to="/login" className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-blue-500/30 inline-block">
+              Learn More About LCP
+            </Link>
           </div>
         </div>
 

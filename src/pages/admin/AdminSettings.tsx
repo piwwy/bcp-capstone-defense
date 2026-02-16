@@ -20,8 +20,10 @@ const AdminSettings = () => {
   const [userRole, setUserRole] = useState('');
 
   // Password
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
@@ -86,6 +88,10 @@ const AdminSettings = () => {
   };
 
   const handleChangePassword = async () => {
+    if (!currentPassword) {
+      showToast({ title: 'Error', message: 'Please enter your current password.', type: 'error' });
+      return;
+    }
     if (!newPassword || !confirmPassword) {
       showToast({ title: 'Error', message: 'Fill in both password fields.', type: 'error' });
       return;
@@ -101,8 +107,19 @@ const AdminSettings = () => {
 
     setSavingPassword(true);
     try {
+      // Verify current password first
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword,
+      });
+      if (authError) {
+        showToast({ title: 'Invalid Password', message: 'Your current password is incorrect.', type: 'error' });
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       showToast({ title: 'Success', message: 'Password updated!', type: 'success' });
@@ -241,6 +258,19 @@ const AdminSettings = () => {
           <h2 className="text-lg font-bold text-gray-900">Change Password</h2>
         </div>
 
+        <div className="mb-4">
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Current Password</label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <input type={showCurrentPw ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Enter current password" />
+            <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+              {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
@@ -284,7 +314,8 @@ const AdminSettings = () => {
         </button>
       </div>
 
-      {/* ====== DEVELOPER TOOLS ====== */}
+      {/* ====== DEVELOPER TOOLS (SuperAdmin Only) ====== */}
+      {userRole === 'superadmin' && (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Database className="w-5 h-5 text-purple-600" /> Developer Tools</h2>
         <p className="text-xs text-gray-400 mb-4">Seed sample data into all modules for testing and analytics.</p>
@@ -313,6 +344,7 @@ const AdminSettings = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* ====== SWITCH ROLE MODAL ====== */}
       {showSwitchModal && (

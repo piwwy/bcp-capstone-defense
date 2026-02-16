@@ -3,22 +3,13 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { Link } from 'react-router-dom';
 import { useJobs, useCampaigns, useUpcomingEvents, useAlumniProfile } from '../../hooks/useSupabaseQuery';
-import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import PageTransition from '../../components/ui/PageTransition';
 import {
   Briefcase, Calendar, ChevronRight, MapPin,
   Users, TrendingUp, Loader2, Heart,
   MessageSquare, ClipboardList, User, GraduationCap, Settings,
+  BookOpen, Rocket,
 } from 'lucide-react';
-
-// Define Job Type for TypeScript
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  type: string;
-}
 
 const AlumniDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -85,15 +76,21 @@ const AlumniDashboard: React.FC = () => {
     <PageTransition>
     <div className="p-6 max-w-7xl mx-auto space-y-8">
 
-      {/* 1. HERO SECTION: Emotional & Personalized */}
-      <div className="relative bg-gradient-to-r from-blue-900 to-blue-700 rounded-3xl p-8 text-white shadow-xl overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
+      {/* 1. HERO SECTION: Modern Banner */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-10 shadow-2xl">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 right-10 w-72 h-72 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-10 left-10 w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
 
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome Home, {user?.name?.split(' ')[0]}! 👋</h1>
-            <p className="text-blue-100 max-w-xl">
-              Stay connected with your alma mater. Update your career status to help us track alumni success.
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm text-white rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20">
+              <GraduationCap className="w-3.5 h-3.5" /> Alumni Portal
+            </div>
+            <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Welcome Home, {user?.name?.split(' ')[0]}! 👋</h1>
+            <p className="text-blue-100 text-sm max-w-xl leading-relaxed">
+              Stay connected with your alma mater. Update your career status, explore job opportunities, and engage with the alumni community.
             </p>
           </div>
 
@@ -101,7 +98,7 @@ const AlumniDashboard: React.FC = () => {
           <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 w-full md:w-auto min-w-[280px]">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-semibold text-blue-100">Profile Completeness</span>
-              <span className="text-sm font-bold">{profileProgress}%</span>
+              <span className="text-sm font-bold text-white">{profileProgress}%</span>
             </div>
             <div className="w-full bg-blue-900/50 rounded-full h-2.5 mb-3">
               <div className="bg-green-400 h-2.5 rounded-full transition-all duration-1000" style={{ width: `${profileProgress}%` }}></div>
@@ -113,6 +110,31 @@ const AlumniDashboard: React.FC = () => {
               Complete Now <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
+        </div>
+      </div>
+
+      {/* GETTING STARTED GUIDE */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Rocket className="w-5 h-5 text-blue-600" />
+          <h3 className="font-bold text-gray-800">Getting Started Guide</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[
+            { step: '1', title: 'Complete Your Profile', desc: 'Add your career info, skills, and photo to get discovered.', icon: User, link: '/alumni/profile', color: 'bg-blue-50 text-blue-600 border-blue-100' },
+            { step: '2', title: 'Explore Job Board', desc: 'Browse exclusive job postings and apply directly.', icon: Briefcase, link: '/alumni/jobs', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+            { step: '3', title: 'Connect with Alumni', desc: 'Link with batchmates and expand your professional network.', icon: Users, link: '/alumni/directory', color: 'bg-purple-50 text-purple-600 border-purple-100' },
+            { step: '4', title: 'Stay Updated', desc: 'Read news, join events, and engage with the community.', icon: BookOpen, link: '/alumni/news', color: 'bg-amber-50 text-amber-600 border-amber-100' },
+          ].map(item => (
+            <Link key={item.step} to={item.link} className={`group p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${item.color}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 rounded-full bg-current/10 flex items-center justify-center text-xs font-black">{item.step}</span>
+                <item.icon className="w-4 h-4" />
+              </div>
+              <h4 className="text-sm font-bold mb-1">{item.title}</h4>
+              <p className="text-[11px] opacity-70">{item.desc}</p>
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -141,7 +163,7 @@ const AlumniDashboard: React.FC = () => {
                 return (
                   <Link key={camp.id} to="/alumni/donations" className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden flex flex-col">
                     <div className="h-32 bg-slate-100 relative">
-                      <img src={camp.image_url || 'https://via.placeholder.com/400x200'} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all" alt={camp.title} />
+                      <img src={camp.image_url || `https://picsum.photos/seed/${camp.id}/400/200`} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all" alt={camp.title} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} />
                       <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-0.5 rounded-lg text-[10px] font-black text-blue-600 uppercase border border-blue-100">{camp.category}</span>
                     </div>
                     <div className="p-5">
@@ -374,7 +396,7 @@ const AlumniDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Games & Fun Card */}
+          {/* Games & Fun Card — 20 Games */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-purple-50 rounded-lg">
@@ -382,15 +404,31 @@ const AlumniDashboard: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">Take a Break</h3>
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Fun & Games</p>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">20 Games to Play</p>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
               {[
                 { name: 'Surf Game', url: 'https://edge.surf', icon: '🏄', color: 'bg-blue-50 text-blue-600 border-blue-100' },
                 { name: '2048', url: 'https://play2048.co/', icon: '🔢', color: 'bg-amber-50 text-amber-600 border-amber-100' },
                 { name: 'Wordle', url: 'https://www.nytimes.com/games/wordle', icon: '📝', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
                 { name: 'Pac-Man', url: 'https://www.google.com/logos/2010/pacman10-i.html', icon: '👾', color: 'bg-yellow-50 text-yellow-600 border-yellow-100' },
+                { name: 'Tetris', url: 'https://tetris.com/play-tetris', icon: '🧱', color: 'bg-red-50 text-red-600 border-red-100' },
+                { name: 'Chess', url: 'https://www.chess.com/play/online', icon: '♟️', color: 'bg-gray-50 text-gray-600 border-gray-100' },
+                { name: 'Sudoku', url: 'https://sudoku.com/', icon: '🔟', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
+                { name: 'Snake', url: 'https://playsnake.org/', icon: '🐍', color: 'bg-green-50 text-green-600 border-green-100' },
+                { name: 'Crossword', url: 'https://www.nytimes.com/crosswords', icon: '✏️', color: 'bg-orange-50 text-orange-600 border-orange-100' },
+                { name: 'Minesweeper', url: 'https://minesweeper.online/', icon: '💣', color: 'bg-slate-50 text-slate-600 border-slate-100' },
+                { name: 'Flappy Bird', url: 'https://flappybird.io/', icon: '🐦', color: 'bg-sky-50 text-sky-600 border-sky-100' },
+                { name: 'Connect 4', url: 'https://papergames.io/en/connect4', icon: '🔴', color: 'bg-rose-50 text-rose-600 border-rose-100' },
+                { name: 'Tic Tac Toe', url: 'https://playtictactoe.org/', icon: '❌', color: 'bg-violet-50 text-violet-600 border-violet-100' },
+                { name: 'Memory Match', url: 'https://www.memozor.com/memory-games', icon: '🧠', color: 'bg-pink-50 text-pink-600 border-pink-100' },
+                { name: 'Solitaire', url: 'https://www.solitr.com/', icon: '🃏', color: 'bg-teal-50 text-teal-600 border-teal-100' },
+                { name: 'Word Search', url: 'https://thewordsearch.com/', icon: '🔍', color: 'bg-cyan-50 text-cyan-600 border-cyan-100' },
+                { name: 'Checkers', url: 'https://www.gamesforthebrain.com/game/checkers/', icon: '🏁', color: 'bg-amber-50 text-amber-600 border-amber-100' },
+                { name: 'Bubble Shooter', url: 'https://www.bubbleshooter.net/', icon: '🫧', color: 'bg-blue-50 text-blue-600 border-blue-100' },
+                { name: 'Mahjong', url: 'https://www.free-mahjong.com/', icon: '🀄', color: 'bg-red-50 text-red-600 border-red-100' },
+                { name: 'Type Racer', url: 'https://play.typeracer.com/', icon: '⌨️', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
               ].map(game => (
                 <a
                   key={game.name}

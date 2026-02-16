@@ -190,7 +190,8 @@ Registration is now open through the alumni portal. Early registrants will recei
                 <div className="relative h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl">
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10" />
                     <img
-                        src={selectedArticle.thumbnail_url || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80'}
+                        src={selectedArticle.thumbnail_url || `https://picsum.photos/seed/${selectedArticle.id}/1200/600`}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
                         className="absolute inset-0 w-full h-full object-cover"
                         alt={selectedArticle.title}
                     />
@@ -253,7 +254,8 @@ Registration is now open through the alumni portal. Early registrants will recei
                 >
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10" />
                     <img
-                        src={featuredArticle.thumbnail_url || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80'}
+                        src={featuredArticle.thumbnail_url || `https://picsum.photos/seed/${featuredArticle.id}/1200/600`}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                         alt="Featured"
                     />
@@ -330,7 +332,8 @@ Registration is now open through the alumni portal. Early registrants will recei
                             {/* Image */}
                             <div className="h-48 relative overflow-hidden bg-slate-100">
                                 <img
-                                    src={article.thumbnail_url || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80'}
+                                    src={article.thumbnail_url || `https://picsum.photos/seed/${article.id}/600/400`}
+                                    onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
                                     alt={article.title}
                                 />

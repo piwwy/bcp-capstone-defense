@@ -130,10 +130,10 @@ const AlumniDirectory = () => {
     if (connections.has(alumId)) {
       await supabase.from('alumni_connections').delete()
         .eq('follower_id', user.id).eq('following_id', alumId);
-      showToast({ title: 'Disconnected', message: `Removed ${name} from connections.`, type: 'info' });
+      showToast({ title: 'Unlinked', message: `Removed ${name} from your links.`, type: 'info' });
     } else {
       await supabase.from('alumni_connections').insert({ follower_id: user.id, following_id: alumId });
-      showToast({ title: 'Connected!', message: `You are now connected with ${name}.`, type: 'success' });
+      showToast({ title: 'Linked!', message: `You are now linked with ${name}.`, type: 'success' });
     }
     queryClient.invalidateQueries({ queryKey: ['connections'] });
   };
@@ -193,7 +193,7 @@ const AlumniDirectory = () => {
               <div className="flex items-center gap-2 mb-3">
                 <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Network</span>
               </div>
-              <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Connect With Alumni</h1>
+              <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Link With Alumni</h1>
               <p className="text-blue-100 text-sm font-medium max-w-md">Browse and connect with fellow alumni from Linker College of the Philippines.</p>
             </div>
             <div className="hidden md:flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3">
@@ -401,7 +401,7 @@ const AlumniDirectory = () => {
                       onClick={() => toggleConnect(alum.id, `${alum.first_name} ${alum.last_name}`)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all ${connections.has(alum.id) ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
-                      {connections.has(alum.id) ? <><UserCheck className="w-3 h-3" /> Connected</> : <><UserPlus className="w-3 h-3" /> Connect</>}
+                      {connections.has(alum.id) ? <><UserCheck className="w-3 h-3" /> Linked</> : <><UserPlus className="w-3 h-3" /> Link</>}
                     </button>
                     <button
                       onClick={() => setSelectedAlumni(alum)}
@@ -442,11 +442,11 @@ const AlumniDirectory = () => {
                 <div className="flex gap-6 justify-center mt-4">
                   <div className="text-center">
                     <p className="text-lg font-black text-white">{connectionCounts[selectedAlumni.id].followers}</p>
-                    <p className="text-[10px] font-bold text-blue-200 uppercase">Followers</p>
+                    <p className="text-[10px] font-bold text-blue-200 uppercase">Linked</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-black text-white">{connectionCounts[selectedAlumni.id].following}</p>
-                    <p className="text-[10px] font-bold text-blue-200 uppercase">Following</p>
+                    <p className="text-[10px] font-bold text-blue-200 uppercase">Linking</p>
                   </div>
                 </div>
               )}
@@ -516,7 +516,7 @@ const AlumniDirectory = () => {
                   onClick={() => { toggleConnect(selectedAlumni.id, `${selectedAlumni.first_name} ${selectedAlumni.last_name}`); }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${connections.has(selectedAlumni.id) ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
                 >
-                  {connections.has(selectedAlumni.id) ? <><UserCheck className="w-4 h-4" /> Connected</> : <><UserPlus className="w-4 h-4" /> Connect</>}
+                  {connections.has(selectedAlumni.id) ? <><UserCheck className="w-4 h-4" /> Linked</> : <><UserPlus className="w-4 h-4" /> Link</>}
                 </button>
                 <button
                   onClick={() => navigate('/alumni/messages')}

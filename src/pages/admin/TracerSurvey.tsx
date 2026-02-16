@@ -84,7 +84,7 @@ const TracerSurvey: React.FC = () => {
       showToast({ type: 'warning', title: 'No Recipients', message: 'Please select at least one valid recipient.' });
       return;
     }
-    if (!window.confirm(`Send tracer survey to ${recipients.length} recipient(s)?`)) return;
+    // Proceed with sending to recipients
     setSending(true);
     let sent = 0;
     let failed = 0;

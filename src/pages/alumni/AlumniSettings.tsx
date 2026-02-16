@@ -85,6 +85,10 @@ const AlumniSettings = () => {
   };
 
   const handleChangePassword = async () => {
+    if (authProvider === 'email' && !currentPassword) {
+      showToast({ title: 'Error', message: 'Please enter your current password.', type: 'error' });
+      return;
+    }
     if (!newPassword || !confirmPassword) {
       showToast({ title: 'Error', message: 'Please fill in both password fields.', type: 'error' });
       return;
@@ -104,6 +108,18 @@ const AlumniSettings = () => {
 
     setSavingPassword(true);
     try {
+      // Verify current password first
+      if (authProvider === 'email') {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: user?.email || '',
+          password: currentPassword,
+        });
+        if (authError) {
+          showToast({ title: 'Invalid Password', message: 'Your current password is incorrect.', type: 'error' });
+          return;
+        }
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       setCurrentPassword('');

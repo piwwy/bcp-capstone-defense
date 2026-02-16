@@ -194,7 +194,7 @@ const AlumniSection: React.FC = () => {
         {/* View All Button */}
         <div className="text-center mt-12">
           <Link 
-            to="/register" 
+            to="/login" 
             className="inline-block px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-full hover:from-green-700 hover:to-emerald-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-green-500/30"
           >
             View All Alumni Stories

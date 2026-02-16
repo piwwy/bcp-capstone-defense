@@ -1,14 +1,12 @@
 /* src/pages/admin/ManageJobs.tsx */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import AdminResourceCard from './AdminResourceCard';
 import {
-  Plus, Briefcase, MapPin, X, Loader2, Search,
-  Archive, CheckCircle, Clock, Building2,
-  Users, TrendingUp, DollarSign, Target, Sparkles,
-  Filter, UploadCloud, Globe, Home, BriefcaseIcon, Send,
-  ShieldCheck, Mail, Star, UserCheck, CalendarCheck
+  Plus, Briefcase, MapPin, X, Loader2,
+  CheckCircle, Users, TrendingUp, DollarSign,
+  UploadCloud, Globe, Mail, Star, UserCheck, CalendarCheck
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 
@@ -364,9 +362,7 @@ const ManageJobs = () => {
                         <button onClick={() => updateApplicationStatus(app.id, app.alumni_id, 'shortlisted', activeJobTitle)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'shortlisted' ? 'bg-amber-500 text-white shadow' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-100'}`}><Star className="w-3.5 h-3.5" /> Shortlisted</button>
                         <button
                           onClick={() => {
-                            if (window.confirm("Confirm hiring this alumni? This will update their profile status.")) {
-                              updateApplicationStatus(app.id, app.alumni_id, 'hired', activeJobTitle);
-                            }
+                            updateApplicationStatus(app.id, app.alumni_id, 'hired', activeJobTitle);
                           }}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'hired' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100'}`}
                         >

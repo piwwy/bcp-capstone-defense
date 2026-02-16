@@ -53,7 +53,7 @@ const RegistrationApprovals: React.FC = () => {
 
   // 2. Approve Function
   const handleApprove = async (user: Alumni) => {
-    if (!window.confirm(`Verify ${user.first_name} ${user.last_name}?\nAn email notification will be sent to ${user.email}.`)) return;
+    // Proceed with verification
     setActionLoading(user.id);
     try {
       // Update status in database
@@ -83,7 +83,7 @@ const RegistrationApprovals: React.FC = () => {
 
   // 3. Reject Function
   const handleReject = async (user: Alumni) => {
-    if (!window.confirm(`Reject ${user.first_name} ${user.last_name}?\nThis action cannot be undone.`)) return;
+    // Proceed with rejection
     setActionLoading(user.id);
     try {
       const { error } = await supabase

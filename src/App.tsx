@@ -32,7 +32,7 @@ const MasterListUpload = React.lazy(() => import('./pages/admin/MasterListUpload
 const ManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
 const AdminUsers = React.lazy(() => import('./pages/admin/AdminUsers'));
 const DonationManager = React.lazy(() => import('./pages/admin/DonationManager'));
-const ReportGenerator = React.lazy(() => import('./pages/admin/ReportGenerator'));
+const ReportsAnalytics = React.lazy(() => import('./pages/admin/ReportsAnalytics'));
 const TrainAI = React.lazy(() => import('./pages/admin/TrainAI'));
 const DonationCollections = React.lazy(() => import('./pages/admin/DonationCollections'));
 const ManageEvents = React.lazy(() => import('./pages/admin/ManageEvents'));
@@ -40,7 +40,7 @@ const EventApprovals = React.lazy(() => import('./pages/admin/EventApprovals'));
 const AuditTrail = React.lazy(() => import('./pages/admin/AuditTrail'));
 const ManageNews = React.lazy(() => import('./pages/admin/ManageNews'));
 const CareerTracking = React.lazy(() => import('./pages/admin/CareerTracking'));
-const DataAnalytics = React.lazy(() => import('./pages/admin/DataAnalytics'));
+// DataAnalytics merged into ReportsAnalytics
 const ManageFeedback = React.lazy(() => import('./pages/admin/ManageFeedback'));
 const ManageBatchReunions = React.lazy(() => import('./pages/admin/ManageBatchReunions'));
 const ManageJobPlacement = React.lazy(() => import('./pages/admin/ManageJobPlacement'));
@@ -150,7 +150,7 @@ function AppRoutes() {
 
                   {/* 3. Career Tracking & Analytics */}
                   <Route path="tracking/career" element={<CareerTracking />} />
-                  <Route path="tracking/analytics" element={<DataAnalytics />} />
+                  <Route path="tracking/analytics" element={<ReportsAnalytics />} />
 
                   {/* IPALIT ITO PARA GUMANA NA ANG FILE MO: */}
                   <Route path="jobs/board" element={<ManageJobs />} />
@@ -162,7 +162,7 @@ function AppRoutes() {
                   <Route path="news/manage" element={<ManageNews />} />
 
                   {/* Advanced Tools */}
-                  <Route path="reports" element={<ReportGenerator />} />
+                  <Route path="reports" element={<ReportsAnalytics />} />
                   <Route path="train-ai" element={<TrainAI />} />
                   <Route path="collections" element={<DonationCollections />} />
                   <Route path="audit-trail" element={<AuditTrail />} />
@@ -229,9 +229,9 @@ function AppRoutes() {
                   <Route path="collections" element={<DonationCollections />} />
 
                   {/* Advanced */}
-                  <Route path="analytics" element={<DataAnalytics />} />
+                  <Route path="analytics" element={<ReportsAnalytics />} />
                   <Route path="tracer-survey" element={<TracerSurvey />} />
-                  <Route path="reports" element={<ReportGenerator />} />
+                  <Route path="reports" element={<ReportsAnalytics />} />
                   <Route path="train-ai" element={<TrainAI />} />
                   <Route path="audit-trail" element={<AuditTrail />} />
 

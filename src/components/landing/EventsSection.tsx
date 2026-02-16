@@ -19,8 +19,8 @@ interface EventItem {
 const events: EventItem[] = [
   {
     id: 1,
-    title: 'Grand Alumni Homecoming 2025',
-    date: 'December 15, 2025',
+    title: 'Grand Alumni Homecoming 2026',
+    date: 'March 15, 2026',
     time: '4:00 PM',
     location: 'LCP Quadrangle',
     attendees: 1500,
@@ -30,8 +30,8 @@ const events: EventItem[] = [
   },
   {
     id: 2,
-    title: 'Career & Job Fair 2025',
-    date: 'March 10-12, 2025',
+    title: 'Career & Job Fair 2026',
+    date: 'April 10-12, 2026',
     time: '9:00 AM',
     location: 'LCP Main Building',
     attendees: 500,
@@ -41,7 +41,7 @@ const events: EventItem[] = [
   {
     id: 3,
     title: 'Leadership Webinar Series',
-    date: 'July 5, 2025',
+    date: 'May 5, 2026',
     time: '2:00 PM',
     location: 'Online via Zoom',
     attendees: 300,
@@ -55,7 +55,7 @@ const events: EventItem[] = [
 const EventsSection: React.FC = () => {
   // UPDATED: Simplified type definition to avoid conflict
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = "https://placehold.co/600x400/1e293b/FFF?text=Image+Unavailable";
+    e.currentTarget.src = "/images/bcpbackground.jpg";
   };
 
   return (
@@ -174,9 +174,9 @@ const EventsSection: React.FC = () => {
             <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-pink-500 via-purple-500 to-blue-500" />
             <div className="space-y-8">
               {[
-                { title: 'LCP Alumni Sportsfest 2024', date: 'October 2024', desc: 'An exciting weekend of sports and camaraderie.' },
-                { title: 'Alumni Mentorship Program Launch', date: 'June 2024', desc: 'Pairing 50 graduates with current students.' },
-                { title: 'LCP Donation Drive for Scholars', date: 'February 2024', desc: 'Funding scholarships for deserving students.' },
+                { title: 'LCP Alumni Sportsfest 2025', date: 'October 2025', desc: 'An exciting weekend of sports and camaraderie.' },
+                { title: 'Alumni Mentorship Program Launch', date: 'June 2025', desc: 'Pairing 50 graduates with current students.' },
+                { title: 'LCP Donation Drive for Scholars', date: 'February 2026', desc: 'Funding scholarships for deserving students.' },
               ].map((item, index) => (
                 <div key={index} className="flex gap-6 ml-4">
                   <div className="relative">

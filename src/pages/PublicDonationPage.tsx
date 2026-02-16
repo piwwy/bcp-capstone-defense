@@ -142,7 +142,7 @@ const PublicDonationPage = () => {
       if (error) throw error;
       setStep(3);
     } catch (err: any) {
-      alert("Donation failed: " + err.message);
+      console.error("Donation failed:", err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -242,7 +242,7 @@ const PublicDonationPage = () => {
                 <div key={camp.id} onClick={() => { setSelectedCampaign(camp); setStep(2); }} className="group cursor-pointer bg-white/5 border border-white/10 hover:border-emerald-500/50 hover:bg-white/10 rounded-2xl p-6 transition-all relative overflow-hidden">
                   <div className="h-44 bg-slate-800 relative overflow-hidden">
       <img 
-        src={camp.image_url || 'https://via.placeholder.com/800x400?text=LCP+Giving'} 
+        src={camp.image_url || `https://picsum.photos/seed/${camp.id}/800/400`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} 
         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" 
         alt={camp.title} 
       />
@@ -283,7 +283,7 @@ const PublicDonationPage = () => {
         {/* Campaign Image mula sa Database */}
         <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-lg shadow-emerald-500/20 bg-slate-800">
           <img 
-            src={selectedCampaign?.image_url || 'https://via.placeholder.com/150?text=LCP+Giving'} 
+            src={selectedCampaign?.image_url || '/images/bcpbackground.jpg'} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} 
             className="w-full h-full object-cover opacity-90" 
             alt="Campaign Header" 
           />

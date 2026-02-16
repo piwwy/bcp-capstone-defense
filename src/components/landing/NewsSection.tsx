@@ -38,7 +38,7 @@ const newsItems = [
 const NewsSection: React.FC = () => {
   // Fallback function if image fails
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = "https://placehold.co/600x400/1e293b/FFF?text=Image+Unavailable";
+    e.currentTarget.src = "/images/bcpbackground.jpg";
   };
 
   return (
@@ -99,7 +99,7 @@ const NewsSection: React.FC = () => {
 
                 <div className="mt-auto pt-4 border-t border-white/5">
                   <Link 
-                    to="/register" 
+                    to="/login" 
                     className="inline-flex items-center gap-2 text-orange-400 font-semibold text-sm hover:gap-3 transition-all group-hover:text-orange-300"
                   >
                     Read Full Story <ArrowRight className="w-4 h-4" />

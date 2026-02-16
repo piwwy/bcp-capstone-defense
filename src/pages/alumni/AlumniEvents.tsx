@@ -208,7 +208,7 @@ const dynamicPastEvents = useMemo(() => events.filter((e: any) => new Date(e.dat
 
                 <div className="h-48 relative overflow-hidden bg-slate-100">
                    <img
-                    src={event.image_url || 'https://via.placeholder.com/400x200?text=Event'}
+                    src={event.image_url || `https://picsum.photos/seed/${event.id}/400/200`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
                     className={`w-full h-full object-cover transition-all duration-700 ${isRegistered ? 'opacity-90 grayscale-[0.5]' : 'opacity-90 group-hover:scale-110'}`}
                     alt={event.title}
                    />
@@ -297,7 +297,7 @@ const dynamicPastEvents = useMemo(() => events.filter((e: any) => new Date(e.dat
             {dynamicPastEvents.length > 0 ? (
       dynamicPastEvents.map(p => (
         <div key={p.id} className="group relative aspect-[4/3] bg-slate-200 rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-500">
-          <img src={p.image_url || 'https://via.placeholder.com/400x300?text=Past+Event'} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" alt={p.title} />
+          <img src={p.image_url || `https://picsum.photos/seed/${p.id}/400/300`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" alt={p.title} />
        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
        <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
           <span className="inline-block bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2">{p.category}</span>

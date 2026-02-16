@@ -129,7 +129,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-100 via-blue-50/40 to-indigo-100/30 text-gray-900 font-sans">
+    <div className="flex h-screen bg-gradient-to-br from-slate-200 via-blue-100/60 to-indigo-100/50 text-gray-900 font-sans">
 
       {/* 1. LEFT: Dynamic Sidebar */}
       {/* DPA Consent Modal */}

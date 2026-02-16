@@ -123,7 +123,7 @@ const AlumniJobs: React.FC = () => {
 
   // Handlers
   const handleWithdraw = async (appId: string, jobTitle: string) => {
-    if (!window.confirm(`Withdraw application for "${jobTitle}"?`)) return;
+    // Proceed with withdrawal
     try {
       const { error } = await supabase.from('job_applications').delete().eq('id', appId);
       if (error) throw error;

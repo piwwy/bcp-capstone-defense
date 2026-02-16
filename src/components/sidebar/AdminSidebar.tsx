@@ -64,9 +64,8 @@ const AdminSidebar: React.FC = () => {
     },
     {
       name: "Advanced Tools", icon: BarChart3, subItems: [
-        { name: "Analytics", path: "/admin/tracking/analytics", icon: PieChart },
+        { name: "Reports & Analytics", path: "/admin/reports", icon: PieChart },
         { name: "Tracer Survey", path: "/admin/tracer-survey", icon: Mail },
-        { name: "Report Generator", path: "/admin/reports", icon: FileText },
         { name: "Train AI", path: "/admin/train-ai", icon: Bot },
         { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
       ]

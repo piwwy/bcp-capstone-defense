@@ -170,19 +170,32 @@ export function useAppliedJobIds(userId: string | undefined) {
   });
 }
 
-/** Fetch upcoming events for dashboard widget */
+/** Fetch upcoming events for dashboard widget — falls back to recent events if none upcoming */
 export function useUpcomingEvents(limit = 3) {
   return useQuery({
     queryKey: ['upcoming_events', limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try future events
+      const { data: upcoming, error } = await supabase
         .from('alumni_events')
         .select('*')
         .gte('event_date', new Date().toISOString())
         .order('event_date', { ascending: true })
         .limit(limit);
       if (error) throw error;
-      return data ?? [];
+      if (upcoming && upcoming.length > 0) return upcoming;
+
+      // Fallback: fetch most recent events (last 90 days)
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 90);
+      const { data: recent, error: err2 } = await supabase
+        .from('alumni_events')
+        .select('*')
+        .gte('event_date', pastDate.toISOString())
+        .order('event_date', { ascending: false })
+        .limit(limit);
+      if (err2) throw err2;
+      return recent ?? [];
     },
   });
 }
