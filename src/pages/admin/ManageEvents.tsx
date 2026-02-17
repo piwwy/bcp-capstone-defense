@@ -265,6 +265,7 @@ const ManageEvents = () => {
         .update({
           status: newStatus,
           approval_notes: approvalNotes,
+          approved_by: user?.id,
           approved_at: new Date().toISOString(),
         })
         .eq('id', selectedEvent.id);
@@ -748,8 +749,8 @@ const ManageEvents = () => {
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${isPending ? 'bg-amber-100 text-amber-700' :
-                                  isApproved ? 'bg-green-100 text-green-700' :
-                                    'bg-red-100 text-red-700'
+                                isApproved ? 'bg-green-100 text-green-700' :
+                                  'bg-red-100 text-red-700'
                                 }`}>
                                 {isPending && <Clock className="w-3 h-3" />}
                                 {isApproved && <CheckCircle2 className="w-3 h-3" />}

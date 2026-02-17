@@ -77,14 +77,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       // Create notifications for surveys the user hasn't responded to and hasn't been notified about
       for (const survey of surveys) {
         if (!respondedIds.has(survey.id) && !notifiedIds.has(survey.id)) {
-          await supabase.from('notifications').insert({
-            user_id: user.id,
-            title: 'New Survey Available',
-            message: `Please take a moment to answer: "${survey.title}"`,
-            type: 'survey',
-            event_id: survey.id,
-            is_read: false
-          });
+          try {
+            await supabase.from('notifications').upsert({
+              user_id: user.id,
+              title: 'New Survey Available',
+              message: `Please take a moment to answer: "${survey.title}"`,
+              type: 'survey',
+              event_id: survey.id,
+              is_read: false
+            }, { onConflict: 'user_id,event_id', ignoreDuplicates: true });
+          } catch {
+            // Ignore duplicate notification errors
+          }
         }
       }
     } catch (err) {

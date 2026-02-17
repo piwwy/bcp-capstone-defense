@@ -34,8 +34,7 @@ const DashboardAdmin: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, fetchDashboardData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, fetchDashboardData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_profiles' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, fetchDashboardData)
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
@@ -64,7 +63,7 @@ const DashboardAdmin: React.FC = () => {
       try { const r = await supabase.from('alumni_events').select('*', { count: 'exact', head: true }); events = r.count || 0; } catch { }
       try { const r = await supabase.from('jobs').select('*', { count: 'exact', head: true }); jobs = r.count || 0; } catch { }
       try { const r = await supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }); campaigns = r.count || 0; } catch { }
-      try { const r = await supabase.from('news').select('*', { count: 'exact', head: true }); news = r.count || 0; } catch { }
+      try { const r = await supabase.from('news_articles').select('*', { count: 'exact', head: true }); news = r.count || 0; } catch { }
       setModuleCounts({ events, jobs, campaigns, news });
 
       // Employment stats from alumni_profiles
@@ -135,7 +134,7 @@ const DashboardAdmin: React.FC = () => {
           <div className="absolute top-10 right-10 w-72 h-72 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-10 left-10 w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
-        
+
         {/* Content */}
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex-1">
@@ -148,7 +147,7 @@ const DashboardAdmin: React.FC = () => {
             <p className="text-blue-100 text-lg max-w-2xl leading-relaxed">
               Monitor system performance, manage alumni records, and oversee all platform activities from your central dashboard.
             </p>
-            
+
             {/* Quick Stats Row */}
             <div className="flex items-center gap-6 mt-8">
               <div className="flex items-center gap-3">
@@ -180,7 +179,7 @@ const DashboardAdmin: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Right Side - System Status */}
           <div className="hidden lg:flex flex-col gap-3">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 min-w-[200px]">

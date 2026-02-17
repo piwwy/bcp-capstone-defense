@@ -66,9 +66,10 @@ const AuditTrail = () => {
     return logs.filter(log => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const adminName = `${log.profiles?.first_name || ''} ${log.profiles?.last_name || ''}`.toLowerCase();
-        const logModule = typeof log.details === 'object' && log.details?.module ? log.details.module as string : '';
-        const logMessage = typeof log.details === 'object' && log.details?.message ? log.details.message as string : '';
+        const adminName = `${log.profiles?.first_name || 'System'} ${log.profiles?.last_name || 'Admin'}`.toLowerCase();
+        const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+        const logModule = detailsObj?.module || '';
+        const logMessage = detailsObj?.message || '';
         const matchesSearch =
           adminName.includes(query) ||
           log.action?.toLowerCase().includes(query) ||
@@ -108,10 +109,11 @@ const AuditTrail = () => {
   const exportToCSV = () => {
     const headers = ['Admin', 'Action', 'Module', 'Details', 'Timestamp'];
     const rows = filteredLogs.map(log => {
-      const logModule = typeof log.details === 'object' && log.details?.module ? log.details.module : '';
-      const logMessage = typeof log.details === 'object' && log.details?.message ? log.details.message : JSON.stringify(log.details);
+      const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+      const logModule = detailsObj?.module || '';
+      const logMessage = detailsObj?.message || JSON.stringify(log.details);
       return [
-        `${log.profiles?.first_name || ''} ${log.profiles?.last_name || ''}`.trim(),
+        `${log.profiles?.first_name || 'System'} ${log.profiles?.last_name || 'Admin'}`.trim(),
         log.action,
         logModule,
         `"${(logMessage || '').toString().replace(/"/g, '""')}"`,
@@ -427,8 +429,11 @@ const AuditTrail = () => {
                           {typeof log.details === 'object' && log.details?.module ? log.details.module : 'General'}
                         </span>
                       </td>
-                      <td className="p-5 italic text-xs max-w-xs truncate" title={typeof log.details === 'object' ? log.details?.message as string : ''}>
-                        {typeof log.details === 'object' ? log.details?.message : JSON.stringify(log.details)}
+                      <td className="p-5 italic text-xs max-w-xs truncate" title={typeof log.details === 'object' ? (log.details as any)?.message : ''}>
+                        {(() => {
+                          const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                          return detailsObj?.message || JSON.stringify(log.details);
+                        })()}
                       </td>
                       <td className="p-5">
                         <div className="flex items-center gap-1.5 text-slate-400 text-xs whitespace-nowrap">

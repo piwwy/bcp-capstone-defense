@@ -119,58 +119,8 @@ const MasterListUpload = () => {
         return;
       }
 
-      // Step 1: Upsert profiles
-      const profileRecords = parsed.map(p => ({
-        student_id: p.student_id,
-        last_name: p.last_name,
-        first_name: p.first_name,
-        middle_name: null,
-        course: p.course,
-        batch_year: p.batch_year,
-        role: 'alumni',
-        status: 'master_list',
-        email: p.email,
-        auth_provider: 'email',
-      }));
-
       try {
-        // Check-then-insert approach: check which student_ids already exist
-        const studentIds = profileRecords.map(r => r.student_id);
-        const { data: existing } = await supabase
-          .from('profiles')
-          .select('student_id')
-          .in('student_id', studentIds);
-
-        const existingIds = new Set((existing || []).map(e => e.student_id));
-        const newRecords = profileRecords.filter(r => !existingIds.has(r.student_id));
-        const skippedCount = profileRecords.length - newRecords.length;
-
-        let insertedCount = 0;
-        if (newRecords.length > 0) {
-          // Try bulk insert first
-          const { error: bulkErr } = await supabase.from('profiles').insert(newRecords);
-          if (bulkErr) {
-            console.warn('Bulk insert failed, falling back to one-by-one:', bulkErr.message);
-            // Fallback: insert one by one
-            for (const rec of newRecords) {
-              const { error: singleErr } = await supabase.from('profiles').insert(rec);
-              if (!singleErr) insertedCount++;
-            }
-          } else {
-            insertedCount = newRecords.length;
-          }
-        }
-
-        const totalProcessed = insertedCount + skippedCount;
-        if (insertedCount === 0 && skippedCount > 0) {
-          setMessage({ type: 'info', text: `All ${skippedCount} records already exist in the database.` });
-        } else {
-          setMessage({ type: 'success', text: `Imported ${insertedCount} new records. ${skippedCount > 0 ? `${skippedCount} already existed.` : ''}` });
-        }
-
-        showToast({ type: 'success', title: 'Master List Imported', message: `${parsed.length} records were processed.` });
-
-        // Step 2: Generate credentials
+        // Generate credentials for each parsed record
         const newCreds: CreatedCredential[] = parsed.map(p => ({
           student_id: p.student_id,
           name: `${p.first_name} ${p.last_name}`,
@@ -181,64 +131,77 @@ const MasterListUpload = () => {
         setCredentials(newCreds);
         setShowCredentials(true);
 
-        // Step 3: Create auth accounts using Edge Function (server-side)
+        // Create auth accounts + profiles via RPC (Postgres Function)
         setGeneratingAccounts(true);
         setProgress({ current: 0, total: newCreds.length });
 
-        try {
-          const updatedCreds = [...newCreds];
+        const processedCreds = [...newCreds];
+        let successCount = 0;
+        let failCount = 0;
 
-          // Use Edge Function to create users server-side (no session creation)
-          const usersToCreate = newCreds.map((cred, idx) => {
-            const p = parsed[idx];
-            return {
-              student_id: p.student_id,
-              first_name: p.first_name,
-              last_name: p.last_name,
-              middle_name: p.middle_name || '',
-              course: p.course,
-              batch_year: p.batch_year,
+        for (let i = 0; i < processedCreds.length; i++) {
+          const cred = processedCreds[i];
+          const p = parsed[i];
+
+          try {
+            // Call the database RPC function directly
+            const { data, error } = await supabase.rpc('admin_create_user', {
               email: cred.email,
-              password: cred.password
-            };
-          });
-
-          // Call Edge Function
-          const { data: edgeResult, error: edgeError } = await supabase.functions.invoke('create-users', {
-            body: { users: usersToCreate }
-          });
-
-          if (edgeError) {
-            console.error('Edge function error:', edgeError);
-            throw new Error('Failed to create user accounts');
-          }
-
-          // Update credentials status based on edge function results
-          if (edgeResult?.results) {
-            edgeResult.results.forEach((result: any, idx: number) => {
-              if (result.success) {
-                updatedCreds[idx].status = 'created';
-              } else if (result.error?.includes('already') || result.error?.includes('exists')) {
-                updatedCreds[idx].status = 'exists';
-                updatedCreds[idx].error = 'Already registered';
-              } else {
-                updatedCreds[idx].status = 'error';
-                updatedCreds[idx].error = result.error || 'Unknown error';
+              password: cred.password,
+              user_metadata: {
+                student_id: p.student_id,
+                first_name: p.first_name,
+                last_name: p.last_name,
+                course: p.course,
+                batch_year: p.batch_year,
+                role: 'alumni'
               }
-              setProgress({ current: idx + 1, total: newCreds.length });
-              setCredentials([...updatedCreds]);
             });
+
+            if (error) throw error;
+            if (data && !data.success) {
+              // Check if it's an "already exists" case
+              if (data.message === 'User already exists') {
+                processedCreds[i].status = 'exists';
+                processedCreds[i].error = 'Already registered';
+                failCount++; // Count as "fail" in terms of new creation, or handle as "skipped"
+              } else {
+                throw new Error(data.error || 'Unknown RPC error');
+              }
+            } else {
+              processedCreds[i].status = 'created';
+              successCount++;
+            }
+          } catch (err: any) {
+            console.error(`Error creating user ${cred.email}:`, err);
+            processedCreds[i].status = 'error';
+            processedCreds[i].error = err.message || 'Creation failed';
+            failCount++;
           }
 
-          const created = updatedCreds.filter(c => c.status === 'created').length;
-          const exists = updatedCreds.filter(c => c.status === 'exists').length;
-          showToast({ type: 'success', title: 'Accounts Generated', message: `${created} created, ${exists} already existed` });
-          logMasterListUpload(newCreds.length, created);
-        } catch (fnErr: any) {
-          console.error('Account creation error:', fnErr);
-          showToast({ type: 'warning', title: 'Account Creation Error', message: 'Some accounts may not have been created. Profile records were saved.' });
-        } finally {
-          setGeneratingAccounts(false);
+          // Update progress and state incrementally
+          setProgress({ current: i + 1, total: processedCreds.length });
+          setCredentials([...processedCreds]);
+        }
+
+        const insertedCount = successCount;
+        const existsCount = failCount;
+
+        setMessage({ type: 'success', text: `Processed ${parsed.length} records. ${insertedCount} new accounts created.` });
+        showToast({ type: 'success', title: 'Master List Processed', message: `${insertedCount} accounts created, ${existsCount} skipped/failed.` });
+        logMasterListUpload(newCreds.length, insertedCount);
+
+        // AUTO-DOWNLOAD RESULTS FOR SECURITY
+        console.log('Auto-downloading credentials...');
+        // We need to call this manually here because the state update might not be instant enough for a separate function call
+        if (processedCreds.length > 0) {
+          const header = 'Student ID,Name,Email,Temporary Password,Status,Error\n';
+          const body = processedCreds.map(c => `${c.student_id},"${c.name}",${c.email},${c.password},${c.status},${c.error || ''}`).join('\n');
+          const blob = new Blob([header + body], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `alumni_credentials_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+          URL.revokeObjectURL(url);
         }
 
         // Refresh records list and switch to records tab
@@ -246,10 +209,12 @@ const MasterListUpload = () => {
         setActiveTab('records');
 
       } catch (err: any) {
-        setMessage({ type: 'error', text: 'Database error: ' + err.message });
-        showToast({ type: 'error', title: 'Import Failed', message: err.message || 'Unable to import CSV.' });
+        console.error('Master list upload error:', err);
+        setMessage({ type: 'error', text: 'Upload error: ' + err.message });
+        showToast({ type: 'error', title: 'Upload Failed', message: err.message || 'Unable to process CSV.' });
       } finally {
         setUploading(false);
+        setGeneratingAccounts(false);
         setDroppedFile(null);
         if (fileRef.current) fileRef.current.value = '';
       }
@@ -271,7 +236,18 @@ const MasterListUpload = () => {
     if (file) { setDroppedFile(file); processFile(file); }
   };
 
+  const downloadSample = () => {
+    const header = 'Student ID,Last Name,First Name,Course,Batch Year,Email\n';
+    const sample = '2024-0001,Dela Cruz,Juan,BSIT,2024,juan.dc@bcp.edu.ph\n2024-0002,Santos,Maria,BSBA,2024,maria.santos@bcp.edu.ph';
+    const blob = new Blob([header + sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'alumni_master_list_sample.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadCredentials = () => {
+    if (credentials.length === 0) return;
     const header = 'Student ID,Name,Email,Temporary Password,Status\n';
     const body = credentials.map(c => `${c.student_id},"${c.name}",${c.email},${c.password},${c.status}`).join('\n');
     const blob = new Blob([header + body], { type: 'text/csv' });
@@ -377,8 +353,8 @@ const MasterListUpload = () => {
             onDrop={handleDrop}
             onClick={() => !uploading && !generatingAccounts && fileRef.current?.click()}
             className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragging ? 'border-blue-500 bg-blue-50/80 scale-[1.01]' :
-                uploading || generatingAccounts ? 'border-slate-200 bg-slate-50 cursor-wait' :
-                  'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30'
+              uploading || generatingAccounts ? 'border-slate-200 bg-slate-50 cursor-wait' :
+                'border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50/30'
               }`}
           >
             <input ref={fileRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
@@ -420,9 +396,9 @@ const MasterListUpload = () => {
 
           {/* Download Sample */}
           <div className="flex items-center gap-3">
-            <a href="/sample_master_list.csv" download className="flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">
+            <button onClick={downloadSample} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">
               <Download className="w-4 h-4" /> Download Sample CSV
-            </a>
+            </button>
             <p className="text-xs text-slate-400">Use this template to format your master list correctly.</p>
           </div>
 

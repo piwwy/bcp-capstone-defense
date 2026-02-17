@@ -8,8 +8,8 @@ import CreateUserModal from '../../components/modals/CreateUserModal';
 import EmailService from '../../services/emailService';
 import {
     Users, Loader2, Search, Calendar, GraduationCap, Filter, RefreshCw,
-    Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2, CheckCircle,
-    ChevronDown, Edit3, UserCheck, Clock, X
+    Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2,
+    Clock, X, UserCheck, CheckCircle
 } from 'lucide-react';
 
 interface User {
@@ -39,8 +39,8 @@ const AdminUsers: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-    const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+    const [statusFilter] = useState<StatusFilter>('all');
+    const [roleFilter] = useState<RoleFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -267,36 +267,6 @@ const AdminUsers: React.FC = () => {
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
-                        {/* Status Filter */}
-                        <div className="relative">
-                            <select
-                                value={statusFilter}
-                                onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-                                className="appearance-none pl-4 pr-9 py-3.5 bg-slate-50 rounded-2xl font-bold text-sm cursor-pointer outline-none focus:ring-2 focus:ring-blue-200 border-none"
-                            >
-                                <option value="all">All Status</option>
-                                <option value="verified">✅ Verified ({counts.verified})</option>
-                                <option value="master_list">🔵 Active ({counts.master_list})</option>
-                                <option value="pending_approval">⏳ Pending ({counts.pending})</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-
-                        {/* Role Filter */}
-                        <div className="relative">
-                            <select
-                                value={roleFilter}
-                                onChange={e => setRoleFilter(e.target.value as RoleFilter)}
-                                className="appearance-none pl-4 pr-9 py-3.5 bg-slate-50 rounded-2xl font-bold text-sm cursor-pointer outline-none focus:ring-2 focus:ring-blue-200 border-none"
-                            >
-                                <option value="all">All Roles</option>
-                                <option value="alumni">Alumni ({counts.alumni})</option>
-                                <option value="staff">Staff ({counts.staff})</option>
-                                <option value="admin">Admin ({counts.admin})</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-
                         <button onClick={fetchUsers} className="p-3.5 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all" title="Refresh">
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         </button>
@@ -338,7 +308,6 @@ const AdminUsers: React.FC = () => {
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Name</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Student ID</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Course & Batch</th>
-                                    <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Status</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Role</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Joined</th>
                                     <th className="px-5 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">Actions</th>
@@ -372,7 +341,6 @@ const AdminUsers: React.FC = () => {
                                                 {!user.course && !user.batch_year && <span className="text-xs text-slate-400">—</span>}
                                             </div>
                                         </td>
-                                        <td className="px-5 py-4">{getStatusBadge(user.status)}</td>
                                         <td className="px-5 py-4">{getRoleBadge(user.role)}</td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold">
@@ -382,11 +350,6 @@ const AdminUsers: React.FC = () => {
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-center gap-1 relative">
-                                                {(user.status === 'pending_approval' || user.status === 'master_list') && (
-                                                    <button onClick={() => setConfirmAction({ type: 'approve', user })} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors" title="Approve User">
-                                                        <CheckCircle className="w-4 h-4" />
-                                                    </button>
-                                                )}
                                                 <button onClick={() => setSelectedUser(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="View Details">
                                                     <Eye className="w-4 h-4" />
                                                 </button>

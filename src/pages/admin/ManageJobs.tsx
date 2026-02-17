@@ -25,7 +25,7 @@ const ManageJobs = () => {
     const fromInquiry = params.get('from_inquiry');
     const company = params.get('company');
     const position = params.get('position');
-    
+
     if (fromInquiry && company && position) {
       setFormData(prev => ({
         ...prev,
@@ -122,10 +122,22 @@ const ManageJobs = () => {
 
   const handleStatusToggle = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'archived' : 'active';
-    const { error } = await supabase.from('jobs').update({ status: newStatus }).eq('id', id);
-    if (!error) {
+    try {
+      const { error } = await supabase.from('jobs').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+
       fetchJobs();
-      showToast({ title: newStatus === 'archived' ? 'Job Archived' : 'Job Restored', message: `Status updated to ${newStatus}.`, type: 'success' });
+      showToast({
+        title: newStatus === 'archived' ? 'Job Archived' : 'Job Restored',
+        message: `Status updated to ${newStatus}.`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      showToast({
+        title: 'Action Failed',
+        message: err.message || 'Could not update job status',
+        type: 'error'
+      });
     }
   };
 
@@ -173,7 +185,21 @@ const ManageJobs = () => {
         finalImageUrl = publicUrl;
       }
 
-      const payload = { ...formData, image_url: finalImageUrl, posted_by: user.id };
+      // Only include valid jobs table columns to avoid 400 Bad Request
+      const payload: Record<string, any> = {
+        title: formData.title,
+        company: formData.company,
+        location: formData.location,
+        type: formData.type,
+        work_type: formData.work_type,
+        category: formData.category,
+        description: formData.description,
+        target_courses: formData.target_courses,
+        salary_range: formData.salary_range,
+        image_url: finalImageUrl,
+        posted_by: user.id,
+      };
+
       const { error } = isEditing
         ? await supabase.from('jobs').update(payload).eq('id', editingId)
         : await supabase.from('jobs').insert([{ ...payload, status: 'active' }]);
@@ -231,7 +257,7 @@ const ManageJobs = () => {
         {jobs.filter(j => j.status === filterTab).map(job => (
           <AdminResourceCard
             key={job.id} title={job.title} subtitle={job.company} category={job.category} status={job.status} image={job.image_url}
-            onEdit={() => { setFormData(job); setEditingId(job.id); setIsEditing(true); setIsModalOpen(true); }}
+            onEdit={() => { setFormData({ ...job, target_courses: job.target_courses || [] }); setEditingId(job.id); setIsEditing(true); setIsModalOpen(true); }}
             onDelete={isStaff ? undefined : () => handleStatusToggle(job.id, job.status)}
           >
             <div className="mt-4 space-y-3">
@@ -409,7 +435,6 @@ const ManageJobs = () => {
                       <button
                         onClick={() => {
                           const email = app.profiles?.email;
-                          const name = `${app.profiles?.first_name} ${app.profiles?.last_name}`;
                           const subject = encodeURIComponent(`Interview Schedule - ${activeJobTitle}`);
                           const body = encodeURIComponent(`Hi ${app.profiles?.first_name},\n\nCongratulations! You have been shortlisted for the position of ${activeJobTitle}.\n\nWe would like to schedule an interview with you. Please let us know your available date and time.\n\nBest regards,\nLinker College Alumni Office`);
                           window.open(`https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`, '_blank');
