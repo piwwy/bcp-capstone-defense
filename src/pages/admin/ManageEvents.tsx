@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminResourceCard from './AdminResourceCard';
 import {
   Plus, Calendar as CalendarIcon, MapPin, X, Loader2, Timer,
@@ -118,6 +119,12 @@ const ManageEvents = () => {
     const newStatus = archiveTarget.status === 'active' ? 'archived' : 'active';
     const { error } = await supabase.from('alumni_events').update({ status: newStatus }).eq('id', archiveTarget.id);
     if (!error) {
+      await logAudit(AUDIT_ACTIONS.EVENT_UPDATED, {
+        module: 'Events',
+        message: `${newStatus === 'archived' ? 'Archived' : 'Restored'} event: ${archiveTarget.title}`,
+        eventId: archiveTarget.id,
+        status: newStatus
+      });
       fetchData();
       showToast({
         title: newStatus === 'archived' ? 'Archived' : 'Restored',
@@ -231,6 +238,14 @@ const ManageEvents = () => {
       setEventFile(null);
       setFilePreview(null);
       fetchData();
+
+      await logAudit(isEditing ? AUDIT_ACTIONS.EVENT_UPDATED : AUDIT_ACTIONS.EVENT_CREATED, {
+        module: 'Events',
+        message: `${isEditing ? 'Updated' : 'Created'} event: ${formData.title}`,
+        eventId: isEditing ? editingId : undefined,
+        eventTitle: formData.title
+      });
+
       const _d = new Date(formData.date);
       const _dayName = _d.toLocaleDateString('en-US', { weekday: 'long' });
       const _monthDay = _d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -275,6 +290,14 @@ const ManageEvents = () => {
         message: `"${selectedEvent.title}" has been ${approvalAction === 'approve' ? 'approved' : 'rejected'}.`,
         type: approvalAction === 'approve' ? 'success' : 'warning'
       });
+
+      await logAudit(approvalAction === 'approve' ? AUDIT_ACTIONS.EVENT_APPROVED : AUDIT_ACTIONS.EVENT_REJECTED, {
+        module: 'Events',
+        message: `${approvalAction === 'approve' ? 'Approved' : 'Rejected'} event: ${selectedEvent.title}`,
+        eventId: selectedEvent.id,
+        notes: approvalNotes
+      });
+
       setIsApprovalModalOpen(false);
       fetchData();
     } catch (error: any) {
@@ -290,6 +313,14 @@ const ManageEvents = () => {
       const { error } = await supabase.from('alumni_events').update({ status: 'active' }).eq('id', event.id);
       if (error) throw error;
       showToast({ title: 'Event Published!', message: `"${event.title}" is now live and visible to alumni.`, type: 'success' });
+
+      await logAudit(AUDIT_ACTIONS.EVENT_UPDATED, {
+        module: 'Events',
+        message: `Published event: ${event.title}`,
+        eventId: event.id,
+        status: 'active'
+      });
+
       fetchData();
     } catch (error: any) {
       showToast({ title: 'Error', message: error.message, type: 'error' });

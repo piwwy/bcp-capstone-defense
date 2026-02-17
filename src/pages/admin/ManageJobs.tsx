@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminResourceCard from './AdminResourceCard';
 import {
   Plus, Briefcase, MapPin, X, Loader2,
@@ -101,6 +102,14 @@ const ManageJobs = () => {
 
       if (notifError) throw notifError;
 
+      await logAudit(AUDIT_ACTIONS.RECORD_UPDATED, {
+        module: 'Career',
+        message: `Updated application status to ${newStatus.toUpperCase()} for ${jobTitle}`,
+        applicationId: appId,
+        applicantId,
+        status: newStatus
+      });
+
       showToast({ title: 'Status Updated', message: `Applicant is now ${newStatus}`, type: 'success' });
       // Refresh applicants list
       if (editingId) openApplicantsList(editingId, activeJobTitle);
@@ -127,6 +136,12 @@ const ManageJobs = () => {
       if (error) throw error;
 
       fetchJobs();
+      await logAudit(AUDIT_ACTIONS.JOB_UPDATED, {
+        module: 'Career',
+        message: `${newStatus === 'archived' ? 'Archived' : 'Restored'} job: ${jobs.find(j => j.id === id)?.title}`,
+        jobId: id,
+        status: newStatus
+      });
       showToast({
         title: newStatus === 'archived' ? 'Job Archived' : 'Job Restored',
         message: `Status updated to ${newStatus}.`,
@@ -205,6 +220,12 @@ const ManageJobs = () => {
         : await supabase.from('jobs').insert([{ ...payload, status: 'active' }]);
 
       if (error) throw error;
+      await logAudit(isEditing ? AUDIT_ACTIONS.JOB_UPDATED : AUDIT_ACTIONS.JOB_POSTED, {
+        module: 'Career',
+        message: `${isEditing ? 'Updated' : 'Launched'} job posting: ${formData.title}`,
+        jobId: isEditing ? editingId : undefined,
+        company: formData.company
+      });
       showToast({ title: isEditing ? 'Updated' : 'Launched!', message: 'Job posting is now updated.', type: 'success' });
       setIsModalOpen(false);
       setFilePreview(null);

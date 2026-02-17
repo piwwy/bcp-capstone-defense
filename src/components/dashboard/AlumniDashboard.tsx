@@ -115,17 +115,17 @@ const AlumniDashboard: React.FC = () => {
         </div>
 
         {/* GETTING STARTED GUIDE */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 transition-colors">
           <div className="flex items-center gap-2 mb-4">
             <Rocket className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-gray-800">Getting Started Guide</h3>
+            <h3 className="font-bold text-gray-800 dark:text-white">Getting Started Guide</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { step: '1', title: 'Complete Your Profile', desc: 'Add your career info, skills, and photo to get discovered.', icon: User, link: '/alumni/profile', color: 'bg-blue-50 text-blue-600 border-blue-100' },
-              { step: '2', title: 'Explore Job Board', desc: 'Browse exclusive job postings and apply directly.', icon: Briefcase, link: '/alumni/jobs', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-              { step: '3', title: 'Connect with Alumni', desc: 'Link with batchmates and expand your professional network.', icon: Users, link: '/alumni/directory', color: 'bg-purple-50 text-purple-600 border-purple-100' },
-              { step: '4', title: 'Stay Updated', desc: 'Read news, join events, and engage with the community.', icon: BookOpen, link: '/alumni/news', color: 'bg-amber-50 text-amber-600 border-amber-100' },
+              { step: '1', title: 'Complete Your Profile', desc: 'Add your career info, skills, and photo to get discovered.', icon: User, link: '/alumni/profile', color: 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30' },
+              { step: '2', title: 'Explore Job Board', desc: 'Browse exclusive job postings and apply directly.', icon: Briefcase, link: '/alumni/jobs', color: 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30' },
+              { step: '3', title: 'Connect with Alumni', desc: 'Link with batchmates and expand your professional network.', icon: Users, link: '/alumni/directory', color: 'bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30' },
+              { step: '4', title: 'Stay Updated', desc: 'Read news, join events, and engage with the community.', icon: BookOpen, link: '/alumni/news', color: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30' },
             ].map(item => (
               <Link key={item.step} to={item.link} className={`group p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${item.color}`}>
                 <div className="flex items-center gap-2 mb-2">
@@ -146,35 +146,35 @@ const AlumniDashboard: React.FC = () => {
             {/* LINE 101: I-paste ito BAGO ang Featured Highlights h3 */}
             <section className="space-y-6 mb-10">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                   <Heart className="w-6 h-6 text-rose-500 fill-rose-500" /> Support LCP Fundraisers
                 </h3>
-                <Link to="/alumni/donations" className="text-sm text-blue-600 font-bold hover:underline">See All</Link>
+                <Link to="/alumni/donations" className="text-sm text-blue-600 dark:text-blue-400 font-bold hover:underline">See All</Link>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
                 {loadingCampaigns ? (
-                  <div className="col-span-2 flex justify-center p-10"><Loader2 className="animate-spin text-gray-300" /></div>
+                  <div className="col-2 flex justify-center p-10"><Loader2 className="animate-spin text-gray-300 dark:text-gray-600" /></div>
                 ) : campaigns.length === 0 ? (
-                  <div className="col-span-2 text-center p-8 bg-gray-50 rounded-3xl border border-dashed text-gray-400 text-sm italic">
+                  <div className="col-span-2 text-center p-8 bg-gray-50 dark:bg-dark-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 text-sm italic">
                     No active fundraisers at the moment.
                   </div>
                 ) : campaigns.map(camp => {
                   const progress = Math.min((camp.current_amount / camp.target_amount) * 100, 100);
                   return (
-                    <Link key={camp.id} to="/alumni/donations" className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden flex flex-col">
-                      <div className="h-32 bg-slate-100 relative">
+                    <Link key={camp.id} to="/alumni/donations" className="group bg-white dark:bg-dark-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden flex flex-col">
+                      <div className="h-32 bg-slate-100 dark:bg-gray-700 relative">
                         <img src={camp.image_url || `https://picsum.photos/seed/${camp.id}/400/200`} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all" alt={camp.title} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} />
-                        <span className="absolute top-3 left-3 bg-white/90 backdrop-blur px-2 py-0.5 rounded-lg text-[10px] font-black text-blue-600 uppercase border border-blue-100">{camp.category}</span>
+                        <span className="absolute top-3 left-3 bg-white/90 dark:bg-dark-800/90 backdrop-blur px-2 py-0.5 rounded-lg text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase border border-blue-100 dark:border-blue-900/30">{camp.category}</span>
                       </div>
                       <div className="p-5">
-                        <h4 className="font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors line-clamp-1">{camp.title}</h4>
+                        <h4 className="font-bold text-gray-800 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">{camp.title}</h4>
                         <div className="mt-4">
                           <div className="flex justify-between text-[10px] font-bold mb-1">
-                            <span className="text-emerald-600">₱{camp.current_amount.toLocaleString()}</span>
-                            <span className="text-gray-400">{progress.toFixed(0)}%</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">₱{camp.current_amount.toLocaleString()}</span>
+                            <span className="text-gray-400 dark:text-gray-500">{progress.toFixed(0)}%</span>
                           </div>
-                          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
                           </div>
                         </div>
@@ -184,7 +184,7 @@ const AlumniDashboard: React.FC = () => {
                 })}
               </div>
             </section>
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <Calendar className="w-6 h-6 text-blue-600" /> Featured Event
             </h3>
 
@@ -231,67 +231,67 @@ const AlumniDashboard: React.FC = () => {
             })()}
 
             {/* Quick Actions */}
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
               <TrendingUp className="w-6 h-6 text-emerald-600" /> Quick Actions
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Link to="/alumni/profile" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-100 transition-colors">
-                  <User className="w-5 h-5 text-blue-600" />
+              <Link to="/alumni/profile" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors">
+                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">My Profile</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">My Profile</p>
               </Link>
-              <Link to="/alumni/jobs" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-emerald-100 transition-colors">
-                  <Briefcase className="w-5 h-5 text-emerald-600" />
+              <Link to="/alumni/jobs" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 transition-colors">
+                  <Briefcase className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">Job Board</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Job Board</p>
               </Link>
-              <Link to="/alumni/forum" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-100 transition-colors">
-                  <MessageSquare className="w-5 h-5 text-purple-600" />
+              <Link to="/alumni/forum" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40 transition-colors">
+                  <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">Forum</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Forum</p>
               </Link>
-              <Link to="/alumni/feedback" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-amber-100 transition-colors">
-                  <ClipboardList className="w-5 h-5 text-amber-600" />
+              <Link to="/alumni/feedback" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40 transition-colors">
+                  <ClipboardList className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">Feedback</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Feedback</p>
               </Link>
-              <Link to="/alumni/directory" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-cyan-100 transition-colors">
-                  <Users className="w-5 h-5 text-cyan-600" />
+              <Link to="/alumni/directory" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/40 transition-colors">
+                  <Users className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">Alumni Network</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Alumni Network</p>
               </Link>
-              <Link to="/alumni/events" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-rose-100 transition-colors">
-                  <Calendar className="w-5 h-5 text-rose-600" />
+              <Link to="/alumni/events" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/40 transition-colors">
+                  <Calendar className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">Events</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Events</p>
               </Link>
-              <Link to="/alumni/news" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-indigo-100 transition-colors">
-                  <GraduationCap className="w-5 h-5 text-indigo-600" />
+              <Link to="/alumni/news" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/40 transition-colors">
+                  <GraduationCap className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">News</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">News</p>
               </Link>
-              <Link to="/alumni/settings" className="bg-white rounded-2xl border border-gray-100 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
-                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-gray-100 transition-colors">
-                  <Settings className="w-5 h-5 text-gray-600" />
+              <Link to="/alumni/settings" className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                <div className="w-10 h-10 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:bg-gray-100 dark:group-hover:bg-gray-600 transition-colors">
+                  <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </div>
-                <p className="text-xs font-bold text-gray-700">Settings</p>
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Settings</p>
               </Link>
             </div>
 
             {/* CARD B: JOB RECOMMENDATIONS (Connected to DB) */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-gray-500" /> Recommended Jobs
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-gray-500 dark:text-gray-400" /> Recommended Jobs
                 </h3>
-                <Link to="/alumni/jobs" className="text-sm text-blue-600 font-bold hover:underline">See All</Link>
+                <Link to="/alumni/jobs" className="text-sm text-blue-600 dark:text-blue-400 font-bold hover:underline">See All</Link>
               </div>
 
               <div className="space-y-4">
@@ -300,24 +300,24 @@ const AlumniDashboard: React.FC = () => {
                     <Loader2 className="w-6 h-6 animate-spin" />
                   </div>
                 ) : jobs.length === 0 ? (
-                  <div className="text-center p-6 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <div className="text-center p-6 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-900/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
                     No job postings available right now.
                   </div>
                 ) : (
                   jobs.map((job) => (
-                    <div key={job.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blue-100 hover:bg-blue-50/50 transition-colors group">
+                    <div key={job.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-100 dark:hover:border-blue-900/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors group">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-gray-500 uppercase">
+                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center font-bold text-gray-500 dark:text-gray-400 uppercase">
                           {job.company.charAt(0)}
                         </div>
                         <div>
-                          <h4 className="font-bold text-gray-800 group-hover:text-blue-700">{job.title}</h4>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                            {job.company} • <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{job.location}</span>
+                          <h4 className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-blue-700 dark:group-hover:text-blue-400">{job.title}</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            {job.company} • <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300">{job.location}</span>
                           </p>
                         </div>
                       </div>
-                      <Link to="/alumni/jobs" className="text-sm font-bold text-blue-600 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-all">
+                      <Link to="/alumni/jobs" className="text-sm font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 px-4 py-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-500 hover:text-white transition-all">
                         Apply
                       </Link>
                     </div>
@@ -332,35 +332,35 @@ const AlumniDashboard: React.FC = () => {
           <div className="space-y-6">
 
             {/* Upcoming Events Widget */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-gray-500" /> Upcoming Events
+            <div className="bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-gray-500 dark:text-gray-400" /> Upcoming Events
               </h3>
               <div className="space-y-4">
                 {displayEvents.map((event) => {
                   const eventDate = event.date ? new Date(event.date) : null;
                   return (
-                    <div key={event.id} className="flex gap-3 items-center hover:bg-gray-50 p-2 rounded-lg transition-colors cursor-pointer">
+                    <div key={event.id} className="flex gap-3 items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-lg transition-colors cursor-pointer group">
                       {eventDate ? (
-                        <div className="flex flex-col items-center justify-center bg-blue-50 text-blue-700 rounded-xl w-14 h-14 p-1 flex-shrink-0 border border-blue-100">
+                        <div className="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl w-14 h-14 p-1 flex-shrink-0 border border-blue-100 dark:border-blue-900/30">
                           <span className="text-[10px] font-bold uppercase">{eventDate.toLocaleString('en-US', { month: 'short' })}</span>
                           <span className="text-xl font-bold leading-none">{eventDate.getDate()}</span>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center bg-gray-50 text-gray-400 rounded-xl w-14 h-14 p-1 flex-shrink-0 border border-gray-200">
+                        <div className="flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 rounded-xl w-14 h-14 p-1 flex-shrink-0 border border-gray-200 dark:border-gray-600">
                           <Calendar className="w-5 h-5" />
                         </div>
                       )}
                       <div>
-                        <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{event.title}</h4>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded mt-1 inline-block">
+                        <h4 className="font-bold text-gray-800 dark:text-gray-200 text-sm line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400">{event.title}</h4>
+                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded mt-1 inline-block">
                           {event.category || event.type || 'Event'}
                         </span>
                       </div>
                     </div>
                   );
                 })}
-                <Link to="/alumni/events" className="block w-full py-2.5 text-center text-sm font-bold text-gray-600 hover:text-blue-600 bg-gray-50 hover:bg-gray-100 rounded-xl mt-2 transition-all">
+                <Link to="/alumni/events" className="block w-full py-2.5 text-center text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50 dark:bg-gray-700 rounded-xl mt-2 transition-all">
                   View Calendar
                 </Link>
               </div>
@@ -401,38 +401,38 @@ const AlumniDashboard: React.FC = () => {
             </div>
 
             {/* Games & Fun Card — 20 Games */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm p-6 transition-colors">
               <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-purple-50 rounded-lg">
+                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                   <span className="text-lg">🎮</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Take a Break</h3>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">20 Games to Play</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-sm">Take a Break</h3>
+                  <p className="text-[10px] text-slate-400 dark:text-gray-500 uppercase font-bold tracking-wider">20 Games to Play</p>
                 </div>
               </div>
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                 {[
-                  { name: 'Surf Game', url: 'https://edge.surf', icon: '🏄', color: 'bg-blue-50 text-blue-600 border-blue-100' },
-                  { name: '2048', url: 'https://play2048.co/', icon: '🔢', color: 'bg-amber-50 text-amber-600 border-amber-100' },
-                  { name: 'Wordle', url: 'https://www.nytimes.com/games/wordle', icon: '📝', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-                  { name: 'Pac-Man', url: 'https://www.google.com/logos/2010/pacman10-i.html', icon: '👾', color: 'bg-yellow-50 text-yellow-600 border-yellow-100' },
-                  { name: 'Tetris', url: 'https://tetris.com/play-tetris', icon: '🧱', color: 'bg-red-50 text-red-600 border-red-100' },
-                  { name: 'Chess', url: 'https://www.chess.com/play/online', icon: '♟️', color: 'bg-gray-50 text-gray-600 border-gray-100' },
-                  { name: 'Sudoku', url: 'https://sudoku.com/', icon: '🔟', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
-                  { name: 'Snake', url: 'https://playsnake.org/', icon: '🐍', color: 'bg-green-50 text-green-600 border-green-100' },
-                  { name: 'Crossword', url: 'https://www.nytimes.com/crosswords', icon: '✏️', color: 'bg-orange-50 text-orange-600 border-orange-100' },
-                  { name: 'Minesweeper', url: 'https://minesweeper.online/', icon: '💣', color: 'bg-slate-50 text-slate-600 border-slate-100' },
-                  { name: 'Flappy Bird', url: 'https://flappybird.io/', icon: '🐦', color: 'bg-sky-50 text-sky-600 border-sky-100' },
-                  { name: 'Connect 4', url: 'https://papergames.io/en/connect4', icon: '🔴', color: 'bg-rose-50 text-rose-600 border-rose-100' },
-                  { name: 'Tic Tac Toe', url: 'https://playtictactoe.org/', icon: '❌', color: 'bg-violet-50 text-violet-600 border-violet-100' },
-                  { name: 'Memory Match', url: 'https://www.memozor.com/memory-games', icon: '🧠', color: 'bg-pink-50 text-pink-600 border-pink-100' },
-                  { name: 'Solitaire', url: 'https://www.solitr.com/', icon: '🃏', color: 'bg-teal-50 text-teal-600 border-teal-100' },
-                  { name: 'Word Search', url: 'https://thewordsearch.com/', icon: '🔍', color: 'bg-cyan-50 text-cyan-600 border-cyan-100' },
-                  { name: 'Checkers', url: 'https://www.gamesforthebrain.com/game/checkers/', icon: '🏁', color: 'bg-amber-50 text-amber-600 border-amber-100' },
-                  { name: 'Bubble Shooter', url: 'https://www.bubbleshooter.net/', icon: '🫧', color: 'bg-blue-50 text-blue-600 border-blue-100' },
-                  { name: 'Mahjong', url: 'https://www.free-mahjong.com/', icon: '🀄', color: 'bg-red-50 text-red-600 border-red-100' },
-                  { name: 'Type Racer', url: 'https://play.typeracer.com/', icon: '⌨️', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
+                  { name: 'Surf Game', url: 'https://edge.surf', icon: '🏄', color: 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30' },
+                  { name: '2048', url: 'https://play2048.co/', icon: '🔢', color: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30' },
+                  { name: 'Wordle', url: 'https://www.nytimes.com/games/wordle', icon: '📝', color: 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30' },
+                  { name: 'Pac-Man', url: 'https://www.google.com/logos/2010/pacman10-i.html', icon: '👾', color: 'bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/30' },
+                  { name: 'Tetris', url: 'https://tetris.com/play-tetris', icon: '🧱', color: 'bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30' },
+                  { name: 'Chess', url: 'https://www.chess.com/play/online', icon: '♟️', color: 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 border-gray-100 dark:border-gray-700' },
+                  { name: 'Sudoku', url: 'https://sudoku.com/', icon: '🔟', color: 'bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30' },
+                  { name: 'Snake', url: 'https://playsnake.org/', icon: '🐍', color: 'bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30' },
+                  { name: 'Crossword', url: 'https://www.nytimes.com/crosswords', icon: '✏️', color: 'bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-900/30' },
+                  { name: 'Minesweeper', url: 'https://minesweeper.online/', icon: '💣', color: 'bg-slate-50 dark:bg-slate-900/10 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-900/30' },
+                  { name: 'Flappy Bird', url: 'https://flappybird.io/', icon: '🐦', color: 'bg-sky-50 dark:bg-sky-900/10 text-sky-600 dark:text-sky-400 border-sky-100 dark:border-sky-900/30' },
+                  { name: 'Connect 4', url: 'https://papergames.io/en/connect4', icon: '🔴', color: 'bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30' },
+                  { name: 'Tic Tac Toe', url: 'https://playtictactoe.org/', icon: '❌', color: 'bg-violet-50 dark:bg-violet-900/10 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-900/30' },
+                  { name: 'Memory Match', url: 'https://www.memozor.com/memory-games', icon: '🧠', color: 'bg-pink-50 dark:bg-pink-900/10 text-pink-600 dark:text-pink-400 border-pink-100 dark:border-pink-900/30' },
+                  { name: 'Solitaire', url: 'https://www.solitr.com/', icon: '🃏', color: 'bg-teal-50 dark:bg-teal-900/10 text-teal-600 dark:text-teal-400 border-teal-100 dark:border-teal-900/30' },
+                  { name: 'Word Search', url: 'https://thewordsearch.com/', icon: '🔍', color: 'bg-cyan-50 dark:bg-cyan-900/10 text-cyan-600 dark:text-cyan-400 border-cyan-100 dark:border-cyan-900/30' },
+                  { name: 'Checkers', url: 'https://www.gamesforthebrain.com/game/checkers/', icon: '🏁', color: 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30' },
+                  { name: 'Bubble Shooter', url: 'https://www.bubbleshooter.net/', icon: '🫧', color: 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30' },
+                  { name: 'Mahjong', url: 'https://www.free-mahjong.com/', icon: '🀄', color: 'bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30' },
+                  { name: 'Type Racer', url: 'https://play.typeracer.com/', icon: '⌨️', color: 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30' },
                 ].map(game => (
                   <a
                     key={game.name}
@@ -447,7 +447,7 @@ const AlumniDashboard: React.FC = () => {
                   </a>
                 ))}
               </div>
-              <p className="text-[10px] text-slate-300 text-center mt-3 font-medium">Opens in a new tab</p>
+              <p className="text-[10px] text-slate-300 dark:text-gray-600 text-center mt-3 font-medium">Opens in a new tab</p>
             </div>
 
           </div>

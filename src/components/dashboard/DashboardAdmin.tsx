@@ -4,7 +4,8 @@ import { supabase } from '../../services/supabaseClient';
 import {
   Users, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Activity, Calendar, Loader2,
-  Briefcase, Heart, Newspaper, BarChart3, Sparkles, TrendingUp, Shield
+  Briefcase, Heart, Newspaper, BarChart3, Sparkles, TrendingUp, Shield,
+  History
 } from 'lucide-react';
 
 const DashboardAdmin: React.FC = () => {
@@ -23,6 +24,7 @@ const DashboardAdmin: React.FC = () => {
   });
 
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -35,6 +37,7 @@ const DashboardAdmin: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, fetchDashboardData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, fetchDashboardData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, fetchDashboardData)
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
@@ -94,6 +97,15 @@ const DashboardAdmin: React.FC = () => {
 
       if (recents) setRecentUsers(recents);
 
+      // Fetch recent audit logs
+      const { data: logs } = await supabase
+        .from('audit_logs')
+        .select('*, profiles:user_id(first_name, last_name)')
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (logs) setRecentLogs(logs);
+
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     } finally {
@@ -109,6 +121,25 @@ const DashboardAdmin: React.FC = () => {
       case 'rejected': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
+  };
+
+  const getLogActionStyle = (action: string) => {
+    if (action.includes('APPROVE') || action.includes('CREATE')) return 'text-emerald-600 bg-emerald-50';
+    if (action.includes('REJECT') || action.includes('DELETE')) return 'text-rose-600 bg-rose-50';
+    if (action.includes('UPDATE')) return 'text-amber-600 bg-amber-50';
+    return 'text-blue-600 bg-blue-50';
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diff = now.getTime() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return date.toLocaleDateString();
   };
 
   const totalEmployment = employmentStats.employed + employmentStats.selfEmployed + employmentStats.unemployed + employmentStats.student;
@@ -376,6 +407,89 @@ const DashboardAdmin: React.FC = () => {
                 </Link>
               ))
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* System Activity Section */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-slate-100 rounded-2xl text-slate-600">
+              <History className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-gray-900 leading-tight">System Activity</h3>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Audit Trail & Security Logs</p>
+            </div>
+          </div>
+          <Link to="/admin/audit-trail" className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black uppercase hover:bg-blue-100 transition-all flex items-center gap-2">
+            View Full Trail <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-50">
+          <div className="p-6">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Clock className="w-3 h-3" /> Recent Actions
+            </h4>
+            <div className="space-y-4">
+              {recentLogs.length === 0 ? (
+                <div className="text-center py-10">
+                  <Activity className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400 font-bold">No activity recorded yet.</p>
+                </div>
+              ) : (
+                recentLogs.map((log) => (
+                  <div key={log.id} className="flex items-start gap-3 group">
+                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${log.action.includes('REJECT') ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-bold text-gray-900">
+                          {log.profiles?.first_name} {log.profiles?.last_name || 'System'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${getLogActionStyle(log.action)}`}>
+                          {log.action.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 line-clamp-1 italic">
+                        {log.details?.message || log.action}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400 whitespace-nowrap">
+                      {formatTimeAgo(log.created_at)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 bg-gray-50/30">
+            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Shield className="w-3 h-3" /> System Insights
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <p className="text-xs font-bold text-gray-500 mb-1">Actions Today</p>
+                <p className="text-2xl font-black text-gray-900">
+                  {recentLogs.filter(l => new Date(l.created_at).toDateString() === new Date().toDateString()).length}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <p className="text-xs font-bold text-gray-500 mb-1">Security Health</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-black text-emerald-600">Stable</p>
+                  <Activity className="w-4 h-4 text-emerald-500" />
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-blue-600 rounded-2xl text-white shadow-lg shadow-blue-200">
+              <h5 className="font-black text-sm mb-1 uppercase tracking-tighter">Audit Monitoring is Active</h5>
+              <p className="text-[10px] text-blue-100 font-medium leading-relaxed">
+                All administrative changes are being recorded with IP addresses and timestamps for security compliance.
+              </p>
+            </div>
           </div>
         </div>
       </div>

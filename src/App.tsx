@@ -10,7 +10,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 // toast
 
-import { ToastProvider } from './context/ToastContext'; // <-- Import ToastProvider
+import { ToastProvider } from './context/ToastContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { SessionTimeoutProvider } from './context/SessionTimeoutContext';
 
@@ -380,17 +381,19 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <ToastProvider>
-            <AuthProvider>
-              <NotificationProvider>
-                <SessionTimeoutProvider>
-                  <AppRoutes />
-                </SessionTimeoutProvider>
-              </NotificationProvider>
-            </AuthProvider>
-          </ToastProvider>
-        </Router>
+        <ThemeProvider>
+          <Router>
+            <ToastProvider>
+              <AuthProvider>
+                <NotificationProvider>
+                  <SessionTimeoutProvider>
+                    <AppRoutes />
+                  </SessionTimeoutProvider>
+                </NotificationProvider>
+              </AuthProvider>
+            </ToastProvider>
+          </Router>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

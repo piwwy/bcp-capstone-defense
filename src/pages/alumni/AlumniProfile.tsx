@@ -10,10 +10,10 @@ import {
 } from 'lucide-react';
 
 const EMPLOYMENT_STATUS_OPTIONS = [
-  { value: 'employed', label: 'Employed', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200', dot: 'bg-green-500' },
-  { value: 'self-employed', label: 'Self-Employed', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500' },
-  { value: 'unemployed', label: 'Unemployed', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-500' },
-  { value: 'student', label: 'Student', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-500' },
+  { value: 'employed', label: 'Employed', color: 'text-green-700 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', dot: 'bg-green-500' },
+  { value: 'self-employed', label: 'Self-Employed', color: 'text-blue-700 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', dot: 'bg-blue-500' },
+  { value: 'unemployed', label: 'Unemployed', color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', dot: 'bg-orange-500' },
+  { value: 'student', label: 'Student', color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', dot: 'bg-purple-500' },
 ];
 
 const AlumniProfile = () => {
@@ -206,8 +206,8 @@ const AlumniProfile = () => {
   // Profile completeness calculation
   const getProfileCompleteness = () => {
     const fields = ['headline', 'location', 'about', 'phone', 'linkedin_url',
-                    'portfolio_url', 'current_company', 'current_position',
-                    'employment_status', 'batch_year'];
+      'portfolio_url', 'current_company', 'current_position',
+      'employment_status', 'batch_year'];
     const filled = fields.filter(f => profile[f] && profile[f] !== '').length;
     const hasSkills = Array.isArray(profile.skills) && profile.skills.length > 0;
     const hasExperience = experiences.length > 0;
@@ -442,11 +442,11 @@ const AlumniProfile = () => {
   const nextStep = completionSteps.find(s => !s.done);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 pt-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pb-20 pt-20 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ================= TOP PROFILE CARD (Upwork Style) ================= */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-6">
+        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:p-8 mb-6 transition-colors">
           <div className="flex flex-col md:flex-row gap-6">
 
             {/* Profile Photo — Always Clickable for Upload */}
@@ -491,14 +491,14 @@ const AlumniProfile = () => {
                           type="text"
                           value={profile.current_position || ''}
                           onChange={(e) => setProfile({ ...profile, current_position: e.target.value })}
-                          className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          className="p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white dark:placeholder-gray-500"
                           placeholder="Current Position"
                         />
                         <input
                           type="text"
                           value={profile.current_company || ''}
                           onChange={(e) => setProfile({ ...profile, current_company: e.target.value })}
-                          className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          className="p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white dark:placeholder-gray-500"
                           placeholder="Company / Organization"
                         />
                       </div>
@@ -507,14 +507,14 @@ const AlumniProfile = () => {
                           type="text"
                           value={profile.location || ''}
                           onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                          className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          className="p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white dark:placeholder-gray-500"
                           placeholder="City, Country"
                         />
                         <input
                           type="text"
                           value={profile.batch_year || ''}
                           onChange={(e) => setProfile({ ...profile, batch_year: e.target.value })}
-                          className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          className="p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white dark:placeholder-gray-500"
                           placeholder="Batch Year (e.g., 2025)"
                         />
                       </div>
@@ -523,14 +523,14 @@ const AlumniProfile = () => {
                           type="text"
                           value={course}
                           onChange={(e) => setCourse(e.target.value)}
-                          className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          className="p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white dark:placeholder-gray-500"
                           placeholder="Course (e.g., BSIT)"
                         />
                         <input
                           type="text"
                           value={section}
                           onChange={(e) => setSection(e.target.value)}
-                          className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          className="p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all dark:text-white dark:placeholder-gray-500"
                           placeholder="Section (e.g., A1)"
                         />
                       </div>
@@ -543,11 +543,10 @@ const AlumniProfile = () => {
                               key={opt.value}
                               type="button"
                               onClick={() => setProfile({ ...profile, employment_status: opt.value })}
-                              className={`p-2.5 rounded-xl text-xs font-bold border transition-all ${
-                                profile.employment_status === opt.value
-                                  ? `${opt.bg} ${opt.border} ${opt.color} ring-2 ring-offset-1 ring-blue-300`
-                                  : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
-                              }`}
+                              className={`p-2.5 rounded-xl text-xs font-bold border transition-all ${profile.employment_status === opt.value
+                                ? `${opt.bg} ${opt.border} ${opt.color} ring-2 ring-offset-1 ring-blue-300`
+                                : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                                }`}
                             >
                               {opt.label}
                             </button>
@@ -558,19 +557,19 @@ const AlumniProfile = () => {
                   ) : (
                     <>
                       {/* Course, Batch, Section Badges */}
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <div className="flex flex-wrap items-center gap-2 mt-2 transition-colors">
                         {course && (
-                          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-bold">
+                          <span className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-3 py-1 rounded-full text-xs font-bold">
                             <GraduationCap className="w-3.5 h-3.5" />{course}
                           </span>
                         )}
                         {profile.batch_year && (
-                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full text-xs font-bold">
+                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-full text-xs font-bold">
                             <Calendar className="w-3.5 h-3.5" />Batch {profile.batch_year}
                           </span>
                         )}
                         {section && (
-                          <span className="inline-flex items-center gap-1.5 bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1 rounded-full text-xs font-bold">
+                          <span className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-3 py-1 rounded-full text-xs font-bold">
                             <Users className="w-3.5 h-3.5" />Section {section}
                           </span>
                         )}
@@ -583,17 +582,17 @@ const AlumniProfile = () => {
                       </div>
 
                       {profile.headline && (
-                        <p className="text-gray-600 mt-2 text-base">{profile.headline}</p>
+                        <p className="text-gray-600 dark:text-gray-300 mt-2 text-base">{profile.headline}</p>
                       )}
                       {profile.current_position && profile.current_company && (
-                        <p className="text-gray-700 font-medium flex items-center gap-1.5 mt-2">
-                          <Briefcase className="w-4 h-4 text-gray-400" />
+                        <p className="text-gray-700 dark:text-gray-200 font-medium flex items-center gap-1.5 mt-2">
+                          <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                           {profile.current_position} at {profile.current_company}
                         </p>
                       )}
                       {profile.location && (
-                        <p className="flex items-center gap-1 text-sm text-gray-500 mt-1.5">
-                          <MapPin className="w-4 h-4 text-gray-400" />{profile.location}
+                        <p className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mt-1.5">
+                          <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />{profile.location}
                         </p>
                       )}
                     </>
@@ -807,7 +806,7 @@ const AlumniProfile = () => {
                 {(editingContact || isEditing) ? (
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase text-slate-400 flex items-center gap-2">
-                      <Users className="w-3 h-3 text-blue-600"/> LinkedIn Profile URL
+                      <Users className="w-3 h-3 text-blue-600" /> LinkedIn Profile URL
                     </label>
                     <input
                       type="url"
@@ -823,7 +822,7 @@ const AlumniProfile = () => {
                 ) : profile.linkedin_url ? (
                   <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-blue-600 hover:text-blue-700 transition-colors group">
                     <div className="bg-blue-50 p-2 rounded-full flex-shrink-0">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
                     </div>
                     <span className="text-sm font-bold group-hover:underline">LinkedIn Profile</span>
                     <ExternalLink className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -980,103 +979,7 @@ const AlumniProfile = () => {
               )}
             </div>
 
-            {/* --- SECURITY: SET PASSWORD CARD --- */}
-            {(authProvider === 'google' || authProvider === 'linkedin') && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-base font-bold text-gray-900">Security</h3>
-                </div>
-
-                {passwordSet ? (
-                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm font-bold">
-                    <CheckCircle className="w-4 h-4" />
-                    Password set! You can now log in with email & password.
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xs text-gray-500 mb-4">
-                      You signed in with <strong className="capitalize">{authProvider}</strong>. Set a password to also log in with email & password.
-                    </p>
-
-                    <div className="space-y-3">
-                      <div className="relative">
-                        <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">New Password</label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                          <input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                            placeholder="Min 8 chars, 1 uppercase, 1 number"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                          >
-                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="relative">
-                        <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Confirm Password</label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                          <input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                            placeholder="Re-enter password"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                          >
-                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {newPassword && (
-                        <div className="text-xs space-y-1 pl-1">
-                          <p className={newPassword.length >= 8 ? 'text-green-600' : 'text-gray-400'}>
-                            {newPassword.length >= 8 ? '✓' : '○'} At least 8 characters
-                          </p>
-                          <p className={/[A-Z]/.test(newPassword) ? 'text-green-600' : 'text-gray-400'}>
-                            {/[A-Z]/.test(newPassword) ? '✓' : '○'} At least 1 uppercase letter
-                          </p>
-                          <p className={/[0-9]/.test(newPassword) ? 'text-green-600' : 'text-gray-400'}>
-                            {/[0-9]/.test(newPassword) ? '✓' : '○'} At least 1 number
-                          </p>
-                          {confirmPassword && (
-                            <p className={newPassword === confirmPassword ? 'text-green-600' : 'text-red-500'}>
-                              {newPassword === confirmPassword ? '✓' : '✗'} Passwords match
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <button
-                        onClick={handleSetPassword}
-                        disabled={savingPassword}
-                        className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {savingPassword ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Setting Password...</>
-                        ) : (
-                          <><Lock className="w-4 h-4" /> Set Password</>
-                        )}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            {/* --- SECURITY: SET PASSWORD CARD REMOVED --- */}
           </div>
 
           {/* ================= RIGHT CONTENT (Main Area) ================= */}

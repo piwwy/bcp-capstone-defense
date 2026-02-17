@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { logAudit } from '../../services/auditLogger';
 import {
   ClipboardList, ShieldCheck, History, Search, Download,
   Filter, Calendar, ChevronLeft, ChevronRight, X, RefreshCw,
@@ -39,16 +40,60 @@ const AuditTrail = () => {
 
   useEffect(() => {
     fetchLogs();
+    // Log the access to the audit trail
+    logAudit('VIEW_AUDIT_TRAIL', {
+      module: 'Security',
+      message: 'Administrator accessed the System Audit Trail'
+    }).then(() => {
+      // Fetch again after a small delay to show the new log
+      setTimeout(fetchLogs, 1500);
+    });
   }, []);
 
   const fetchLogs = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('audit_logs')
-      .select('*, profiles:user_id(first_name, last_name)')
-      .order('created_at', { ascending: false });
-    if (data) setLogs(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*, profiles:user_id(first_name, last_name)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Primary fetch failed (possibly missing FK), trying fallback...', error);
+
+        // Fallback 1: Simple fetch without profiles join
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (simpleError) throw simpleError;
+
+        // Manual join: fetch profiles separately for the users found in logs
+        const userIds = [...new Set((simpleData || []).map(l => l.user_id))].filter(Boolean);
+        if (userIds.length > 0) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+
+          const profileMap = new Map((profileData || []).map(p => [p.id, p]));
+          const mappedLogs = (simpleData || []).map(l => ({
+            ...l,
+            profiles: l.user_id ? profileMap.get(l.user_id) : undefined
+          }));
+          setLogs(mappedLogs as any);
+        } else {
+          setLogs(simpleData as any);
+        }
+      } else if (data) {
+        setLogs(data);
+      }
+    } catch (err) {
+      console.error('Audit fetch catch:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const uniqueActions = useMemo(() =>

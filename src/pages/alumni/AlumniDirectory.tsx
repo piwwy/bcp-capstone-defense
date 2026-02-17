@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AlumniCardSkeleton } from '../../components/ui/Skeleton';
 import PageTransition from '../../components/ui/PageTransition';
 import {
-  Search, MapPin, Users, Loader2, Briefcase,
+  Search, MapPin, Users, Briefcase,
   GraduationCap, Globe, X, MessageCircle, UserPlus, UserCheck, Eye, Mail
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -115,7 +115,17 @@ const AlumniDirectory = () => {
   const [courseFilter, setCourseFilter] = useState('All');
   const [showMap, setShowMap] = useState(false);
   const [selectedAlumni, setSelectedAlumni] = useState<AlumniMember | null>(null);
+  const [searchParams] = useSearchParams();
   const [connectionCounts, setConnectionCounts] = useState<Record<string, { followers: number; following: number }>>({});
+
+  // handle id from URL for direct profile viewing
+  useMemo(() => {
+    const directId = searchParams.get('id');
+    if (directId && alumni.length > 0) {
+      const found = alumni.find(a => a.id === directId);
+      if (found) setSelectedAlumni(found);
+    }
+  }, [searchParams, alumni]);
 
   const fetchConnectionCounts = async (alumniId: string) => {
     const [{ count: followers }, { count: following }] = await Promise.all([
@@ -180,356 +190,356 @@ const AlumniDirectory = () => {
 
   return (
     <PageTransition>
-    <>
-      <div className="max-w-6xl mx-auto space-y-8 pb-20">
+      <>
+        <div className="max-w-6xl mx-auto space-y-8 pb-20">
 
-        {/* Hero Banner */}
-        <div className="relative h-[280px] rounded-[2.5rem] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 overflow-hidden shadow-2xl flex items-end px-10 pb-10">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-20 -mt-20" />
-          <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-white/5 rounded-full -mb-28" />
-          <div className="absolute top-1/2 right-24 w-40 h-40 bg-white/5 rounded-full -mt-20" />
-          <div className="relative z-10 flex items-end justify-between w-full">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Network</span>
-              </div>
-              <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Link With Alumni</h1>
-              <p className="text-blue-100 text-sm font-medium max-w-md">Browse and connect with fellow alumni from Linker College of the Philippines.</p>
-            </div>
-            <div className="hidden md:flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3">
-              <Users className="w-6 h-6 text-white" />
+          {/* Hero Banner */}
+          <div className="relative h-[280px] rounded-[2.5rem] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 overflow-hidden shadow-2xl flex items-end px-10 pb-10">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-white/5 rounded-full -mb-28" />
+            <div className="absolute top-1/2 right-24 w-40 h-40 bg-white/5 rounded-full -mt-20" />
+            <div className="relative z-10 flex items-end justify-between w-full">
               <div>
-                <p className="text-3xl font-black text-white">{alumni.length}</p>
-                <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Total Alumni</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Network</span>
+                </div>
+                <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Link With Alumni</h1>
+                <p className="text-blue-100 text-sm font-medium max-w-md">Browse and connect with fellow alumni from Linker College of the Philippines.</p>
+              </div>
+              <div className="hidden md:flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3">
+                <Users className="w-6 h-6 text-white" />
+                <div>
+                  <p className="text-3xl font-black text-white">{alumni.length}</p>
+                  <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Total Alumni</p>
+                </div>
               </div>
             </div>
+            <Users className="absolute right-12 bottom-8 w-32 h-32 text-white/5" strokeWidth={1} />
           </div>
-          <Users className="absolute right-12 bottom-8 w-32 h-32 text-white/5" strokeWidth={1} />
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-blue-500">
-            <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-            <p className="text-2xl font-black text-slate-900">{alumni.length}</p>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Alumni</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-purple-500">
-            <GraduationCap className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-            <p className="text-2xl font-black text-slate-900">{batchYears.length - 1}</p>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Batch Years</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500">
-            <Globe className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
-            <p className="text-2xl font-black text-slate-900">{locationStats.filter(l => l.name !== 'Unknown').length}</p>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Locations</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-500">
-            <Briefcase className="w-6 h-6 text-amber-600 mx-auto mb-2" />
-            <p className="text-2xl font-black text-slate-900">{alumni.filter(a => a.employment_status === 'employed' || a.employment_status === 'self-employed').length}</p>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Employed</p>
-          </div>
-        </div>
-
-        {/* Search & Filters */}
-        <div className="flex flex-col md:flex-row gap-3 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by name, company, course, location..."
-              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-200 outline-none shadow-sm"
-            />
-          </div>
-          <select value={batchFilter} onChange={e => setBatchFilter(e.target.value)} className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none shadow-sm">
-            {batchYears.map(b => <option key={b} value={b}>{b === 'All' ? 'All Batches' : `Batch ${b}`}</option>)}
-          </select>
-          <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="px-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none shadow-sm">
-            {courses.map(c => <option key={c} value={c}>{c === 'All' ? 'All Courses' : c}</option>)}
-          </select>
-          <button
-            onClick={() => setShowMap(!showMap)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all shadow-sm ${showMap ? 'bg-blue-600 text-white' : 'bg-white border border-slate-100 text-slate-700 hover:bg-blue-50'}`}
-          >
-            <MapPin className="w-4 h-4" /> Map
-          </button>
-        </div>
-
-        {/* Map View */}
-        {showMap && (
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in">
-            <div className="flex items-center justify-between px-8 pt-6 pb-2">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-blue-600" /> Alumni Location Map
-              </h3>
-              <button onClick={() => setShowMap(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-blue-500">
+              <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{alumni.length}</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-500 tracking-widest">Total Alumni</p>
             </div>
-            <p className="text-sm text-slate-400 px-8 mb-4">Interactive map showing where alumni are located across the Philippines.</p>
+            <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-purple-500">
+              <GraduationCap className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{batchYears.length - 1}</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-500 tracking-widest">Batch Years</p>
+            </div>
+            <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500">
+              <Globe className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{locationStats.filter(l => l.name !== 'Unknown').length}</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-500 tracking-widest">Locations</p>
+            </div>
+            <div className="bg-white dark:bg-dark-800 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm p-5 text-center hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-500">
+              <Briefcase className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{alumni.filter(a => a.employment_status === 'employed' || a.employment_status === 'self-employed').length}</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 dark:text-gray-500 tracking-widest">Employed</p>
+            </div>
+          </div>
 
-            <div className="flex flex-col lg:flex-row" style={{ height: '480px' }}>
-              {/* Leaflet Map */}
-              <div className="flex-1 relative z-0">
-                <MapContainer
-                  center={[14.6942, 120.9842]}
-                  zoom={11}
-                  scrollWheelZoom={true}
-                  style={{ height: '100%', width: '100%', borderRadius: '0 0 0 2rem' }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {locationStats
-                    .filter(loc => loc.name !== 'Unknown' && getCoords(loc.name))
-                    .map(loc => {
-                      const coords = getCoords(loc.name)!;
-                      return (
-                        <Marker key={loc.name} position={coords}>
-                          <Popup>
-                            <div style={{ minWidth: '160px' }}>
-                              <p style={{ fontWeight: 800, fontSize: '14px', margin: '0 0 4px 0' }}>{loc.name}</p>
-                              <p style={{ fontSize: '11px', color: '#6366f1', fontWeight: 700, margin: '0 0 8px 0' }}>
-                                {loc.count} {loc.count === 1 ? 'alumnus' : 'alumni'}
-                              </p>
-                              {loc.alumni.slice(0, 4).map(a => (
-                                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                                  <img
-                                    src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.first_name}+${a.last_name}&background=random&size=24`}
-                                    style={{ width: '20px', height: '20px', borderRadius: '50%' }}
-                                    alt=""
-                                  />
-                                  <span style={{ fontSize: '11px', color: '#334155' }}>{a.first_name} {a.last_name}</span>
-                                </div>
-                              ))}
-                              {loc.alumni.length > 4 && (
-                                <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginTop: '4px' }}>+{loc.alumni.length - 4} more</p>
-                              )}
+          {/* Search & Filters */}
+          <div className="flex flex-col md:flex-row gap-3 items-center transition-colors">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search by name, company, course, location..."
+                className="w-full pl-11 pr-4 py-3 bg-white dark:bg-dark-800 border border-slate-100 dark:border-gray-700 rounded-2xl text-sm font-medium text-slate-700 dark:text-white focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 outline-none shadow-sm dark:placeholder-gray-500"
+              />
+            </div>
+            <select value={batchFilter} onChange={e => setBatchFilter(e.target.value)} className="px-4 py-3 bg-white dark:bg-dark-800 border border-slate-100 dark:border-gray-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-white outline-none shadow-sm">
+              {batchYears.map(b => <option key={b} value={b} className="dark:bg-dark-900">{b === 'All' ? 'All Batches' : `Batch ${b}`}</option>)}
+            </select>
+            <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="px-4 py-3 bg-white dark:bg-dark-800 border border-slate-100 dark:border-gray-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-white outline-none shadow-sm">
+              {courses.map(c => <option key={c} value={c} className="dark:bg-dark-900">{c === 'All' ? 'All Courses' : c}</option>)}
+            </select>
+            <button
+              onClick={() => setShowMap(!showMap)}
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all shadow-sm ${showMap ? 'bg-blue-600 text-white' : 'bg-white dark:bg-dark-800 border border-slate-100 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700'}`}
+            >
+              <MapPin className="w-4 h-4" /> Map
+            </button>
+          </div>
+
+          {/* Map View */}
+          {showMap && (
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in">
+              <div className="flex items-center justify-between px-8 pt-6 pb-2">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-blue-600" /> Alumni Location Map
+                </h3>
+                <button onClick={() => setShowMap(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-slate-400 px-8 mb-4">Interactive map showing where alumni are located across the Philippines.</p>
+
+              <div className="flex flex-col lg:flex-row" style={{ height: '480px' }}>
+                {/* Leaflet Map */}
+                <div className="flex-1 relative z-0">
+                  <MapContainer
+                    center={[14.6942, 120.9842]}
+                    zoom={11}
+                    scrollWheelZoom={true}
+                    style={{ height: '100%', width: '100%', borderRadius: '0 0 0 2rem' }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {locationStats
+                      .filter(loc => loc.name !== 'Unknown' && getCoords(loc.name))
+                      .map(loc => {
+                        const coords = getCoords(loc.name)!;
+                        return (
+                          <Marker key={loc.name} position={coords}>
+                            <Popup>
+                              <div style={{ minWidth: '160px' }}>
+                                <p style={{ fontWeight: 800, fontSize: '14px', margin: '0 0 4px 0' }}>{loc.name}</p>
+                                <p style={{ fontSize: '11px', color: '#6366f1', fontWeight: 700, margin: '0 0 8px 0' }}>
+                                  {loc.count} {loc.count === 1 ? 'alumnus' : 'alumni'}
+                                </p>
+                                {loc.alumni.slice(0, 4).map(a => (
+                                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                    <img
+                                      src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.first_name}+${a.last_name}&background=random&size=24`}
+                                      style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+                                      alt=""
+                                    />
+                                    <span style={{ fontSize: '11px', color: '#334155' }}>{a.first_name} {a.last_name}</span>
+                                  </div>
+                                ))}
+                                {loc.alumni.length > 4 && (
+                                  <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginTop: '4px' }}>+{loc.alumni.length - 4} more</p>
+                                )}
+                              </div>
+                            </Popup>
+                          </Marker>
+                        );
+                      })}
+                  </MapContainer>
+                </div>
+
+                {/* Location Sidebar */}
+                <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-slate-100 overflow-y-auto bg-slate-50/50">
+                  <div className="p-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Locations ({locationStats.filter(l => l.name !== 'Unknown').length})</p>
+                    <div className="space-y-2">
+                      {locationStats.filter(l => l.name !== 'Unknown').map(loc => (
+                        <div key={loc.name} className="bg-white rounded-xl p-3 border border-slate-100 hover:shadow-md transition-all cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-blue-50 rounded-lg">
+                              <MapPin className="w-3 h-3 text-blue-600" />
                             </div>
-                          </Popup>
-                        </Marker>
-                      );
-                    })}
-                </MapContainer>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-slate-800 text-xs truncate">{loc.name}</p>
+                              <p className="text-[10px] text-blue-600 font-bold">{loc.count} {loc.count === 1 ? 'alumnus' : 'alumni'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {locationStats.some(l => l.name === 'Unknown') && (
+                        <div className="bg-slate-100 rounded-xl p-3 border border-slate-200">
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-3 h-3 text-slate-400" />
+                            <p className="text-xs text-slate-500 font-bold">{locationStats.find(l => l.name === 'Unknown')?.count || 0} not set</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+          )}
 
-              {/* Location Sidebar */}
-              <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-slate-100 overflow-y-auto bg-slate-50/50">
-                <div className="p-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Locations ({locationStats.filter(l => l.name !== 'Unknown').length})</p>
-                  <div className="space-y-2">
-                    {locationStats.filter(l => l.name !== 'Unknown').map(loc => (
-                      <div key={loc.name} className="bg-white rounded-xl p-3 border border-slate-100 hover:shadow-md transition-all cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-blue-50 rounded-lg">
-                            <MapPin className="w-3 h-3 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-800 text-xs truncate">{loc.name}</p>
-                            <p className="text-[10px] text-blue-600 font-bold">{loc.count} {loc.count === 1 ? 'alumnus' : 'alumni'}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {locationStats.some(l => l.name === 'Unknown') && (
-                      <div className="bg-slate-100 rounded-xl p-3 border border-slate-200">
-                        <div className="flex items-center gap-2">
-                          <Globe className="w-3 h-3 text-slate-400" />
-                          <p className="text-xs text-slate-500 font-bold">{locationStats.find(l => l.name === 'Unknown')?.count || 0} not set</p>
-                        </div>
-                      </div>
+          {/* Alumni Grid */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-slate-500">{filteredAlumni.length} alumni found</p>
+          </div>
+
+          {filteredAlumni.length === 0 ? (
+            <div className="bg-white dark:bg-dark-800 rounded-[2.5rem] border border-slate-100 dark:border-gray-700 p-16 text-center transition-colors">
+              <Users className="w-16 h-16 text-slate-200 dark:text-gray-700 mx-auto mb-4" />
+              <h3 className="text-lg font-black text-slate-400 dark:text-gray-500">No Alumni Found</h3>
+              <p className="text-sm text-slate-300 dark:text-gray-600 mt-2">Try adjusting your search or filters.</p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredAlumni.map(alum => (
+                <div key={alum.id} className="bg-white dark:bg-dark-800 rounded-[2rem] border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-2xl dark:hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-500 p-6 flex flex-col items-center text-center group">
+                  <img
+                    src={alum.avatar_url || `https://ui-avatars.com/api/?name=${alum.first_name}+${alum.last_name}&background=random&size=80`}
+                    alt={`${alum.first_name} ${alum.last_name}`}
+                    className="w-20 h-20 rounded-full mb-4 border-4 border-slate-50 dark:border-gray-700 group-hover:border-blue-200 dark:group-hover:border-blue-900 group-hover:ring-4 group-hover:ring-blue-100 dark:group-hover:ring-blue-900/30 transition-all duration-300 object-cover cursor-pointer"
+                    onClick={() => setSelectedAlumni(alum)}
+                  />
+                  <h3 className="font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer" onClick={() => setSelectedAlumni(alum)}>{alum.first_name} {alum.last_name}</h3>
+
+                  <div className="flex flex-wrap gap-1.5 justify-center mt-2">
+                    {alum.course && (
+                      <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black uppercase">{alum.course}</span>
+                    )}
+                    {alum.batch_year && (
+                      <span className="px-2.5 py-0.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-[10px] font-black uppercase">Batch {alum.batch_year}</span>
                     )}
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Alumni Grid */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-bold text-slate-500">{filteredAlumni.length} alumni found</p>
+                  {(alum.current_position || alum.current_company) && (
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-3 flex items-center gap-1">
+                      <Briefcase className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{alum.current_position}{alum.current_company ? ` at ${alum.current_company}` : ''}</span>
+                    </p>
+                  )}
+
+                  {alum.location && (
+                    <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 flex-shrink-0" /> {alum.location}
+                    </p>
+                  )}
+
+                  {/* Action buttons */}
+                  {alum.id !== user?.id && (
+                    <div className="flex gap-2 mt-4 w-full">
+                      <button
+                        onClick={() => toggleConnect(alum.id, `${alum.first_name} ${alum.last_name}`)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all ${connections.has(alum.id) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md dark:shadow-none'}`}
+                      >
+                        {connections.has(alum.id) ? <><UserCheck className="w-3 h-3" /> Linked</> : <><UserPlus className="w-3 h-3" /> Link</>}
+                      </button>
+                      <button
+                        onClick={() => setSelectedAlumni(alum)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600 transition-all"
+                      >
+                        <Eye className="w-3 h-3" /> View
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {filteredAlumni.length === 0 ? (
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-16 text-center">
-            <Users className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-            <h3 className="text-lg font-black text-slate-400">No Alumni Found</h3>
-            <p className="text-sm text-slate-300 mt-2">Try adjusting your search or filters.</p>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredAlumni.map(alum => (
-              <div key={alum.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 p-6 flex flex-col items-center text-center group">
+        {/* PUBLIC PROFILE VIEW MODAL */}
+        {selectedAlumni && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in transition-colors" onClick={() => setSelectedAlumni(null)} onAnimationStart={() => fetchConnectionCounts(selectedAlumni.id)}>
+            <div className="bg-white dark:bg-dark-800 w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white text-center">
+                <button onClick={() => setSelectedAlumni(null)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
                 <img
-                  src={alum.avatar_url || `https://ui-avatars.com/api/?name=${alum.first_name}+${alum.last_name}&background=random&size=80`}
-                  alt={`${alum.first_name} ${alum.last_name}`}
-                  className="w-20 h-20 rounded-full mb-4 border-4 border-slate-50 group-hover:border-blue-200 group-hover:ring-4 group-hover:ring-blue-100 transition-all duration-300 object-cover cursor-pointer"
-                  onClick={() => setSelectedAlumni(alum)}
+                  src={selectedAlumni.avatar_url || `https://ui-avatars.com/api/?name=${selectedAlumni.first_name}+${selectedAlumni.last_name}&background=0D8ABC&color=fff&size=120`}
+                  className="w-24 h-24 rounded-full border-4 border-white/30 mx-auto mb-3 object-cover shadow-xl"
+                  alt=""
                 />
-                <h3 className="font-black text-slate-900 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => setSelectedAlumni(alum)}>{alum.first_name} {alum.last_name}</h3>
-
-                <div className="flex flex-wrap gap-1.5 justify-center mt-2">
-                  {alum.course && (
-                    <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase">{alum.course}</span>
-                  )}
-                  {alum.batch_year && (
-                    <span className="px-2.5 py-0.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase">Batch {alum.batch_year}</span>
-                  )}
+                <h2 className="text-xl font-black">{selectedAlumni.first_name} {selectedAlumni.last_name}</h2>
+                {selectedAlumni.headline && <p className="text-blue-100 text-sm mt-1">{selectedAlumni.headline}</p>}
+                <div className="flex flex-wrap gap-2 justify-center mt-3">
+                  {selectedAlumni.course && <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold border border-white/10">{selectedAlumni.course}</span>}
+                  {selectedAlumni.batch_year && <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold border border-white/10">Batch {selectedAlumni.batch_year}</span>}
                 </div>
-
-                {(alum.current_position || alum.current_company) && (
-                  <p className="text-xs text-slate-500 mt-3 flex items-center gap-1">
-                    <Briefcase className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{alum.current_position}{alum.current_company ? ` at ${alum.current_company}` : ''}</span>
-                  </p>
-                )}
-
-                {alum.location && (
-                  <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 flex-shrink-0" /> {alum.location}
-                  </p>
-                )}
-
-                {/* Action buttons */}
-                {alum.id !== user?.id && (
-                  <div className="flex gap-2 mt-4 w-full">
-                    <button
-                      onClick={() => toggleConnect(alum.id, `${alum.first_name} ${alum.last_name}`)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-bold transition-all ${connections.has(alum.id) ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                    >
-                      {connections.has(alum.id) ? <><UserCheck className="w-3 h-3" /> Linked</> : <><UserPlus className="w-3 h-3" /> Link</>}
-                    </button>
-                    <button
-                      onClick={() => setSelectedAlumni(alum)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
-                    >
-                      <Eye className="w-3 h-3" /> View
-                    </button>
+                {/* Connection counts */}
+                {connectionCounts[selectedAlumni.id] && (
+                  <div className="flex gap-6 justify-center mt-4">
+                    <div className="text-center">
+                      <p className="text-lg font-black text-white">{connectionCounts[selectedAlumni.id].followers}</p>
+                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Linked</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-black text-white">{connectionCounts[selectedAlumni.id].following}</p>
+                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Linking</p>
+                    </div>
                   </div>
                 )}
               </div>
-            ))}
+
+              {/* Body */}
+              <div className="p-6 space-y-5 transition-colors">
+                {/* Employment */}
+                {(selectedAlumni.current_position || selectedAlumni.current_company) && (
+                  <div className="flex items-start gap-3">
+                    <Briefcase className="w-4 h-4 text-slate-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider">Current Role</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-gray-200">{selectedAlumni.current_position}{selectedAlumni.current_company ? ` at ${selectedAlumni.current_company}` : ''}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedAlumni.location && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-slate-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider">Location</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-gray-200">{selectedAlumni.location}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedAlumni.about && (
+                  <div>
+                    <p className="text-xs font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-1">About</p>
+                    <p className="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">{selectedAlumni.about}</p>
+                  </div>
+                )}
+                {selectedAlumni.skills && selectedAlumni.skills.length > 0 && (
+                  <div>
+                    <p className="text-xs font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2">Skills</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedAlumni.skills.map((s: string) => (
+                        <span key={s} className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-bold border border-blue-100 dark:border-blue-900/30">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Contact Links */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {selectedAlumni.linkedin_url && (
+                    <a href={selectedAlumni.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-100 dark:border-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all">
+                      <Globe className="w-3 h-3" /> LinkedIn
+                    </a>
+                  )}
+                  {selectedAlumni.portfolio_url && (
+                    <a href={selectedAlumni.portfolio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-bold border border-purple-100 dark:border-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-all">
+                      <Globe className="w-3 h-3" /> Portfolio
+                    </a>
+                  )}
+                  {selectedAlumni.email && (
+                    <a href={`mailto:${selectedAlumni.email}`} className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-gray-700 text-slate-600 dark:text-gray-300 rounded-xl text-xs font-bold border border-slate-100 dark:border-gray-600 hover:bg-slate-100 dark:hover:bg-gray-600 transition-all">
+                      <Mail className="w-3 h-3" /> Email
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              {selectedAlumni.id !== user?.id && (
+                <div className="p-6 border-t border-slate-100 dark:border-gray-700 flex gap-3 transition-colors">
+                  <button
+                    onClick={() => { toggleConnect(selectedAlumni.id, `${selectedAlumni.first_name} ${selectedAlumni.last_name}`); }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${connections.has(selectedAlumni.id) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-none font-black uppercase tracking-widest'}`}
+                  >
+                    {connections.has(selectedAlumni.id) ? <><UserCheck className="w-4 h-4" /> Linked</> : <><UserPlus className="w-4 h-4" /> Link</>}
+                  </button>
+                  <button
+                    onClick={() => navigate('/alumni/messages')}
+                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600 transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Message
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
-      </div>
-
-      {/* PUBLIC PROFILE VIEW MODAL */}
-      {selectedAlumni && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in" onClick={() => setSelectedAlumni(null)} onAnimationStart={() => fetchConnectionCounts(selectedAlumni.id)}>
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white text-center">
-              <button onClick={() => setSelectedAlumni(null)} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-              <img
-                src={selectedAlumni.avatar_url || `https://ui-avatars.com/api/?name=${selectedAlumni.first_name}+${selectedAlumni.last_name}&background=0D8ABC&color=fff&size=120`}
-                className="w-24 h-24 rounded-full border-4 border-white/30 mx-auto mb-3 object-cover"
-                alt=""
-              />
-              <h2 className="text-xl font-black">{selectedAlumni.first_name} {selectedAlumni.last_name}</h2>
-              {selectedAlumni.headline && <p className="text-blue-100 text-sm mt-1">{selectedAlumni.headline}</p>}
-              <div className="flex flex-wrap gap-2 justify-center mt-3">
-                {selectedAlumni.course && <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold">{selectedAlumni.course}</span>}
-                {selectedAlumni.batch_year && <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold">Batch {selectedAlumni.batch_year}</span>}
-              </div>
-              {/* Connection counts */}
-              {connectionCounts[selectedAlumni.id] && (
-                <div className="flex gap-6 justify-center mt-4">
-                  <div className="text-center">
-                    <p className="text-lg font-black text-white">{connectionCounts[selectedAlumni.id].followers}</p>
-                    <p className="text-[10px] font-bold text-blue-200 uppercase">Linked</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg font-black text-white">{connectionCounts[selectedAlumni.id].following}</p>
-                    <p className="text-[10px] font-bold text-blue-200 uppercase">Linking</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-5">
-              {/* Employment */}
-              {(selectedAlumni.current_position || selectedAlumni.current_company) && (
-                <div className="flex items-start gap-3">
-                  <Briefcase className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Current Role</p>
-                    <p className="text-sm font-bold text-slate-800">{selectedAlumni.current_position}{selectedAlumni.current_company ? ` at ${selectedAlumni.current_company}` : ''}</p>
-                  </div>
-                </div>
-              )}
-              {selectedAlumni.location && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Location</p>
-                    <p className="text-sm font-bold text-slate-800">{selectedAlumni.location}</p>
-                  </div>
-                </div>
-              )}
-              {selectedAlumni.about && (
-                <div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">About</p>
-                  <p className="text-sm text-slate-600 leading-relaxed">{selectedAlumni.about}</p>
-                </div>
-              )}
-              {selectedAlumni.skills && selectedAlumni.skills.length > 0 && (
-                <div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Skills</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedAlumni.skills.map((s: string) => (
-                      <span key={s} className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold border border-blue-100">{s}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Contact Links */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                {selectedAlumni.linkedin_url && (
-                  <a href={selectedAlumni.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-all">
-                    <Globe className="w-3 h-3" /> LinkedIn
-                  </a>
-                )}
-                {selectedAlumni.portfolio_url && (
-                  <a href={selectedAlumni.portfolio_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold border border-purple-100 hover:bg-purple-100 transition-all">
-                    <Globe className="w-3 h-3" /> Portfolio
-                  </a>
-                )}
-                {selectedAlumni.email && (
-                  <a href={`mailto:${selectedAlumni.email}`} className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold border border-slate-100 hover:bg-slate-100 transition-all">
-                    <Mail className="w-3 h-3" /> Email
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            {selectedAlumni.id !== user?.id && (
-              <div className="p-6 border-t border-slate-100 flex gap-3">
-                <button
-                  onClick={() => { toggleConnect(selectedAlumni.id, `${selectedAlumni.first_name} ${selectedAlumni.last_name}`); }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${connections.has(selectedAlumni.id) ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
-                >
-                  {connections.has(selectedAlumni.id) ? <><UserCheck className="w-4 h-4" /> Linked</> : <><UserPlus className="w-4 h-4" /> Link</>}
-                </button>
-                <button
-                  onClick={() => navigate('/alumni/messages')}
-                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
-                >
-                  <MessageCircle className="w-4 h-4" /> Message
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </>
+      </>
     </PageTransition>
   );
 };

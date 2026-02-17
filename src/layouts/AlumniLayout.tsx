@@ -8,7 +8,7 @@ interface AlumniLayoutProps {
 
 const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-blue-50/50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-blue-50/50 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900 transition-colors duration-300">
       {/* 1. The Top Navigation */}
       <AlumniNavbar />
 

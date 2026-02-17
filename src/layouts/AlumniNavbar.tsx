@@ -2,14 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './../context/AuthContext';
 import { useNotifications } from './../context/NotificationContext';
+import { useTheme } from './../context/ThemeContext';
 import {
   Briefcase, Calendar, Home, LogOut,
-  Menu, X, Bell, ChevronDown,
+  Menu, X, Bell, ChevronDown, ChevronUp,
   Search, Users, MessageSquare, Settings,
   Info, Calendar as CalendarIcon,
   Newspaper, PartyPopper, TrendingUp, Heart, ClipboardList,
-  BookOpen, Mail, FolderOpen
+  Mail, FolderOpen, Sun, Moon, Monitor
 } from 'lucide-react';
+import { supabase } from '../services/supabaseClient';
 
 // --- Types ---
 interface NavChild {
@@ -28,6 +30,7 @@ interface NavItem {
 
 const AlumniNavbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -49,13 +52,13 @@ const AlumniNavbar: React.FC = () => {
 
   const getNotifColor = (type: string) => {
     switch (type) {
-      case 'event_reminder': return 'bg-blue-100 text-blue-500';
-      case 'career_update': return 'bg-emerald-100 text-emerald-500';
-      case 'job': case 'job_alert': return 'bg-purple-100 text-purple-500';
-      case 'survey': return 'bg-amber-100 text-amber-500';
-      case 'donation': return 'bg-rose-100 text-rose-500';
-      case 'message': return 'bg-cyan-100 text-cyan-500';
-      default: return 'bg-gray-100 text-gray-500';
+      case 'event_reminder': return 'bg-blue-100 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'career_update': return 'bg-emerald-100 text-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'job': case 'job_alert': return 'bg-purple-100 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'survey': return 'bg-amber-100 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'donation': return 'bg-rose-100 text-rose-500 dark:bg-rose-900/30 dark:text-rose-400';
+      case 'message': return 'bg-cyan-100 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-400';
+      default: return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
     }
   };
 
@@ -96,7 +99,14 @@ const AlumniNavbar: React.FC = () => {
 
   // --- Grouped Navigation ---
   const navItems: NavItem[] = [
-    { name: 'Dashboard', icon: Home, path: '/alumni/dashboard' },
+    {
+      name: 'Dashboard',
+      icon: Home,
+      children: [
+        { name: 'Overview', path: '/alumni/dashboard', icon: Home, description: 'Main dashboard & activity' },
+        { name: 'Resources', path: '/alumni/resources', icon: FolderOpen, description: 'Alumni tools & documents' },
+      ],
+    },
     {
       name: 'Community',
       icon: Users,
@@ -132,11 +142,6 @@ const AlumniNavbar: React.FC = () => {
         { name: 'Messages', path: '/alumni/messages', icon: Mail, description: 'Chat with fellow alumni' },
       ],
     },
-    {
-      name: 'Resources',
-      icon: FolderOpen,
-      path: '/alumni/resources',
-    },
   ];
 
   // Check if a nav item or its children are active
@@ -163,6 +168,7 @@ const AlumniNavbar: React.FC = () => {
       const target = e.target as HTMLElement;
       if (!target.closest('.profile-dropdown')) setIsProfileOpen(false);
       if (!target.closest('.notif-dropdown')) setShowNotifications(false);
+      if (!target.closest('.theme-dropdown')) setShowThemeMenu(false);
     };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
@@ -174,130 +180,250 @@ const AlumniNavbar: React.FC = () => {
     setMobileExpanded(null);
   }, [location.pathname]);
 
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ type: string; title: string; sub: string; id: string }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const [alumniRes, jobsRes, eventsRes] = await Promise.all([
+          supabase.from('alumni_profiles').select('id, first_name, last_name, current_position').or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`).limit(3),
+          supabase.from('alumni_jobs').select('id, title, company').ilike('title', `%${searchQuery}%`).limit(3),
+          supabase.from('alumni_events').select('id, title, date').ilike('title', `%${searchQuery}%`).limit(3),
+        ]);
+
+        const results: any[] = [];
+        alumniRes.data?.forEach(a => results.push({ type: 'Alumni', title: `${a.first_name} ${a.last_name}`, sub: a.current_position || 'Alumni', id: a.id }));
+        jobsRes.data?.forEach(j => results.push({ type: 'Job', title: j.title, sub: j.company, id: j.id }));
+        eventsRes.data?.forEach(e => results.push({ type: 'Event', title: e.title, sub: new Date(e.date).toLocaleDateString(), id: e.id }));
+
+        setSearchResults(results);
+      } catch (err) {
+        console.error('Search error:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleResultClick = (result: any) => {
+    setSearchQuery('');
+    setSearchResults([]);
+    switch (result.type) {
+      case 'Alumni': nav(`/alumni/directory?id=${result.id}`); break;
+      case 'Job': nav(`/alumni/jobs`); break;
+      case 'Event': nav(`/alumni/events`); break;
+    }
+  };
+
+  // Close search results on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.search-container')) setSearchResults([]);
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
 
           {/* LEFT: Logo & Search */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-shrink-0">
             <Link to="/alumni/dashboard" className="flex-shrink-0 flex items-center gap-2">
-              <img src="/images/Linker College Of The Philippines.png" className="h-8 w-8" alt="Logo" />
-              <span className="font-bold text-xl text-blue-900 tracking-tight hidden lg:block">
+              <img src="/images/Linker College Of The Philippines.png" className="h-9 w-9" alt="Logo" />
+              <span className="font-bold text-xl text-blue-900 dark:text-white tracking-tight hidden xl:block">
                 LINKER<span className="text-blue-600">ALUMNI</span>
               </span>
             </Link>
 
-            <div className="hidden md:block relative">
+            <div className="hidden md:block relative search-container" ref={searchRef}>
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-gray-400" />
               </div>
               <input
                 type="text"
-                placeholder="Search alumni, jobs, events..."
-                className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block max-w-[200px] pl-10 p-2.5 transition-all focus:max-w-[320px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search alumni, jobs..."
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-full focus:ring-blue-500 focus:border-blue-500 block w-40 lg:w-48 pl-10 p-2.5 transition-all focus:w-64"
               />
+
+              {/* Search Results Dropdown */}
+              {(searchResults.length > 0 || isSearching) && (
+                <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-[60] animate-in fade-in slide-in-from-top-2">
+                  {isSearching ? (
+                    <div className="px-4 py-3 text-xs text-gray-500 flex items-center gap-2">
+                      <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> Searching...
+                    </div>
+                  ) : (
+                    searchResults.map((res, idx) => (
+                      <button
+                        key={`${res.id}-${idx}`}
+                        onClick={() => handleResultClick(res)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                      >
+                        <div className={`p-1.5 rounded-lg ${res.type === 'Alumni' ? 'bg-blue-100 text-blue-600' :
+                          res.type === 'Job' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'
+                          }`}>
+                          {res.type === 'Alumni' ? <Users className="w-3.5 h-3.5" /> :
+                            res.type === 'Job' ? <Briefcase className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{res.title}</p>
+                          <p className="text-[10px] text-gray-500 truncate">{res.type} • {res.sub}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* CENTER: Navigation with Dropdowns (Desktop) */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => {
-              const active = isItemActive(item);
+          <div className="hidden lg:flex items-center justify-center flex-1 mx-4">
+            <div className="flex items-center gap-1 bg-gray-50/50 dark:bg-gray-800/50 p-1.5 rounded-2xl border border-gray-100/50 dark:border-gray-700/50">
+              {navItems.map((item) => {
+                const active = isItemActive(item);
 
-              // Direct link (no children)
-              if (item.path) {
+                // Direct link (no children)
+                if (item.path) {
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${active
+                        ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                    >
+                      <item.icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                      {item.name}
+                    </Link>
+                  );
+                }
+
+                // Dropdown item
                 return (
-                  <Link
+                  <div
                     key={item.name}
-                    to={item.path}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${active
-                        ? 'text-blue-700 bg-blue-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    className="relative"
+                    onMouseEnter={() => handleMouseEnter(item.name)}
+                    onMouseLeave={handleMouseLeave}
                   >
-                    <item.icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
-                    {item.name}
-                  </Link>
-                );
-              }
+                    <button
+                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl transition-all ${active
+                        ? 'text-blue-700 bg-blue-50 dark:bg-blue-900/40 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-gray-800 shadow-sm hover:shadow'
+                        }`}
+                    >
+                      <item.icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                      {item.name}
+                      {openDropdown === item.name ? (
+                        <ChevronUp className={`w-3.5 h-3.5 ${active ? 'text-blue-500' : 'text-gray-400'}`} />
+                      ) : (
+                        <ChevronDown className={`w-3.5 h-3.5 ${active ? 'text-blue-500' : 'text-gray-400'}`} />
+                      )}
+                    </button>
 
-              // Dropdown item
-              return (
-                <div
-                  key={item.name}
-                  className="relative"
-                  onMouseEnter={() => handleMouseEnter(item.name)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <button
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${active
-                        ? 'text-blue-700 bg-blue-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
-                  >
-                    <item.icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
-                    {item.name}
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''
-                      } ${active ? 'text-blue-500' : 'text-gray-400'}`} />
-                  </button>
-
-                  {/* Dropdown Panel */}
-                  {openDropdown === item.name && item.children && (
-                    <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.path}
-                          to={child.path}
-                          onClick={() => setOpenDropdown(null)}
-                          className={`flex items-start gap-3 px-4 py-3 transition-all ${isChildActive(child.path)
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                        >
-                          <div className={`p-1.5 rounded-lg mt-0.5 ${isChildActive(child.path) ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-                            }`}>
-                            <child.icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold leading-tight">{child.name}</p>
-                            {child.description && (
-                              <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{child.description}</p>
+                    {/* Dropdown Panel */}
+                    {openDropdown === item.name && item.children && (
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.path}
+                            to={child.path}
+                            onClick={() => setOpenDropdown(null)}
+                            className={`flex items-start gap-3 px-4 py-3 transition-all ${isChildActive(child.path)
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              }`}
+                          >
+                            <div className={`p-1.5 rounded-lg mt-0.5 ${isChildActive(child.path) ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                              }`}>
+                              <child.icon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold leading-tight">{child.name}</p>
+                              {child.description && (
+                                <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{child.description}</p>
+                              )}
+                            </div>
+                            {isChildActive(child.path) && (
+                              <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
                             )}
-                          </div>
-                          {isChildActive(child.path) && (
-                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* RIGHT: Notifications, Profile, Mobile Toggle */}
-          <div className="flex items-center gap-2 md:gap-3">
+          {/* RIGHT: Notifications, Profile, Theme, Mobile Toggle */}
+          <div className="flex items-center gap-1 md:gap-3">
+
+            {/* Theme Toggle */}
+            <div className="relative theme-dropdown">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowThemeMenu(!showThemeMenu); }}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                title="Change theme"
+              >
+                {theme === 'light' ? <Sun className="h-5 w-5" /> : theme === 'dark' ? <Moon className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+              </button>
+
+              {showThemeMenu && (
+                <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-dark-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 py-1 z-50 animate-in fade-in zoom-in-95 origin-top-right">
+                  <button onClick={() => { setTheme('light'); setShowThemeMenu(false); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold ${theme === 'light' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                    <Sun className="w-4 h-4" /> Light
+                  </button>
+                  <button onClick={() => { setTheme('dark'); setShowThemeMenu(false); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold ${theme === 'dark' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                    <Moon className="w-4 h-4" /> Dark
+                  </button>
+                  <button onClick={() => { setTheme('system'); setShowThemeMenu(false); }} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-bold ${theme === 'system' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                    <Monitor className="w-4 h-4" /> System
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Notification Bell */}
             <div className="relative notif-dropdown">
               <button
                 onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full relative transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full relative transition-colors"
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full ring-2 ring-white">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full ring-2 ring-white dark:ring-dark-800">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 origin-top-right">
-                  <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="text-sm font-bold text-gray-800">Notifications</h3>
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 origin-top-right">
+                  <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-white">Notifications</h3>
                     <button onClick={() => setShowNotifications(false)}><X className="w-4 h-4 text-gray-400" /></button>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
@@ -308,7 +434,7 @@ const AlumniNavbar: React.FC = () => {
                         <div
                           key={n.id}
                           onClick={() => handleNotifClick(n)}
-                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors group ${!n.is_read ? 'bg-blue-50/50' : ''}`}
+                          className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors group ${!n.is_read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
                         >
                           <div className="flex gap-3">
                             <div className={`mt-1 p-1.5 rounded-full flex-shrink-0 ${getNotifColor(n.type)}`}>
@@ -316,18 +442,18 @@ const AlumniNavbar: React.FC = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="text-sm font-bold text-gray-800 truncate flex-1">{n.title}</p>
+                                <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate flex-1">{n.title}</p>
                                 {!n.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); dismissNotification(n.id); }}
-                                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-50 rounded transition-all flex-shrink-0"
+                                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-all flex-shrink-0"
                                   title="Dismiss"
                                 >
                                   <X className="w-3 h-3 text-gray-400 hover:text-red-500" />
                                 </button>
                               </div>
-                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
-                              <p className="text-[10px] text-gray-400 mt-1">{formatTimeAgo(n.created_at)}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{formatTimeAgo(n.created_at)}</p>
                             </div>
                           </div>
                         </div>
@@ -335,8 +461,8 @@ const AlumniNavbar: React.FC = () => {
                     )}
                   </div>
                   {unreadCount > 0 && (
-                    <div className="p-2 text-center border-t border-gray-50">
-                      <button onClick={markAllAsRead} className="text-xs font-bold text-blue-600 hover:text-blue-700">Mark All as Read</button>
+                    <div className="p-2 text-center border-t border-gray-50 dark:border-gray-700">
+                      <button onClick={markAllAsRead} className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400">Mark All as Read</button>
                     </div>
                   )}
                 </div>
@@ -347,36 +473,36 @@ const AlumniNavbar: React.FC = () => {
             <div className="relative ml-1 profile-dropdown">
               <button
                 onClick={(e) => { e.stopPropagation(); setIsProfileOpen(!isProfileOpen); }}
-                className="flex items-center gap-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 p-1 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 p-1 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <img
-                  className="h-8 w-8 rounded-full border border-gray-200 object-cover"
+                  className="h-8 w-8 rounded-full border border-gray-200 dark:border-gray-700 object-cover"
                   src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}`}
                   alt=""
                 />
                 <div className="hidden md:block text-left mr-1">
-                  <p className="text-xs font-bold text-gray-700 leading-none">{user?.name}</p>
-                  <p className="text-[10px] text-gray-500 leading-none mt-1">Alumni</p>
+                  <p className="text-xs font-bold text-gray-700 dark:text-gray-200 leading-none">{user?.name}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-none mt-1">Alumni</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
               </button>
 
               {isProfileOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-xl shadow-lg py-2 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none animate-in fade-in zoom-in-95 duration-200 z-50">
-                  <div className="px-4 py-3 border-b border-gray-100 mb-1">
-                    <p className="text-sm font-bold text-gray-900">{user?.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-xl shadow-lg py-2 bg-white dark:bg-dark-800 ring-1 ring-black ring-opacity-5 focus:outline-none animate-in fade-in zoom-in-95 duration-200 z-50 border border-gray-100 dark:border-gray-700">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 mb-1">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{user?.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                   </div>
 
-                  <Link to="/alumni/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                  <Link to="/alumni/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600">
                     <Users className="w-4 h-4" /> View Profile
                   </Link>
-                  <Link to="/alumni/settings" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">
+                  <Link to="/alumni/settings" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600">
                     <Settings className="w-4 h-4" /> Settings
                   </Link>
 
-                  <div className="border-t border-gray-100 mt-1 pt-1">
-                    <button onClick={() => logout()} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+                    <button onClick={() => logout()} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
                       <LogOut className="w-4 h-4" /> Sign out
                     </button>
                   </div>
@@ -386,7 +512,7 @@ const AlumniNavbar: React.FC = () => {
 
             {/* Mobile Menu Button */}
             <div className="flex items-center lg:hidden ml-1">
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
                 {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
             </div>
@@ -396,15 +522,45 @@ const AlumniNavbar: React.FC = () => {
 
       {/* ===================== MOBILE MENU (Accordion Style) ===================== */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-100 pb-4 shadow-xl max-h-[80vh] overflow-y-auto">
+        <div className="lg:hidden bg-white dark:bg-dark-800 border-t border-gray-100 dark:border-gray-700 pb-4 shadow-xl max-h-[80vh] overflow-y-auto duration-300">
           <div className="p-4">
-            <div className="relative">
+            <div className="relative search-container">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search..."
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg pl-10 p-2.5"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search alumni, jobs..."
+                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg pl-10 p-2.5"
               />
+
+              {/* Mobile Search Results */}
+              {(searchResults.length > 0 || isSearching) && (
+                <div className="mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
+                  {isSearching ? (
+                    <div className="p-3 text-xs text-center text-gray-500">Searching...</div>
+                  ) : (
+                    searchResults.map((res, idx) => (
+                      <button
+                        key={`mob-${res.id}-${idx}`}
+                        onClick={() => { handleResultClick(res); setIsMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                      >
+                        <div className={`p-1.5 rounded-lg ${res.type === 'Alumni' ? 'bg-blue-100 text-blue-600' :
+                          res.type === 'Job' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'
+                          }`}>
+                          {res.type === 'Alumni' ? <Users className="w-3.5 h-3.5" /> :
+                            res.type === 'Job' ? <Briefcase className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs font-bold dark:text-white">{res.title}</p>
+                          <p className="text-[10px] text-gray-500">{res.type} • {res.sub}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -419,7 +575,7 @@ const AlumniNavbar: React.FC = () => {
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                   >
                     <item.icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -433,7 +589,7 @@ const AlumniNavbar: React.FC = () => {
                 <div key={item.name}>
                   <button
                     onClick={() => setMobileExpanded(isExpanded ? null : item.name)}
-                    className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -447,7 +603,7 @@ const AlumniNavbar: React.FC = () => {
                   {/* Accordion Content */}
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                     }`}>
-                    <div className="ml-6 pl-4 border-l-2 border-gray-100 mt-1 mb-2 space-y-0.5">
+                    <div className="ml-6 pl-4 border-l-2 border-gray-100 dark:border-gray-700 mt-1 mb-2 space-y-0.5">
                       {item.children?.map((child) => {
                         const childActive = isChildActive(child.path);
                         return (
@@ -455,15 +611,15 @@ const AlumniNavbar: React.FC = () => {
                             key={child.path}
                             to={child.path}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${childActive
-                                ? 'bg-blue-50 text-blue-700 font-semibold'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-semibold'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                               }`}
                           >
                             <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-blue-600' : 'text-gray-400'}`} />
                             <div>
                               <p className="leading-tight">{child.name}</p>
                               {child.description && (
-                                <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{child.description}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">{child.description}</p>
                               )}
                             </div>
                           </Link>
@@ -475,11 +631,33 @@ const AlumniNavbar: React.FC = () => {
               );
             })}
 
+            {/* Theme Toggle (Mobile) */}
+            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 grid grid-cols-3 gap-2 px-4 pb-2">
+              <button
+                onClick={() => setTheme('light')}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all ${theme === 'light' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-100' : 'bg-gray-50 dark:bg-gray-800 text-gray-500'}`}
+              >
+                <Sun className="w-5 h-5" /> Light
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all ${theme === 'dark' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-500'}`}
+              >
+                <Moon className="w-5 h-5" /> Dark
+              </button>
+              <button
+                onClick={() => setTheme('system')}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[10px] font-bold transition-all ${theme === 'system' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-100' : 'bg-gray-50 dark:bg-gray-800 text-gray-500'}`}
+              >
+                <Monitor className="w-5 h-5" /> System
+              </button>
+            </div>
+
             {/* Logout */}
-            <div className="border-t border-gray-100 mt-3 pt-3">
+            <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-3">
               <button
                 onClick={() => logout()}
-                className="w-full text-left pl-4 pr-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-3"
+                className="w-full text-left pl-4 pr-4 py-3 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl flex items-center gap-3"
               >
                 <LogOut className="w-5 h-5" /> Sign Out
               </button>

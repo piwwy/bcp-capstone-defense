@@ -220,3 +220,19 @@ export function useFeaturedEvent() {
     },
   });
 }
+
+/** Fetch saved job IDs for the current user */
+export function useSavedJobIds(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['saved_job_ids', userId],
+    queryFn: async () => {
+      if (!userId) return new Set<string>();
+      const { data } = await supabase
+        .from('alumni_saved_jobs')
+        .select('job_id')
+        .eq('alumni_id', userId);
+      return new Set((data || []).map(s => s.job_id));
+    },
+    enabled: !!userId,
+  });
+}
