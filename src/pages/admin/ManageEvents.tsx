@@ -1,20 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import AdminResourceCard from './AdminResourceCard';
 import {
   Plus, Calendar as CalendarIcon, MapPin, X, Loader2, Timer,
   UploadCloud, Download, ChevronLeft, ChevronRight, LayoutGrid,
-  Clock, Archive, History, Search, Users, CalendarCheck, Crown
+  Clock, Archive, History, Search, Users, CalendarCheck, Crown,
+  CheckCircle2, XCircle, Eye, MessageSquare, RefreshCw
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 
 const ManageEvents = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'staff';
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'management' | 'calendar'>('calendar');
+  const [viewMode, setViewMode] = useState<'management' | 'calendar' | 'approvals'>('calendar');
 
   // Filter Tab State for Event List view
   const [filterTab, setFilterTab] = useState<'active' | 'past' | 'archived'>('active');
@@ -49,6 +53,15 @@ const ManageEvents = () => {
   // Android-style Time Picker States
   const [timeParts, setTimeParts] = useState({ hour: '1', minute: '00', ampm: 'PM' });
   const [datePart, setDatePart] = useState('');
+
+  // Approval Tab States
+  const [approvalFilterStatus, setApprovalFilterStatus] = useState<'all' | 'pending_approval' | 'approved' | 'rejected'>('pending_approval');
+  const [approvalSearchQuery, setApprovalSearchQuery] = useState('');
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
+  const [approvalNotes, setApprovalNotes] = useState('');
 
   const combineDateAndTime = (d: string, tp: { hour: string; minute: string; ampm: string }) => {
     if (!d) return '';
@@ -211,9 +224,8 @@ const ManageEvents = () => {
       if (isEditing && editingId) {
         await supabase.from('alumni_events').update(dbPayload).eq('id', editingId);
       } else {
-        // If require_approval is true, set status to pending_approval for external system review
-        const eventStatus = require_approval ? 'pending_approval' : 'active';
-        await supabase.from('alumni_events').insert([{ ...dbPayload, status: eventStatus }]);
+        // Set status to pending_approval by default for admin review
+        await supabase.from('alumni_events').insert([{ ...dbPayload, status: 'pending_approval' }]);
       }
       setIsModalOpen(false);
       setEventFile(null);
@@ -233,6 +245,56 @@ const ManageEvents = () => {
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message || 'Operation failed.', type: 'error' });
     } finally { setLoading(false); }
+  };
+
+  // --- APPROVAL HANDLERS ---
+  const openApprovalModal = (event: any, action: 'approve' | 'reject') => {
+    setSelectedEvent(event);
+    setApprovalAction(action);
+    setApprovalNotes('');
+    setIsApprovalModalOpen(true);
+  };
+
+  const handleApproval = async () => {
+    if (!selectedEvent) return;
+    setProcessing(selectedEvent.id);
+    try {
+      const newStatus = approvalAction === 'approve' ? 'approved' : 'rejected';
+      const { error } = await supabase
+        .from('alumni_events')
+        .update({
+          status: newStatus,
+          approval_notes: approvalNotes,
+          approved_at: new Date().toISOString(),
+        })
+        .eq('id', selectedEvent.id);
+      if (error) throw error;
+      showToast({
+        title: approvalAction === 'approve' ? 'Event Approved!' : 'Event Rejected',
+        message: `"${selectedEvent.title}" has been ${approvalAction === 'approve' ? 'approved' : 'rejected'}.`,
+        type: approvalAction === 'approve' ? 'success' : 'warning'
+      });
+      setIsApprovalModalOpen(false);
+      fetchData();
+    } catch (error: any) {
+      showToast({ title: 'Error', message: error.message, type: 'error' });
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const publishEvent = async (event: any) => {
+    setProcessing(event.id);
+    try {
+      const { error } = await supabase.from('alumni_events').update({ status: 'active' }).eq('id', event.id);
+      if (error) throw error;
+      showToast({ title: 'Event Published!', message: `"${event.title}" is now live and visible to alumni.`, type: 'success' });
+      fetchData();
+    } catch (error: any) {
+      showToast({ title: 'Error', message: error.message, type: 'error' });
+    } finally {
+      setProcessing(null);
+    }
   };
 
   // --- EVENT COUNTS FOR FILTER TABS ---
@@ -282,6 +344,26 @@ const ManageEvents = () => {
   const getEventsForDate = (date: Date) => {
     return events.filter(e => e.status === 'active' && new Date(e.date).toDateString() === date.toDateString());
   };
+
+  // --- APPROVAL TAB FILTERED EVENTS ---
+  const approvalEvents = useMemo(() => {
+    let filtered = events;
+    if (approvalFilterStatus !== 'all') {
+      filtered = events.filter(e => e.status === approvalFilterStatus);
+    } else {
+      filtered = events.filter(e => ['pending_approval', 'approved', 'rejected'].includes(e.status));
+    }
+    if (approvalSearchQuery.trim()) {
+      const q = approvalSearchQuery.toLowerCase();
+      filtered = filtered.filter(e =>
+        e.title?.toLowerCase().includes(q) ||
+        e.description?.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [events, approvalFilterStatus, approvalSearchQuery]);
+
+  const pendingCount = events.filter(e => e.status === 'pending_approval').length;
 
   const openCreateModal = () => {
     setIsEditing(false);
@@ -351,6 +433,12 @@ const ManageEvents = () => {
           >
             <LayoutGrid className="w-4 h-4" /> Event List
           </button>
+          <button
+            onClick={() => setViewMode('approvals')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${viewMode === 'approvals' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+          >
+            <CalendarCheck className="w-4 h-4" /> Approvals {pendingCount > 0 && <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{pendingCount}</span>}
+          </button>
         </div>
 
         <button onClick={openCreateModal} className="bg-blue-600 text-white px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-100 active:scale-95 transition-all">
@@ -394,7 +482,7 @@ const ManageEvents = () => {
       })()}
 
       {/* 2. CALENDAR VIEW SECTION */}
-      {viewMode === 'calendar' ? (
+      {viewMode === 'calendar' && (
         <div className="bg-slate-900 rounded-[2.5rem] border border-slate-700 shadow-2xl overflow-hidden animate-in fade-in duration-500">
           {/* Calendar Header */}
           <div className="p-8 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
@@ -423,44 +511,46 @@ const ManageEvents = () => {
               const isPast = day ? day < today : false;
               const isToday = day ? day.toDateString() === new Date().toDateString() : false;
               return (
-              <div
-                key={idx}
-                onClick={() => {
-                  if (day) {
-                    if (isPast) {
-                      showToast({ title: 'Invalid Date', message: 'You cannot schedule an event in the past. Please pick a future date.', type: 'warning' });
-                      return;
+                <div
+                  key={idx}
+                  onClick={() => {
+                    if (day) {
+                      if (isPast) {
+                        showToast({ title: 'Invalid Date', message: 'You cannot schedule an event in the past. Please pick a future date.', type: 'warning' });
+                        return;
+                      }
+                      const y = day.getFullYear();
+                      const m = (day.getMonth() + 1).toString().padStart(2, '0');
+                      const d = day.getDate().toString().padStart(2, '0');
+                      openCreateModalWithDate(`${y}-${m}-${d}`);
                     }
-                    const y = day.getFullYear();
-                    const m = (day.getMonth() + 1).toString().padStart(2, '0');
-                    const d = day.getDate().toString().padStart(2, '0');
-                    openCreateModalWithDate(`${y}-${m}-${d}`);
-                  }
-                }}
-                className={`min-h-[140px] border-r border-b border-slate-700/50 p-3 transition-colors ${!day ? 'bg-slate-800/30' : isPast ? 'bg-slate-800/50 cursor-not-allowed opacity-40' : 'hover:bg-slate-700/30 cursor-pointer'}`}
-              >
-                {day && (
-                  <>
-                    <span className={`text-sm font-black ${isToday ? 'bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-blue-500/50 ring-2 ring-blue-400/30' : isPast ? 'text-slate-600 line-through' : 'text-slate-400'}`}>
-                      {day.getDate()}
-                    </span>
-                    <div className="mt-2 space-y-1">
-                      {getEventsForDate(day).map(event => (
-                        <div key={event.id} onClick={(e) => { e.stopPropagation(); openEditModal(event); }} className="p-2 bg-blue-600 rounded-lg shadow-sm cursor-pointer hover:scale-105 transition-transform">
-                          <p className="text-[9px] font-black text-white truncate leading-none uppercase">{event.title}</p>
-                          <p className="text-[8px] text-blue-100 font-bold mt-1 uppercase">{event.category}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
+                  }}
+                  className={`min-h-[140px] border-r border-b border-slate-700/50 p-3 transition-colors ${!day ? 'bg-slate-800/30' : isPast ? 'bg-slate-800/50 cursor-not-allowed opacity-40' : 'hover:bg-slate-700/30 cursor-pointer'}`}
+                >
+                  {day && (
+                    <>
+                      <span className={`text-sm font-black ${isToday ? 'bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-blue-500/50 ring-2 ring-blue-400/30' : isPast ? 'text-slate-600 line-through' : 'text-slate-400'}`}>
+                        {day.getDate()}
+                      </span>
+                      <div className="mt-2 space-y-1">
+                        {getEventsForDate(day).map(event => (
+                          <div key={event.id} onClick={(e) => { e.stopPropagation(); openEditModal(event); }} className="p-2 bg-blue-600 rounded-lg shadow-sm cursor-pointer hover:scale-105 transition-transform">
+                            <p className="text-[9px] font-black text-white truncate leading-none uppercase">{event.title}</p>
+                            <p className="text-[8px] text-blue-100 font-bold mt-1 uppercase">{event.category}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
             })}
           </div>
         </div>
-      ) : (
-        /* 3. MANAGEMENT LIST VIEW WITH FILTER TABS */
+      )}
+
+      {/* 3. MANAGEMENT LIST VIEW WITH FILTER TABS */}
+      {viewMode === 'management' && (
         <div className="animate-in slide-in-from-bottom-4 duration-500">
 
           {/* FILTER PILLS (Active, Past, Archived) + Search */}
@@ -560,7 +650,7 @@ const ManageEvents = () => {
                     status={event.status}
                     subtitle={eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                     onEdit={() => openEditModal(event)}
-                    onDelete={() => confirmArchive(event.id, event.title, event.status)}
+                    onDelete={isStaff ? undefined : () => confirmArchive(event.id, event.title, event.status)}
                     onView={() => openRSVPList(event.id, event.title)}
                   >
                     <div className="mt-4 flex flex-col gap-2">
@@ -595,7 +685,142 @@ const ManageEvents = () => {
         </div>
       )}
 
-      {/* 4. MODAL: CREATE / EDIT EVENT */}
+      {/* 4. APPROVALS VIEW */}
+      {viewMode === 'approvals' && (
+        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+          {/* Filter & Search */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex gap-2">
+              {(['all', 'pending_approval', 'approved', 'rejected'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setApprovalFilterStatus(status)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${approvalFilterStatus === status
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  {status === 'all' ? 'All' : status === 'pending_approval' ? 'Pending' : status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={approvalSearchQuery}
+                onChange={(e) => setApprovalSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Events List */}
+          {approvalEvents.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+              <CalendarCheck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No Events Found</h3>
+              <p className="text-gray-500">
+                {approvalFilterStatus === 'pending_approval'
+                  ? 'No events are pending approval at this time.'
+                  : 'No events match your current filter.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {approvalEvents.map((event) => {
+                const isPending = event.status === 'pending_approval';
+                const isApproved = event.status === 'approved';
+                const isRejected = event.status === 'rejected';
+                const eventDate = new Date(event.date);
+
+                return (
+                  <div key={event.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="flex flex-col md:flex-row">
+                      {event.image_url && (
+                        <div className="md:w-48 h-32 md:h-auto">
+                          <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1 p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${isPending ? 'bg-amber-100 text-amber-700' :
+                                  isApproved ? 'bg-green-100 text-green-700' :
+                                    'bg-red-100 text-red-700'
+                                }`}>
+                                {isPending && <Clock className="w-3 h-3" />}
+                                {isApproved && <CheckCircle2 className="w-3 h-3" />}
+                                {isRejected && <XCircle className="w-3 h-3" />}
+                                {event.status.replace('_', ' ').toUpperCase()}
+                              </span>
+                              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{event.category}</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-4">
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon className="w-4 h-4" />
+                            {eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            {event.location}
+                          </span>
+                        </div>
+                        {event.approval_notes && (
+                          <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                            <p className="text-xs font-bold text-gray-500 mb-1">Admin Notes:</p>
+                            <p className="text-sm text-gray-700">{event.approval_notes}</p>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          {isPending && (
+                            <>
+                              <button
+                                onClick={() => openApprovalModal(event, 'approve')}
+                                disabled={processing === event.id}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => openApprovalModal(event, 'reject')}
+                                disabled={processing === event.id}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {isApproved && (
+                            <button
+                              onClick={() => publishEvent(event)}
+                              disabled={processing === event.id}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                              {processing === event.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarCheck className="w-4 h-4" />}
+                              Publish Event
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. MODAL: CREATE / EDIT EVENT */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in overflow-y-auto">
           <div className="bg-white p-10 rounded-[3rem] w-full max-w-2xl shadow-2xl relative my-auto">
@@ -841,6 +1066,68 @@ const ManageEvents = () => {
                   }`}
               >
                 {archiveTarget.status === 'active' ? 'Confirm Archive' : 'Confirm Restore'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. MODAL: APPROVAL / REJECTION */}
+      {isApprovalModalOpen && selectedEvent && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[140] p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${approvalAction === 'approve' ? 'bg-green-100' : 'bg-red-100'}`}>
+              {approvalAction === 'approve' ? (
+                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              ) : (
+                <XCircle className="w-8 h-8 text-red-600" />
+              )}
+            </div>
+
+            <h3 className="text-xl font-black text-center text-gray-900 mb-2">
+              {approvalAction === 'approve' ? 'Approve Event' : 'Reject Event'}
+            </h3>
+            <p className="text-center text-gray-500 mb-6">
+              {approvalAction === 'approve'
+                ? `Are you sure you want to approve "${selectedEvent.title}"?`
+                : `Are you sure you want to reject "${selectedEvent.title}"?`
+              }
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                {approvalAction === 'approve' ? 'Approval Notes (Optional)' : 'Rejection Reason *'}
+              </label>
+              <textarea
+                value={approvalNotes}
+                onChange={(e) => setApprovalNotes(e.target.value)}
+                placeholder={approvalAction === 'approve'
+                  ? 'Add any notes for this approval...'
+                  : 'Please provide a reason for rejection...'
+                }
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                required={approvalAction === 'reject'}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsApprovalModalOpen(false)}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApproval}
+                disabled={processing === selectedEvent.id || (approvalAction === 'reject' && !approvalNotes.trim())}
+                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${approvalAction === 'approve'
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+              >
+                {processing === selectedEvent.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                {approvalAction === 'approve' ? 'Approve' : 'Reject'}
               </button>
             </div>
           </div>

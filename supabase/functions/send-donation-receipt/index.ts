@@ -36,7 +36,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         sender: { name: "LCP Alumni Association", email: "perrypesinocute@gmail.com" }, // Pwede mong palitan ito sa Brevo dashboard
-        subject: `🎉 Contribution Verified: ${actualTitle}`,
+        subject: `🎉 Contribution Verified: ${actualCampaignTitle}`,
         htmlContent: `
           <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
             
@@ -51,7 +51,7 @@ serve(async (req) => {
             <div style="padding: 40px; background-color: white;">
               <p style="font-size: 18px; color: #1e293b; margin-bottom: 16px;">Hi <b>${record.guest_name}</b>,</p>
               <p style="font-size: 15px; color: #475569; line-height: 1.6; margin-bottom: 24px;">
-                We are thrilled to inform you that your contribution to the <b>${actualTitle}</b> has been officially verified! Your support directly impacts the lives of our current and future LCP students.
+                We are thrilled to inform you that your contribution to the <b>${actualCampaignTitle}</b> has been officially verified! Your support directly impacts the lives of our current and future LCP students.
               </p>
               
               <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 20px; padding: 24px; margin-bottom: 32px;">

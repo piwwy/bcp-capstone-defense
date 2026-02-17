@@ -77,10 +77,11 @@ const dynamicPastEvents = useMemo(() => events.filter((e: any) => new Date(e.dat
     try {
       const { error } = await supabase.from('alumni_events').insert([{
         ...eventForm,
-        created_by: user?.id
+        created_by: user?.id,
+        status: 'pending_approval'
       }]);
       if (error) throw error;
-      showToast({ title: 'Event Created!', message: 'Your event has been published.', type: 'success' });
+      showToast({ title: 'Event Submitted!', message: 'Your event has been submitted for approval.', type: 'success' });
       setIsAddEventOpen(false);
       setEventForm({ title: '', description: '', date: '', location: '', category: 'Reunions', image_url: '' });
       refetchEvents();

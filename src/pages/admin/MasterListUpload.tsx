@@ -169,7 +169,6 @@ const MasterListUpload = () => {
         }
 
         showToast({ type: 'success', title: 'Master List Imported', message: `${parsed.length} records were processed.` });
-        fetchMasterList();
 
         // Step 2: Generate credentials
         const newCreds: CreatedCredential[] = parsed.map(p => ({
@@ -182,50 +181,53 @@ const MasterListUpload = () => {
         setCredentials(newCreds);
         setShowCredentials(true);
 
-        // Step 3: Create auth accounts
+        // Step 3: Create auth accounts using Edge Function (server-side)
         setGeneratingAccounts(true);
         setProgress({ current: 0, total: newCreds.length });
 
         try {
-          const { data: { session: adminSession } } = await supabase.auth.getSession();
           const updatedCreds = [...newCreds];
 
-          for (let i = 0; i < newCreds.length; i++) {
-            const cred = newCreds[i];
-            const p = parsed.find(x => x.email === cred.email);
-            try {
-              const { data: authData, error: signUpErr } = await supabase.auth.signUp({
-                email: cred.email,
-                password: cred.password,
-                options: { data: { full_name: cred.name, first_name: p?.first_name || '', last_name: p?.last_name || '' } }
-              });
+          // Use Edge Function to create users server-side (no session creation)
+          const usersToCreate = newCreds.map((cred, idx) => {
+            const p = parsed[idx];
+            return {
+              student_id: p.student_id,
+              first_name: p.first_name,
+              last_name: p.last_name,
+              middle_name: p.middle_name || '',
+              course: p.course,
+              batch_year: p.batch_year,
+              email: cred.email,
+              password: cred.password
+            };
+          });
 
-              if (signUpErr) {
-                if (signUpErr.message?.includes('already') || signUpErr.message?.includes('registered')) {
-                  updatedCreds[i].status = 'exists';
-                  updatedCreds[i].error = 'Already registered';
-                } else {
-                  updatedCreds[i].status = 'error';
-                  updatedCreds[i].error = signUpErr.message;
-                }
-              } else if (authData.user) {
-                await supabase.from('profiles').upsert({
-                  id: authData.user.id, student_id: p?.student_id, first_name: p?.first_name,
-                  last_name: p?.last_name, course: p?.course, batch_year: p?.batch_year,
-                  email: cred.email, role: 'alumni', status: 'master_list', auth_provider: 'email',
-                }, { onConflict: 'id' });
-                updatedCreds[i].status = 'created';
-              }
-            } catch (err: any) {
-              updatedCreds[i].status = 'error';
-              updatedCreds[i].error = err.message || 'Unknown error';
-            }
-            setProgress({ current: i + 1, total: newCreds.length });
-            setCredentials([...updatedCreds]);
+          // Call Edge Function
+          const { data: edgeResult, error: edgeError } = await supabase.functions.invoke('create-users', {
+            body: { users: usersToCreate }
+          });
+
+          if (edgeError) {
+            console.error('Edge function error:', edgeError);
+            throw new Error('Failed to create user accounts');
           }
 
-          if (adminSession) {
-            await supabase.auth.setSession({ access_token: adminSession.access_token, refresh_token: adminSession.refresh_token });
+          // Update credentials status based on edge function results
+          if (edgeResult?.results) {
+            edgeResult.results.forEach((result: any, idx: number) => {
+              if (result.success) {
+                updatedCreds[idx].status = 'created';
+              } else if (result.error?.includes('already') || result.error?.includes('exists')) {
+                updatedCreds[idx].status = 'exists';
+                updatedCreds[idx].error = 'Already registered';
+              } else {
+                updatedCreds[idx].status = 'error';
+                updatedCreds[idx].error = result.error || 'Unknown error';
+              }
+              setProgress({ current: idx + 1, total: newCreds.length });
+              setCredentials([...updatedCreds]);
+            });
           }
 
           const created = updatedCreds.filter(c => c.status === 'created').length;
@@ -239,7 +241,8 @@ const MasterListUpload = () => {
           setGeneratingAccounts(false);
         }
 
-        // Switch to records tab after upload
+        // Refresh records list and switch to records tab
+        await fetchMasterList();
         setActiveTab('records');
 
       } catch (err: any) {

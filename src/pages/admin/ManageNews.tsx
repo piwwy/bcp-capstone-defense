@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminPageLayout from './AdminPageLayout';
 import { supabase } from '../../services/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
     Newspaper, Plus, Edit2, Trash2, Eye, EyeOff,
@@ -38,6 +39,8 @@ const CATEGORIES = [
 
 const ManageNews = () => {
     const { showToast } = useToast();
+    const { user: currentUser } = useAuth();
+    const isStaff = currentUser?.role === 'staff';
     const [articles, setArticles] = useState<NewsArticle[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -485,12 +488,14 @@ const ManageNews = () => {
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
-                                        <button
-                                            onClick={() => openDeleteModal(article.id, article.title)}
-                                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {!isStaff && (
+                                            <button
+                                                onClick={() => openDeleteModal(article.id, article.title)}
+                                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import AdminPageLayout from './AdminPageLayout';
@@ -54,6 +55,8 @@ const parseAdviser = (answer?: string): string => {
 
 const AllAlumniRecords: React.FC = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'staff';
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<Alumni[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -377,7 +380,13 @@ const AllAlumniRecords: React.FC = () => {
                               <td className="px-5 py-3">{section ? <div><span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full text-xs font-bold"><Hash className="w-3 h-3" />{section}</span>{adviser && <div className="text-[10px] text-gray-400 mt-0.5">Adviser: {adviser}</div>}</div> : <span className="text-xs text-gray-300">—</span>}</td>
                               <td className="px-5 py-3">{rec.email?.includes('unregistered_') ? <span className="text-gray-400 italic text-xs">Not registered</span> : <span className="flex items-center gap-1 text-xs"><Mail className="w-3 h-3 text-gray-400" />{rec.email}</span>}{rec.mobile_number && <span className="flex items-center gap-1 text-xs text-gray-400 mt-0.5"><Phone className="w-3 h-3" />{rec.mobile_number}</span>}</td>
                               <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${rec.status === 'verified' ? 'bg-green-100 text-green-700' : rec.status === 'pending_approval' ? 'bg-orange-100 text-orange-700' : rec.status === 'master_list' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{rec.status === 'master_list' ? 'UNCLAIMED' : rec.status?.replace('_', ' ')}</span></td>
-                              <td className="px-5 py-3"><button onClick={() => handleEditRecord(rec)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all" title="Edit Record"><Edit2 className="w-3.5 h-3.5" /></button></td>
+                              <td className="px-5 py-3">
+                                {!isStaff && (
+                                  <button onClick={() => handleEditRecord(rec)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all" title="Edit Record">
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           );
                         })}
@@ -398,7 +407,7 @@ const AllAlumniRecords: React.FC = () => {
                 <div key={rec.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start justify-between gap-3">
                     <div><p className="font-bold text-slate-900 leading-tight">{rec.last_name}, {rec.first_name}</p><p className="text-xs text-slate-400 mt-1">ID: {rec.student_id || 'N/A'}</p></div>
-                    <button onClick={() => handleEditRecord(rec)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all" title="Edit Record"><Edit2 className="w-3.5 h-3.5" /></button>
+                    {!isStaff && <button onClick={() => handleEditRecord(rec)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all" title="Edit Record"><Edit2 className="w-3.5 h-3.5" /></button>}
                   </div>
                   <div className="mt-3 space-y-1.5 text-xs text-slate-600">
                     <p><span className="font-semibold">Course:</span> {rec.course || 'N/A'}</p>

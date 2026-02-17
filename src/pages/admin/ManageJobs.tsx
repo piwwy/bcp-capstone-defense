@@ -1,6 +1,7 @@
 /* src/pages/admin/ManageJobs.tsx */
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import AdminResourceCard from './AdminResourceCard';
 import {
@@ -12,9 +13,31 @@ import AdminPageLayout from './AdminPageLayout';
 
 const ManageJobs = () => {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'staff';
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterTab, setFilterTab] = useState<'active' | 'archived'>('active');
+
+  // Check for URL parameters from partner inquiry
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromInquiry = params.get('from_inquiry');
+    const company = params.get('company');
+    const position = params.get('position');
+    
+    if (fromInquiry && company && position) {
+      setFormData(prev => ({
+        ...prev,
+        title: decodeURIComponent(position),
+        company: decodeURIComponent(company)
+      }));
+      setIsModalOpen(true);
+      showToast({ type: 'info', title: 'Pre-filled from Inquiry', message: 'Job details loaded from partner inquiry' });
+      // Clean URL
+      window.history.replaceState({}, '', '/admin/jobs/board');
+    }
+  }, []);
 
   // Modal & File States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -209,7 +232,7 @@ const ManageJobs = () => {
           <AdminResourceCard
             key={job.id} title={job.title} subtitle={job.company} category={job.category} status={job.status} image={job.image_url}
             onEdit={() => { setFormData(job); setEditingId(job.id); setIsEditing(true); setIsModalOpen(true); }}
-            onDelete={() => handleStatusToggle(job.id, job.status)}
+            onDelete={isStaff ? undefined : () => handleStatusToggle(job.id, job.status)}
           >
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">

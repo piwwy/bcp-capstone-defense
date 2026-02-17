@@ -199,12 +199,6 @@ const StaffSidebar: React.FC = () => {
                                 <Settings className="w-4 h-4 text-gray-400" /> Account Settings
                             </button>
                             <div className="h-px bg-gray-100 my-1"></div>
-                            <button onClick={() => handleSwitchRole('admin')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
-                                <Repeat className="w-4 h-4 text-gray-400" /> Switch to Admin
-                            </button>
-                            <button onClick={() => handleSwitchRole('superadmin')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
-                                <Repeat className="w-4 h-4 text-gray-400" /> Switch to Super Admin
-                            </button>
                             <div className="h-px bg-gray-100 my-1"></div>
                             <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg text-left font-medium">
                                 <LogOut className="w-4 h-4" /> Sign Out

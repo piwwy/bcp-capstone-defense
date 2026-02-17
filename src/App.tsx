@@ -37,7 +37,6 @@ const ReportsAnalytics = React.lazy(() => import('./pages/admin/ReportsAnalytics
 const TrainAI = React.lazy(() => import('./pages/admin/TrainAI'));
 const DonationCollections = React.lazy(() => import('./pages/admin/DonationCollections'));
 const ManageEvents = React.lazy(() => import('./pages/admin/ManageEvents'));
-const EventApprovals = React.lazy(() => import('./pages/admin/EventApprovals'));
 const AuditTrail = React.lazy(() => import('./pages/admin/AuditTrail'));
 const ManageNews = React.lazy(() => import('./pages/admin/ManageNews'));
 const CareerTracking = React.lazy(() => import('./pages/admin/CareerTracking'));
@@ -160,7 +159,6 @@ function AppRoutes() {
                   {/* 6. Communication & Reports */}
                   {/* Announcements removed — consolidated into News Feed */}
                   <Route path="events/calendar" element={<ManageEvents />} />
-                  <Route path="events/approvals" element={<EventApprovals />} />
                   <Route path="news/manage" element={<ManageNews />} />
 
                   {/* Advanced Tools */}
@@ -218,7 +216,6 @@ function AppRoutes() {
 
                   {/* Events & Reunions */}
                   <Route path="events" element={<ManageEvents />} />
-                  <Route path="event-approvals" element={<EventApprovals />} />
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />
 
                   {/* Communication */}
@@ -264,7 +261,6 @@ function AppRoutes() {
                   <Route path="dashboard" element={<DashboardAdmin />} />
                   <Route path="records" element={<AllAlumniRecords />} />
                   <Route path="events/calendar" element={<ManageEvents />} />
-                  <Route path="events/approvals" element={<EventApprovals />} />
                   <Route path="news/manage" element={<ManageNews />} />
                   <Route path="feedback" element={<ManageFeedback />} />
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />

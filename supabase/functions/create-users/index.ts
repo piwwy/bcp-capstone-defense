@@ -16,13 +16,13 @@ interface UserPayload {
     password: string
 }
 
-Deno.serve(async (req) => {
+Deno.serve((req) => {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
-    try {
+    return (async () => { try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -68,6 +68,10 @@ Deno.serve(async (req) => {
                         continue
                     }
                     throw authError
+                }
+
+                if (!authData.user) {
+                    throw new Error('User created but no user object returned')
                 }
 
                 // Step 2: Upsert profile record
@@ -119,4 +123,5 @@ Deno.serve(async (req) => {
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
+    })()
 })

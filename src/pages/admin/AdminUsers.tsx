@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import CreateUserModal from '../../components/modals/CreateUserModal';
+import EmailService from '../../services/emailService';
 import {
     Users, Loader2, Search, Calendar, GraduationCap, Filter, RefreshCw,
     Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2, CheckCircle,
@@ -31,6 +33,8 @@ type RoleFilter = 'all' | 'alumni' | 'staff' | 'admin';
 
 const AdminUsers: React.FC = () => {
     const { showToast } = useToast();
+    const { user: currentUser } = useAuth();
+    const isSuperAdmin = currentUser?.role === 'superadmin' || currentUser?.role === 'super_admin';
 
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
@@ -45,10 +49,6 @@ const AdminUsers: React.FC = () => {
     // Confirmation modals
     const [confirmAction, setConfirmAction] = useState<{ type: string; user: User } | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
-
-    // Edit role
-    const [editRoleUser, setEditRoleUser] = useState<User | null>(null);
-    const [newRole, setNewRole] = useState('alumni');
 
     // Fetch ALL users (all roles)
     const fetchUsers = async () => {
@@ -158,16 +158,18 @@ const AdminUsers: React.FC = () => {
     const handleResetPassword = async (user: User) => {
         setActionLoading(true);
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                redirectTo: `${window.location.origin}/reset-password`
-            });
-            if (error) throw error;
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const resetUrl = `${window.location.origin}/reset-password?code=${code}`;
+            const { success, error: emailError } = await EmailService.sendPasswordResetCode(user.email, user.first_name, code, resetUrl);
+
+            if (!success) throw new Error(emailError || 'Failed to send reset code via Brevo');
+
             await logAudit(AUDIT_ACTIONS.PASSWORD_CHANGED, {
                 module: 'User Management',
-                message: `Sent password reset email to ${user.email}`,
+                message: `Sent Brevo password reset code (${code}) to ${user.email}`,
                 userId: user.id
             });
-            showToast({ type: 'success', title: 'Reset Email Sent', message: `Password reset email sent to ${user.email}` });
+            showToast({ type: 'success', title: 'Reset Code Sent', message: `6-digit reset code sent to ${user.email} via Brevo.` });
         } catch (err: any) {
             showToast({ type: 'error', title: 'Error', message: err.message });
         } finally {
@@ -195,25 +197,6 @@ const AdminUsers: React.FC = () => {
         }
     };
 
-    const handleRoleChange = async () => {
-        if (!editRoleUser) return;
-        setActionLoading(true);
-        try {
-            await supabase.from('profiles').update({ role: newRole }).eq('id', editRoleUser.id);
-            await logAudit(AUDIT_ACTIONS.USER_ROLE_CHANGED, {
-                module: 'User Management',
-                message: `Changed role of ${editRoleUser.first_name} ${editRoleUser.last_name} from ${editRoleUser.role} to ${newRole}`,
-                userId: editRoleUser.id, oldRole: editRoleUser.role, newRole
-            });
-            showToast({ type: 'success', title: 'Role Updated', message: `${editRoleUser.first_name}'s role changed to ${newRole}` });
-            fetchUsers();
-        } catch (err: any) {
-            showToast({ type: 'error', title: 'Error', message: err.message });
-        } finally {
-            setActionLoading(false);
-            setEditRoleUser(null);
-        }
-    };
 
     return (
         <AdminPageLayout title="Manage Users" subtitle="Create, view, edit, and manage all system accounts" icon={Users}>
@@ -418,15 +401,15 @@ const AdminUsers: React.FC = () => {
                                                         <>
                                                             <div className="fixed inset-0 z-40" onClick={() => setActionMenuId(null)} />
                                                             <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95">
-                                                                <button onClick={() => { setEditRoleUser(user); setNewRole(user.role); setActionMenuId(null); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 text-left">
-                                                                    <Edit3 className="w-3.5 h-3.5 text-indigo-500" /> Change Role
-                                                                </button>
                                                                 <button onClick={() => { setConfirmAction({ type: 'reset', user }); setActionMenuId(null); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 text-left">
                                                                     <Key className="w-3.5 h-3.5 text-amber-500" /> Reset Password
                                                                 </button>
                                                                 <div className="h-px bg-slate-100 my-1" />
-                                                                <button onClick={() => { setConfirmAction({ type: 'delete', user }); setActionMenuId(null); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 text-left">
+                                                                <button onClick={() => { setConfirmAction({ type: 'delete', user }); setActionMenuId(null); }}
+                                                                    disabled={!isSuperAdmin}
+                                                                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-left ${!isSuperAdmin ? 'text-slate-300' : 'text-rose-600 hover:bg-rose-50'}`}>
                                                                     <Trash2 className="w-3.5 h-3.5" /> Delete User
+                                                                    {!isSuperAdmin && <Shield className="w-3 h-3 ml-auto opacity-50" />}
                                                                 </button>
                                                             </div>
                                                         </>
@@ -498,12 +481,6 @@ const AdminUsers: React.FC = () => {
                             <button onClick={() => setSelectedUser(null)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl hover:bg-slate-100 transition-colors">
                                 Close
                             </button>
-                            <button
-                                onClick={() => { setEditRoleUser(selectedUser); setNewRole(selectedUser.role); setSelectedUser(null); }}
-                                className="py-3 px-5 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center gap-2"
-                            >
-                                <Edit3 className="w-4 h-4" /> Edit Role
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -555,46 +532,6 @@ const AdminUsers: React.FC = () => {
                 </div>
             )}
 
-            {/* ========== Edit Role Modal ========== */}
-            {editRoleUser && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-                    <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
-                        <div className="p-6">
-                            <h3 className="text-xl font-black text-slate-900 mb-1">Change Role</h3>
-                            <p className="text-sm text-slate-500 mb-5">
-                                Update role for <span className="font-black">{editRoleUser.first_name} {editRoleUser.last_name}</span>
-                            </p>
-                            <div className="space-y-2">
-                                {(['alumni', 'staff', 'admin'] as const).map(role => (
-                                    <button
-                                        key={role}
-                                        onClick={() => setNewRole(role)}
-                                        className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${newRole === role ? 'border-indigo-500 bg-indigo-50 shadow-lg shadow-indigo-100' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                                            }`}
-                                    >
-                                        {getRoleBadge(role)}
-                                        {editRoleUser.role === role && (
-                                            <span className="ml-auto text-xs text-slate-400 font-black">Current</span>
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex gap-3 p-5 border-t border-slate-100 bg-slate-50">
-                            <button onClick={() => setEditRoleUser(null)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl hover:bg-slate-100">
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleRoleChange}
-                                disabled={actionLoading || newRole === editRoleUser.role}
-                                className="flex-1 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
-                            >
-                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* ========== Create User Modal ========== */}
             {showCreateModal && (

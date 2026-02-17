@@ -264,6 +264,15 @@ const PartnerInquiries: React.FC = () => {
                         <button disabled={savingId === entry.id || !!entry.routed_to_hr} onClick={() => routeInquiry(entry.id, 'hr')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${entry.routed_to_hr ? 'bg-emerald-100 text-emerald-400' : 'border border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`}>
                           {entry.routed_to_hr ? '✓ HR' : 'Route HR'}
                         </button>
+                        {entry.inquiry_type === 'company' && entry.position_offered && (
+                          <button 
+                            onClick={() => window.location.href = `/admin/jobs/board?from_inquiry=${entry.id}&company=${encodeURIComponent(entry.company_name || '')}&position=${encodeURIComponent(entry.position_offered || '')}`}
+                            className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 text-xs font-bold hover:bg-purple-50 transition-colors"
+                            title="Convert to Job Posting"
+                          >
+                            → Job Post
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
