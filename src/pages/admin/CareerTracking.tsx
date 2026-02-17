@@ -4,7 +4,8 @@ import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import {
     Briefcase, Users, Building2, TrendingUp, Search, Loader2,
-    BarChart3, GraduationCap, RefreshCw, MapPin, Phone, Linkedin
+    BarChart3, GraduationCap, RefreshCw, MapPin, Phone, Linkedin,
+    Edit, Save, X
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -48,6 +49,8 @@ const CareerTracking = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterBatch, setFilterBatch] = useState('all');
     const [selectedAlumni, setSelectedAlumni] = useState<AlumniProfile | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState<Partial<AlumniProfile>>({});
 
     useEffect(() => {
         fetchAlumni();
@@ -101,6 +104,66 @@ const CareerTracking = () => {
         } catch (error: any) {
             console.error('Error:', error);
             showToast({ title: 'Error', message: 'Failed to load alumni data.', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditClick = () => {
+        if (selectedAlumni) {
+            setEditForm({
+                batch_year: selectedAlumni.batch_year,
+                course: selectedAlumni.course,
+                employment_status: selectedAlumni.employment_status,
+                job_title: selectedAlumni.job_title,
+                company: selectedAlumni.company,
+                location: selectedAlumni.location,
+                phone: selectedAlumni.phone,
+                linkedin_url: selectedAlumni.linkedin_url
+            });
+            setIsEditing(true);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!selectedAlumni || !editForm) return;
+        setLoading(true);
+        try {
+            // 1. Update profiles table (Core Info)
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    batch_year: editForm.batch_year,
+                    course: editForm.course
+                })
+                .eq('id', selectedAlumni.id);
+
+            if (profileError) throw profileError;
+
+            // 2. Upsert alumni_profiles table (Career Info)
+            // Check if record exists first to decide insert vs update, or just upsert
+            const { error: alumniProfileError } = await supabase
+                .from('alumni_profiles')
+                .upsert({
+                    id: selectedAlumni.id,
+                    employment_status: editForm.employment_status,
+                    current_position: editForm.job_title,
+                    current_company: editForm.company,
+                    location: editForm.location,
+                    phone: editForm.phone,
+                    linkedin_url: editForm.linkedin_url,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (alumniProfileError) throw alumniProfileError;
+
+            showToast({ title: 'Success', message: 'Alumni record updated successfully.', type: 'success' });
+            setIsEditing(false);
+            setSelectedAlumni(null);
+            fetchAlumni(); // Refresh list
+        } catch (error: any) {
+            console.error('Update error:', error);
+            showToast({ title: 'Update Failed', message: error.message || 'Could not update record.', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -455,84 +518,232 @@ const CareerTracking = () => {
 
                 {/* Alumni Detail Modal */}
                 {selectedAlumni && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-                            <div className="bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-white text-center">
-                                <img
-                                    src={selectedAlumni.avatar_url || `https://ui-avatars.com/api/?name=${selectedAlumni.first_name}+${selectedAlumni.last_name}&background=random&size=200`}
-                                    alt="Avatar"
-                                    className="w-24 h-24 rounded-full mx-auto border-4 border-white shadow-lg mb-4"
-                                />
-                                <h2 className="text-2xl font-black">{selectedAlumni.first_name} {selectedAlumni.last_name}</h2>
-                                <p className="text-blue-100">{selectedAlumni.email}</p>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                {selectedAlumni.headline && (
-                                    <p className="text-sm text-gray-600 italic text-center -mt-2">{selectedAlumni.headline}</p>
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Batch Year</p>
-                                        <p className="font-bold text-gray-900">{selectedAlumni.batch_year || 'N/A'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Course</p>
-                                        <p className="font-bold text-gray-900">{selectedAlumni.course || 'N/A'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Employment</p>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusStyle(selectedAlumni.employment_status)}`}>
-                                            {getStatusLabel(selectedAlumni.employment_status)}
-                                        </span>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Location</p>
-                                        <p className="font-bold text-gray-900 flex items-center gap-1">
-                                            {selectedAlumni.location ? <><MapPin className="w-3 h-3 text-gray-400" />{selectedAlumni.location}</> : 'N/A'}
-                                        </p>
-                                    </div>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="bg-gradient-to-br from-blue-600 to-purple-700 p-6 text-white relative shrink-0">
+                                <button
+                                    onClick={() => { setSelectedAlumni(null); setIsEditing(false); }}
+                                    className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-white" />
+                                </button>
+                                <div className="text-center">
+                                    <img
+                                        src={selectedAlumni.avatar_url || `https://ui-avatars.com/api/?name=${selectedAlumni.first_name}+${selectedAlumni.last_name}&background=random&size=200`}
+                                        alt="Avatar"
+                                        className="w-20 h-20 rounded-full mx-auto border-4 border-white/20 shadow-lg mb-3"
+                                    />
+                                    <h2 className="text-2xl font-black tracking-tight">{selectedAlumni.first_name} {selectedAlumni.last_name}</h2>
+                                    <p className="text-blue-100 font-medium text-sm">{selectedAlumni.email}</p>
                                 </div>
-                                {selectedAlumni.job_title && (
-                                    <div className="bg-blue-50 rounded-xl p-4">
-                                        <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">Current Position</p>
-                                        <p className="font-bold text-blue-900">{selectedAlumni.job_title}</p>
-                                        {selectedAlumni.company && (
-                                            <p className="text-sm text-blue-600">at {selectedAlumni.company}</p>
-                                        )}
-                                    </div>
-                                )}
-                                {(selectedAlumni.phone || selectedAlumni.linkedin_url) && (
-                                    <div className="flex gap-3">
-                                        {selectedAlumni.phone && (
-                                            <div className="flex-1 bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-                                                <Phone className="w-4 h-4 text-gray-400" />
-                                                <span className="text-sm font-bold text-gray-700">{selectedAlumni.phone}</span>
+                            </div>
+
+                            <div className="p-6 overflow-y-auto custom-scrollbar">
+                                {isEditing ? (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Batch Year</label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.batch_year || ''}
+                                                    onChange={e => setEditForm({ ...editForm, batch_year: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                    placeholder="e.g. 2024"
+                                                />
                                             </div>
-                                        )}
-                                        {selectedAlumni.linkedin_url && (
-                                            <a href={selectedAlumni.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex-1 bg-blue-50 rounded-xl p-3 flex items-center gap-2 hover:bg-blue-100 transition-colors">
-                                                <Linkedin className="w-4 h-4 text-blue-600" />
-                                                <span className="text-sm font-bold text-blue-700">LinkedIn Profile</span>
-                                            </a>
-                                        )}
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Course</label>
+                                                <select
+                                                    value={editForm.course || ''}
+                                                    onChange={e => setEditForm({ ...editForm, course: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                >
+                                                    <option value="">Select Course</option>
+                                                    <option value="BSIT">BSIT</option>
+                                                    <option value="BSCS">BSCS</option>
+                                                    <option value="BSBA">BSBA</option>
+                                                    <option value="BSHM">BSHM</option>
+                                                    <option value="BSTM">BSTM</option>
+                                                    <option value="BSCrim">BSCrim</option>
+                                                    <option value="BSEd">BSEd</option>
+                                                    <option value="BSPsych">BSPsych</option>
+                                                    {/* Add other courses as needed */}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Employment Status</label>
+                                            <select
+                                                value={editForm.employment_status || ''}
+                                                onChange={e => setEditForm({ ...editForm, employment_status: e.target.value })}
+                                                className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                            >
+                                                <option value="">Select Status</option>
+                                                {EMPLOYMENT_STATUSES.map(s => (
+                                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Job Title</label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.job_title || ''}
+                                                    onChange={e => setEditForm({ ...editForm, job_title: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                    placeholder="Role / Position"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Company</label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.company || ''}
+                                                    onChange={e => setEditForm({ ...editForm, company: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                    placeholder="Company Name"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Location</label>
+                                            <div className="relative">
+                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    value={editForm.location || ''}
+                                                    onChange={e => setEditForm({ ...editForm, location: e.target.value })}
+                                                    className="w-full pl-10 p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                    placeholder="City, Country"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Phone</label>
+                                                <div className="relative">
+                                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.phone || ''}
+                                                        onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                                                        className="w-full pl-10 p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                        placeholder="Phone Number"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">LinkedIn</label>
+                                                <div className="relative">
+                                                    <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.linkedin_url || ''}
+                                                        onChange={e => setEditForm({ ...editForm, linkedin_url: e.target.value })}
+                                                        className="w-full pl-10 p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                                        placeholder="Profile URL"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
-                                {selectedAlumni.skills && selectedAlumni.skills.length > 0 && (
-                                    <div>
-                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-2">Skills</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {selectedAlumni.skills.map((skill: string, i: number) => (
-                                                <span key={i} className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg text-[11px] font-bold">{skill}</span>
-                                            ))}
+                                ) : (
+                                    <div className="space-y-4">
+                                        {selectedAlumni.headline && (
+                                            <p className="text-sm text-gray-600 italic text-center -mt-2">"{selectedAlumni.headline}"</p>
+                                        )}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                                <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Batch Year</p>
+                                                <p className="font-bold text-gray-900">{selectedAlumni.batch_year || '—'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                                <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Course</p>
+                                                <p className="font-bold text-gray-900">{selectedAlumni.course || '—'}</p>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                                <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Employment</p>
+                                                <span className={`px-2 py-0.5 rounded-md text-xs font-bold inline-block ${getStatusStyle(selectedAlumni.employment_status)}`}>
+                                                    {getStatusLabel(selectedAlumni.employment_status)}
+                                                </span>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                                <p className="text-[10px] text-gray-400 uppercase font-black mb-1">Location</p>
+                                                <p className="font-bold text-gray-900 text-sm">{selectedAlumni.location || '—'}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100">
+                                            <p className="text-[10px] text-blue-400 uppercase font-black mb-1">Current Position</p>
+                                            <p className="font-black text-blue-900 text-lg leading-tight">{selectedAlumni.job_title || 'Start your career'}</p>
+                                            {selectedAlumni.company && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                                                    <p className="text-sm font-bold text-blue-600">{selectedAlumni.company}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <div className="flex-1 bg-gray-50 rounded-2xl p-3 flex items-center justify-center gap-2 border border-gray-100">
+                                                <Phone className="w-4 h-4 text-gray-400" />
+                                                <span className="text-sm font-bold text-gray-700">{selectedAlumni.phone || '—'}</span>
+                                            </div>
+                                            {selectedAlumni.linkedin_url ? (
+                                                <a href={selectedAlumni.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex-1 bg-blue-50 rounded-2xl p-3 flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors border border-blue-100 cursor-pointer">
+                                                    <Linkedin className="w-4 h-4 text-blue-600" />
+                                                    <span className="text-sm font-bold text-blue-700">LinkedIn</span>
+                                                </a>
+                                            ) : (
+                                                <div className="flex-1 bg-gray-50 rounded-2xl p-3 flex items-center justify-center gap-2 border border-gray-100 opacity-50">
+                                                    <Linkedin className="w-4 h-4 text-gray-400" />
+                                                    <span className="text-sm font-bold text-gray-400">No Link</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
-                                <button
-                                    onClick={() => setSelectedAlumni(null)}
-                                    className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
-                                >
-                                    Close
-                                </button>
+                            </div>
+
+                            <div className="p-4 bg-gray-50 border-t border-gray-100 shrink-0 flex gap-3">
+                                {isEditing ? (
+                                    <>
+                                        <button
+                                            onClick={() => setIsEditing(false)}
+                                            className="flex-1 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                            className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Save Changes</>}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => setSelectedAlumni(null)}
+                                            className="flex-1 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-colors"
+                                        >
+                                            Close
+                                        </button>
+                                        <button
+                                            onClick={handleEditClick}
+                                            className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 shadow-xl transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Edit className="w-4 h-4" /> Edit Profile
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

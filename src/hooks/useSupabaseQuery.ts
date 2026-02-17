@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../services/supabaseClient';
 
 // ============================================================
@@ -179,8 +179,9 @@ export function useUpcomingEvents(limit = 3) {
       const { data: upcoming, error } = await supabase
         .from('alumni_events')
         .select('*')
-        .gte('event_date', new Date().toISOString())
-        .order('event_date', { ascending: true })
+        .eq('status', 'active')
+        .gte('date', new Date().toISOString())
+        .order('date', { ascending: true })
         .limit(limit);
       if (error) throw error;
       if (upcoming && upcoming.length > 0) return upcoming;
@@ -191,11 +192,31 @@ export function useUpcomingEvents(limit = 3) {
       const { data: recent, error: err2 } = await supabase
         .from('alumni_events')
         .select('*')
-        .gte('event_date', pastDate.toISOString())
-        .order('event_date', { ascending: false })
+        .eq('status', 'active')
+        .gte('date', pastDate.toISOString())
+        .order('date', { ascending: false })
         .limit(limit);
       if (err2) throw err2;
       return recent ?? [];
+    },
+  });
+}
+
+/** Fetch a single featured event */
+export function useFeaturedEvent() {
+  return useQuery({
+    queryKey: ['featured_event'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('alumni_events')
+        .select('*')
+        .eq('is_featured', true)
+        .or('status.eq.active,status.eq.approved') // checking both valid "live" statuses just in case
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
     },
   });
 }
