@@ -45,7 +45,6 @@ const SuperAdminSidebar: React.FC = () => {
     {
       name: "Events & Reunions", icon: CalendarDays, subItems: [
         { name: "Event Calendar", path: "/superadmin/events", icon: CalendarDays },
-        { name: "Event Approvals", path: "/superadmin/event-approvals", icon: ClipboardCheck },
         { name: "Batch Reunions", path: "/superadmin/batch-reunions", icon: PartyPopper },
       ]
     },
@@ -57,10 +56,14 @@ const SuperAdminSidebar: React.FC = () => {
       ]
     },
     {
-      name: "Engagement", icon: MessageSquare, subItems: [
-        { name: "Feedback & Surveys", path: "/superadmin/feedback", icon: MessageSquare },
+      name: "Donation & Campaign Tools", icon: DollarSign, subItems: [
         { name: "Donations", path: "/superadmin/donations", icon: DollarSign },
         { name: "Financial Collections", path: "/superadmin/collections", icon: DollarSign },
+      ]
+    },
+    {
+      name: "Engagement", icon: MessageSquare, subItems: [
+        { name: "Feedback & Surveys", path: "/superadmin/feedback", icon: MessageSquare },
       ]
     },
     {

@@ -62,11 +62,17 @@ const AlumniSidebar: React.FC = () => {
       ],
     },
     {
-      name: "Engage",
+      name: "Giving",
       icon: Heart,
       subItems: [
-        { name: "Feedback & Surveys", path: "/alumni/feedback" },
         { name: "Donations", path: "/alumni/donations" },
+      ],
+    },
+    {
+      name: "Engage",
+      icon: MessageSquare,
+      subItems: [
+        { name: "Feedback & Surveys", path: "/alumni/feedback" },
       ],
     },
   ];
@@ -95,15 +101,13 @@ const AlumniSidebar: React.FC = () => {
 
   return (
     <div
-      className={`h-screen flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ${
-        collapsed ? "w-[60px]" : "w-[250px]"
-      }`}
+      className={`h-screen flex flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ${collapsed ? "w-[60px]" : "w-[250px]"
+        }`}
     >
       {/* Header */}
       <div
-        className={`flex items-center border-b border-gray-300 h-[80px] ${
-          collapsed ? "justify-center" : "justify-between px-4"
-        }`}
+        className={`flex items-center border-b border-gray-300 h-[80px] ${collapsed ? "justify-center" : "justify-between px-4"
+          }`}
       >
         <div
           onClick={() => setCollapsed(!collapsed)}
@@ -112,9 +116,8 @@ const AlumniSidebar: React.FC = () => {
           <img
             src="/images/logosmss.png"
             alt="AMS Logo"
-            className={`object-contain transition-all duration-300 ${
-              collapsed ? "w-8 h-8" : "w-9 h-9 ml-[2px]"
-            }`}
+            className={`object-contain transition-all duration-300 ${collapsed ? "w-8 h-8" : "w-9 h-9 ml-[2px]"
+              }`}
           />
           {!collapsed && (
             <div className="flex flex-col leading-tight whitespace-nowrap">
@@ -138,11 +141,10 @@ const AlumniSidebar: React.FC = () => {
             <div key={i}>
               <div
                 onClick={() => handleClickCollapsed(item)}
-                className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer select-none transition-all ${
-                  isActive
+                className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer select-none transition-all ${isActive
                     ? "text-blue-600 font-semibold"
                     : "text-gray-500 hover:text-gray-700"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <Icon className="w-4 h-4" />
@@ -169,11 +171,10 @@ const AlumniSidebar: React.FC = () => {
                       <Link
                         key={j}
                         to={sub.path}
-                        className={`block px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                          activeSub
+                        className={`block px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${activeSub
                             ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow"
                             : "hover:bg-gray-100 text-gray-700"
-                        }`}
+                          }`}
                       >
                         {sub.name}
                       </Link>
@@ -189,9 +190,8 @@ const AlumniSidebar: React.FC = () => {
       {/* Footer */}
       <div className="border-t border-gray-100 px-4 py-3">
         <div
-          className={`flex items-center ${
-            collapsed ? "justify-center" : "justify-between"
-          }`}
+          className={`flex items-center ${collapsed ? "justify-center" : "justify-between"
+            }`}
         >
           {collapsed ? (
             <div className="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full">

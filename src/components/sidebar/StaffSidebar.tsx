@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../services/supabaseClient";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     LayoutDashboard, Users, Calendar, Mail,
     ChevronRight, LogOut, Database, User2, Settings,
     CalendarDays, Newspaper, FileText,
     MoreVertical, Loader2, AlertTriangle,
-    MessageSquare, PartyPopper, Briefcase, ClipboardCheck, List, Layers, Repeat
+    MessageSquare, PartyPopper, Briefcase, List, Layers
 } from "lucide-react";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
@@ -34,7 +33,6 @@ const StaffSidebar: React.FC = () => {
         {
             name: "Events & Reunions", icon: Calendar, subItems: [
                 { name: "Event Calendar", path: "/staff/events/calendar", icon: CalendarDays },
-                { name: "Event Approvals", path: "/staff/events/approvals", icon: ClipboardCheck },
                 { name: "Batch Reunions", path: "/staff/batch-reunions", icon: PartyPopper },
             ]
         },
@@ -72,16 +70,6 @@ const StaffSidebar: React.FC = () => {
 
     const handleLogoutConfirm = async () => { setIsLoggingOut(true); await logout(); navigate('/login'); };
 
-    const handleSwitchRole = async (role: 'admin' | 'superadmin') => {
-        setShowUserMenu(false);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                await supabase.from('profiles').update({ role }).eq('id', session.user.id);
-                window.location.href = `/${role}/dashboard`;
-            }
-        } catch (err) { console.error('Switch role error:', err); }
-    };
 
     return (
         <>

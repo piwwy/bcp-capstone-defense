@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../services/supabaseClient";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, BarChart3, Briefcase, Calendar, Mail,
   ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
   PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
-  Bot, Settings, Repeat, MoreVertical, AlertTriangle, Loader2,
-  MessageSquare, PartyPopper, TrendingUp, List, Layers
+  MessageSquare, PartyPopper, TrendingUp, List, Layers,
+  Bot, Settings, MoreVertical, AlertTriangle, Loader2
 } from "lucide-react";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
@@ -24,10 +23,6 @@ const AdminSidebar: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [flatView, setFlatView] = useState(false);
-  const [showSwitchModal, setShowSwitchModal] = useState(false);
-  const [switchTarget, setSwitchTarget] = useState<'superadmin' | 'staff'>('staff');
-  const [switchPassword, setSwitchPassword] = useState('');
-  const [switchLoading, setSwitchLoading] = useState(false);
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
@@ -36,6 +31,7 @@ const AdminSidebar: React.FC = () => {
         { name: "Manage Users", path: "/admin/users", icon: Users },
         { name: "Alumni Records", path: "/admin/records", icon: Database },
         { name: "Master List", path: "/admin/upload", icon: UploadCloud },
+        { name: "Alumni Resources", path: "/admin/resources", icon: FileText },
       ]
     },
     {
@@ -59,10 +55,14 @@ const AdminSidebar: React.FC = () => {
       ]
     },
     {
-      name: "Engagement", icon: MessageSquare, subItems: [
-        { name: "Feedback & Surveys", path: "/admin/feedback", icon: MessageSquare },
+      name: "Donation & Campaign Tools", icon: DollarSign, subItems: [
         { name: "Donations", path: "/admin/donations", icon: DollarSign },
         { name: "Financial Collections", path: "/admin/collections", icon: DollarSign },
+      ]
+    },
+    {
+      name: "Engagement", icon: MessageSquare, subItems: [
+        { name: "Feedback & Surveys", path: "/admin/feedback", icon: MessageSquare },
       ]
     },
     {
@@ -73,7 +73,6 @@ const AdminSidebar: React.FC = () => {
         { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
       ]
     },
-    { name: "Alumni Resources", icon: FileText, path: "/admin/resources" },
     { name: "Settings", icon: Settings, path: "/admin/settings" },
   ];
 
@@ -91,37 +90,6 @@ const AdminSidebar: React.FC = () => {
   };
 
   const handleLogoutConfirm = async () => { setIsLoggingOut(true); await logout(); navigate('/login'); };
-
-  const openSwitchModal = (role: 'superadmin' | 'staff') => {
-    setShowUserMenu(false);
-    setSwitchTarget(role);
-    setSwitchPassword('');
-    setShowSwitchModal(true);
-  };
-
-  const handleSwitchRole = async () => {
-    if (!switchPassword) return;
-    setSwitchLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error('No session found');
-      
-      // Verify password
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: session.user.email || '',
-        password: switchPassword,
-      });
-      
-      if (authError) throw new Error('Invalid password');
-      
-      await supabase.from('profiles').update({ role: switchTarget }).eq('id', session.user.id);
-      window.location.href = `/${switchTarget}/dashboard`;
-    } catch (err: any) {
-      alert(err.message || 'Failed to switch account');
-    } finally {
-      setSwitchLoading(false);
-    }
-  };
 
   return (
     <>
@@ -239,10 +207,6 @@ const AdminSidebar: React.FC = () => {
                 <Settings className="w-4 h-4 text-gray-400" /> Account Settings
               </button>
               <div className="h-px bg-gray-100 my-1"></div>
-              <button onClick={() => openSwitchModal('staff')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
-                <Repeat className="w-4 h-4 text-gray-400" /> Switch to Staff
-              </button>
-              <div className="h-px bg-gray-100 my-1"></div>
               <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg text-left font-medium">
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>
@@ -275,42 +239,6 @@ const AdminSidebar: React.FC = () => {
           50% { opacity: 1; box-shadow: 0 0 14px rgba(59, 130, 246, 0.8); }
         }
       `}</style>
-
-      {/* SWITCH ACCOUNT SECURITY MODAL */}
-      {showSwitchModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div className="p-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Repeat className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2 text-center">Switch Account</h3>
-              <p className="text-gray-500 text-sm text-center mb-6">Enter your password to switch to {switchTarget === 'staff' ? 'Staff' : 'Super Admin'} account</p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
-                  <input
-                    type="password"
-                    value={switchPassword}
-                    onChange={(e) => setSwitchPassword(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSwitchRole()}
-                    placeholder="Enter your password"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex border-t border-gray-100 bg-gray-50/50 p-4 gap-3">
-              <button onClick={() => setShowSwitchModal(false)} className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50">Cancel</button>
-              <button onClick={handleSwitchRole} disabled={switchLoading || !switchPassword} className="flex-1 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50">
-                {switchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Switch Account'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* LOGOUT MODAL */}
       {showLogoutModal && (
