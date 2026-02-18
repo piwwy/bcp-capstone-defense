@@ -11,7 +11,7 @@ const getBaseUrl = () => {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  return 'https://bcpportal.netlify.app'; // Fallback
+  return 'https://alumnibcpportal.netlify.app'; // Fallback
 };
 
 interface EmailParams {
