@@ -3,6 +3,8 @@
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || '';
+const BREVO_SENDER_EMAIL = import.meta.env.VITE_BREVO_SENDER_EMAIL || 'perrypesinocute@gmail.com';
+const BREVO_SENDER_NAME = import.meta.env.VITE_BREVO_SENDER_NAME || 'LCP Alumni Portal';
 
 interface EmailParams {
   to: string;
@@ -21,18 +23,20 @@ export const EmailService = {
       return { success: false, error: 'Email service configuration missing (BREVO_API_KEY)' };
     }
 
+    console.log(`📧 Attempting to send email to ${to}...`);
+
     try {
       const response = await fetch(BREVO_API_URL, {
         method: 'POST',
         headers: {
           'accept': 'application/json',
-          'api-key': import.meta.env.VITE_BREVO_API_KEY,
+          'api-key': BREVO_API_KEY,
           'content-type': 'application/json',
         },
         body: JSON.stringify({
           sender: {
-            name: 'LCP Alumni Portal',
-            email: 'perrypesinocute@gmail.com' // Verified sender inside Brevo
+            name: BREVO_SENDER_NAME,
+            email: BREVO_SENDER_EMAIL
           },
           to: [{ email: to, name: toName }],
           subject,
@@ -43,10 +47,11 @@ export const EmailService = {
       const responseData = await response.json();
 
       if (!response.ok) {
-        console.error('Brevo API Error:', responseData);
+        console.error('❌ Brevo API Error:', responseData);
         return { success: false, error: responseData.message || `Brevo Error: ${response.status}` };
       }
 
+      console.log('✅ Email sent successfully via Brevo!');
       return { success: true };
     } catch (error: any) {
       console.error('Email service catch error:', error);
@@ -431,6 +436,103 @@ export const EmailService = {
           <tr>
             <td style="background-color: #1f2937; padding: 20px 30px; text-align: center;">
               <p style="color: #6b7280; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LCP Alumni Portal</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    return EmailService.sendEmail({
+      to: email,
+      toName: firstName,
+      subject,
+      htmlContent,
+    });
+  },
+
+  /**
+   * Send new credentials (username/email and password) to user
+   */
+  sendNewCredentialsEmail: async (email: string, firstName: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const subject = '🔐 Your New LCP Alumni Portal Credentials';
+    const loginUrl = `${window.location.origin}/login`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">🔐 Account Credentials Updated</h1>
+            </td>
+          </tr>
+          
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <h2 style="color: #1e3a8a; margin: 0 0 20px 0; font-size: 20px;">
+                Hello, ${firstName}!
+              </h2>
+              
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                An administrator has reset your password. Here are your new login credentials for the LCP Alumni Portal:
+              </p>
+              
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
+                <table width="100%">
+                  <tr>
+                    <td style="padding-bottom: 10px;">
+                      <span style="color: #64748b; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Email / Username:</span><br>
+                      <strong style="color: #1e293b; font-size: 16px;">${email}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span style="color: #64748b; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">New Password:</span><br>
+                      <strong style="color: #2563eb; font-size: 18px; font-family: monospace; letter-spacing: 1px;">${password}</strong>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              
+              <p style="color: #f59e0b; font-size: 14px; font-weight: bold; margin-bottom: 25px;">
+                ⚠️ For security reasons, we recommend changing your password after your first login.
+              </p>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 30px 0;">
+                    <a href="${loginUrl}" 
+                       style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                      Go to Login Page →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                If you did not request this change, please contact the Alumni Office immediately.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
+              <p style="color: #9ca3af; font-size: 13px; margin: 0 0 10px 0;">
+                Linker College of the Philippines - Alumni Portal
+              </p>
+              <p style="color: #6b7280; font-size: 12px; margin: 0;">
+                © ${new Date().getFullYear()} LCP Alumni Portal
+              </p>
             </td>
           </tr>
         </table>

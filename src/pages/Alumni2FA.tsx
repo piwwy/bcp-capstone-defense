@@ -130,15 +130,20 @@ const Alumni2FA: React.FC = () => {
 
     // Generate new OTP
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const newExpiry = Date.now() + 60 * 1000;
+    const newExpiry = Date.now() + 90 * 1000; // 1 minute and 30 seconds
     sessionStorage.setItem('otp_code', newOtp);
     sessionStorage.setItem('otp_expiry', newExpiry.toString());
 
     // Send new OTP via email
-    await EmailService.sendOTPEmail(storedEmail, 'Alumni', newOtp);
+    const { success, error: emailError } = await EmailService.sendOTPEmail(storedEmail, 'Alumni', newOtp);
 
-    setTimer(60);
-    setCode(['', '', '', '', '', '']);
+    if (!success) {
+      setError(`Failed to resend code: ${emailError || 'Unknown error'}`);
+    } else {
+      setTimer(60);
+      setCode(['', '', '', '', '', '']);
+    }
+
     setResending(false);
 
     const firstInput = document.getElementById('otp-0');
@@ -204,9 +209,8 @@ const Alumni2FA: React.FC = () => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className={`w-12 h-14 bg-slate-900 border rounded-lg text-center text-xl font-bold text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${
-                  error ? 'border-red-500/50' : 'border-slate-600'
-                }`}
+                className={`w-12 h-14 bg-slate-900 border rounded-lg text-center text-xl font-bold text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${error ? 'border-red-500/50' : 'border-slate-600'
+                  }`}
               />
             ))}
           </div>

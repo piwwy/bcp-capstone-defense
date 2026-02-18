@@ -73,13 +73,27 @@ export default function Login() {
               navigate('/alumni/dashboard', { replace: true });
             } else {
               const otp = Math.floor(100000 + Math.random() * 900000).toString();
+              const expiry = Date.now() + 90 * 1000; // 1 minute and 30 seconds
 
-              const expiry = Date.now() + 60 * 1000;
               sessionStorage.setItem('otp_code', otp);
               sessionStorage.setItem('otp_expiry', expiry.toString());
               sessionStorage.setItem('otp_email', user.email || '');
               sessionStorage.setItem('otp_user_id', user.id);
-              EmailService.sendOTPEmail(user.email || '', profile.first_name || 'Alumni', otp);
+
+              if (user.email) {
+                const { success, error: emailError } = await EmailService.sendOTPEmail(user.email, profile.first_name || 'Alumni', otp);
+                if (!success) {
+                  console.error('OTP Send Error:', emailError);
+                  showToast({ type: 'error', title: '2FA Error', message: 'Failed to send verification code. Please try again.' });
+                  setLoading(false);
+                  return;
+                }
+              } else {
+                showToast({ type: 'error', title: '2FA Error', message: 'No email address found for this account.' });
+                setLoading(false);
+                return;
+              }
+
               navigate('/alumni/2fa', { replace: true });
             }
 

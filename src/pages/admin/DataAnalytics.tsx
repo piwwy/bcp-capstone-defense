@@ -5,7 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import {
     BarChart3, Users, GraduationCap, TrendingUp, Loader2, Calendar,
     Briefcase, Heart, DollarSign, Award, PieChart as PieChartIcon,
-    ArrowUpRight, RefreshCw, Eye, EyeOff, Activity
+    ArrowUpRight, RefreshCw, Eye, EyeOff, ShieldCheck, Lock as LockIcon
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -31,6 +31,7 @@ const DataAnalytics = () => {
     const [showSensitive, setShowSensitive] = useState(false);
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [donationStats, setDonationStats] = useState({ total: 0, count: 0 });
+    const [donationRawData, setDonationRawData] = useState<any[]>([]);
     const [eventStats, setEventStats] = useState({ total: 0, attendees: 0 });
 
     useEffect(() => {
@@ -48,9 +49,10 @@ const DataAnalytics = () => {
 
             const { data: donations } = await supabase
                 .from('donations')
-                .select('amount')
+                .select('amount, created_at')
                 .eq('status', 'verified');
             if (donations) {
+                setDonationRawData(donations);
                 const total = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
                 setDonationStats({ total, count: donations.length });
             }
@@ -72,7 +74,26 @@ const DataAnalytics = () => {
     const verifiedAlumni = useMemo(() =>
         profiles.filter(p => p.status === 'verified'), [profiles]);
 
-    const registrationTrend = useMemo(() => {
+    const verificationTrend = useMemo(() => {
+        const months: Record<string, { verified: number; total: number }> = {};
+        const now = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            months[key] = { verified: 0, total: 0 };
+        }
+        profiles.forEach(p => {
+            const date = new Date(p.created_at);
+            const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            if (months[key]) {
+                months[key].total++;
+                if (p.status === 'verified') months[key].verified++;
+            }
+        });
+        return Object.entries(months).map(([name, data]) => ({ name, ...data }));
+    }, [profiles]);
+
+    const donationTrendData = useMemo(() => {
         const months: Record<string, number> = {};
         const now = new Date();
         for (let i = 11; i >= 0; i--) {
@@ -80,13 +101,13 @@ const DataAnalytics = () => {
             const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
             months[key] = 0;
         }
-        profiles.forEach(p => {
-            const date = new Date(p.created_at);
+        donationRawData.forEach(d => {
+            const date = new Date(d.created_at);
             const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            if (months[key] !== undefined) months[key]++;
+            if (months[key] !== undefined) months[key] += d.amount;
         });
-        return Object.entries(months).map(([name, registrations]) => ({ name, registrations }));
-    }, [profiles]);
+        return Object.entries(months).map(([name, amount]) => ({ name, amount }));
+    }, [donationRawData]);
 
     const batchDistribution = useMemo(() => {
         const batches: Record<string, number> = {};
@@ -226,35 +247,78 @@ const DataAnalytics = () => {
                     })}
                 </div>
 
-                {/* Registration Trend Chart */}
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h3 className="font-black text-slate-900 flex items-center gap-2">
-                                <Activity className="w-5 h-5 text-blue-600" />
-                                Registration Trend
-                            </h3>
-                            <p className="text-xs text-slate-400 mt-1 font-medium">New alumni registrations over the last 12 months</p>
+                {/* Verification Trend Chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 line-animation">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="font-black text-slate-900 flex items-center gap-2">
+                                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                                    Account Verification Activity
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-1 font-medium">Alumni claiming and verifying admin-provided accounts</p>
+                            </div>
+                        </div>
+                        <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={verificationTrend}>
+                                    <defs>
+                                        <linearGradient id="colorVerified" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                                        itemStyle={{ color: '#10B981' }}
+                                    />
+                                    <Area type="monotone" dataKey="verified" stroke="#10B981" strokeWidth={3} fill="url(#colorVerified)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
-                    <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={registrationTrend}>
-                                <defs>
-                                    <linearGradient id="colorRegistrations" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
-                                />
-                                <Area type="monotone" dataKey="registrations" stroke="#3B82F6" strokeWidth={3} fill="url(#colorRegistrations)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+
+                    {/* Donation Performance Chart */}
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="font-black text-slate-900 flex items-center gap-2">
+                                    <Heart className="w-5 h-5 text-rose-600" />
+                                    Donation Performance
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-1 font-medium">Monthly giving and fundraising growth</p>
+                            </div>
+                        </div>
+                        <div className="h-64">
+                            {showSensitive ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={donationTrendData}>
+                                        <defs>
+                                            <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                                        />
+                                        <Area type="monotone" dataKey="amount" stroke="#F43F5E" strokeWidth={3} fill="url(#colorAmount)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <LockIcon className="w-8 h-8 text-slate-300 mb-2" />
+                                    <p className="text-sm font-black text-slate-400">Financial Data Hidden</p>
+                                    <p className="text-[10px] text-slate-300 font-bold uppercase mt-1">Enable "Show Sensitive" to view charts</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import AdminPageLayout from './AdminPageLayout';
 import { supabase } from '../../services/supabaseClient';
 import {
-  FileText, Download, Filter, Lock, Loader2, AlertCircle,
+  FileText, Download, Filter, Lock as LockIcon, Loader2, AlertCircle,
   Users, Briefcase, GraduationCap, TrendingUp, PieChart as PieChartIcon,
   BarChart3, Calendar, RefreshCw, Eye, EyeOff, X, ShieldCheck
 } from 'lucide-react';
@@ -37,6 +37,7 @@ const ReportGenerator = () => {
   const [showPdfPassword, setShowPdfPassword] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [donationStats, setDonationStats] = useState<DonationStats>({ total_amount: 0, total_count: 0 });
+  const [showSensitive, setShowSensitive] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -131,11 +132,11 @@ const ReportGenerator = () => {
       .map(([name, value]) => ({ name, value }));
   }, [filteredProfiles]);
 
-  // Chart Data - Registration Trend
-  const registrationTrend = useMemo(() => {
+  // Chart Data - Verification Trend
+  const verificationTrend = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredProfiles.forEach(p => {
-      if (p.created_at) {
+      if (p.created_at && p.status === 'verified') {
         const month = p.created_at.slice(0, 7); // YYYY-MM
         counts[month] = (counts[month] || 0) + 1;
       }
@@ -180,12 +181,12 @@ const ReportGenerator = () => {
     try {
       const encryptionOptions = pdfPassword.trim()
         ? {
-            encryption: {
-              userPassword: pdfPassword.trim(),
-              ownerPassword: pdfPassword.trim(),
-              userPermissions: ['print' as const]
-            }
+          encryption: {
+            userPassword: pdfPassword.trim(),
+            ownerPassword: pdfPassword.trim(),
+            userPermissions: ['print' as const]
           }
+        }
         : {};
 
       const doc = new jsPDF(encryptionOptions);
@@ -322,6 +323,13 @@ const ReportGenerator = () => {
             <p className="text-slate-300 text-sm font-medium mt-1">Generate tracer study reports with password-protected PDF export</p>
           </div>
           <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={() => setShowSensitive(!showSensitive)}
+              className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-all flex items-center gap-2"
+            >
+              {showSensitive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showSensitive ? 'Hide' : 'Show'} Data
+            </button>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
               <p className="text-2xl font-black text-white">{stats.total}</p>
               <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Alumni</p>
@@ -366,7 +374,7 @@ const ReportGenerator = () => {
             <div className="p-2 bg-white/20 rounded-xl"><GraduationCap className="w-5 h-5" /></div>
             <span className="text-violet-100 text-sm font-medium">Donations</span>
           </div>
-          <h2 className="text-3xl font-black">₱{donationStats.total_amount.toLocaleString()}</h2>
+          <h2 className="text-3xl font-black">{showSensitive ? `₱${donationStats.total_amount.toLocaleString()}` : '₱•••••'}</h2>
         </div>
       </div>
 
@@ -430,7 +438,7 @@ const ReportGenerator = () => {
                 disabled={generating}
                 className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Lock className="w-4 h-4" /> Export PDF</>}
+                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><LockIcon className="w-4 h-4" /> Export PDF</>}
                 {generating && 'Generating...'}
               </button>
             </div>
@@ -459,25 +467,25 @@ const ReportGenerator = () => {
         {/* Right: Charts */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* Registration Trend */}
+          {/* Verification Trend */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-600" /> Registration Trend
+              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Verification Activity
             </h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={registrationTrend}>
+                <AreaChart data={verificationTrend}>
                   <defs>
                     <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Area type="monotone" dataKey="count" stroke="#3B82F6" fill="url(#colorCount)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="count" stroke="#10B981" fill="url(#colorCount)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

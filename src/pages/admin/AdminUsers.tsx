@@ -158,20 +158,44 @@ const AdminUsers: React.FC = () => {
     const handleResetPassword = async (user: User) => {
         setActionLoading(true);
         try {
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
-            const resetUrl = `${window.location.origin}/reset-password?code=${code}`;
-            const { success, error: emailError } = await EmailService.sendPasswordResetCode(user.email, user.first_name, code, resetUrl);
+            // Generate a unique strong password
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            const specials = '!@#$%';
+            let newPassword = '';
+            for (let i = 0; i < 9; i++) newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+            newPassword += specials.charAt(Math.floor(Math.random() * specials.length));
 
-            if (!success) throw new Error(emailError || 'Failed to send reset code via Brevo');
+            // 1. Call Edge Function to update password in Supabase Auth
+            const { data: functionData, error: functionError } = await supabase.functions.invoke('admin-reset-password', {
+                body: { userId: user.id, newPassword: newPassword }
+            });
+
+            if (functionError) throw new Error(functionError.message || 'Failed to update Auth password via Edge Function');
+            if (functionData?.error) throw new Error(functionData.error);
+
+            // 2. Send the email with new credentials
+            const { success, error: emailError } = await EmailService.sendNewCredentialsEmail(
+                user.email,
+                user.first_name,
+                newPassword
+            );
+
+            if (!success) throw new Error(emailError || 'Failed to send credentials via Brevo');
 
             await logAudit(AUDIT_ACTIONS.PASSWORD_CHANGED, {
                 module: 'User Management',
-                message: `Sent Brevo password reset code (${code}) to ${user.email}`,
+                message: `Successfully reset password for ${user.email} (Auth + Email sent)`,
                 userId: user.id
             });
-            showToast({ type: 'success', title: 'Reset Code Sent', message: `6-digit reset code sent to ${user.email} via Brevo.` });
+
+            showToast({
+                type: 'success',
+                title: 'Password Updated',
+                message: `Auth database updated and credentials sent to ${user.email}`
+            });
         } catch (err: any) {
-            showToast({ type: 'error', title: 'Error', message: err.message });
+            console.error('Reset password flow error:', err);
+            showToast({ type: 'error', title: 'Reset Failed', message: err.message });
         } finally {
             setActionLoading(false);
             setConfirmAction(null);
@@ -469,7 +493,7 @@ const AdminUsers: React.FC = () => {
                             <p className="text-sm text-slate-500 leading-relaxed">
                                 {confirmAction.type === 'delete' && `This will permanently remove ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s account.`}
                                 {confirmAction.type === 'approve' && `This will verify ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s account.`}
-                                {confirmAction.type === 'reset' && `A password reset email will be sent to ${confirmAction.user.email}.`}
+                                {confirmAction.type === 'reset' && `This will generate a new unique password and send it directly to ${confirmAction.user.email}.`}
                             </p>
                         </div>
                         <div className="flex gap-3 p-5 border-t border-slate-100 bg-slate-50">
