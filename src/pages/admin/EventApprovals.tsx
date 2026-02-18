@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import AdminPageLayout from './AdminPageLayout';
 import {
-    CheckCircle2, XCircle, Clock, Calendar, MapPin, Users,
-    Loader2, Eye, MessageSquare, Filter, Search, RefreshCw,
-    CalendarCheck, AlertTriangle, ChevronDown
+    CheckCircle2, XCircle, Clock, Calendar, MapPin,
+    Loader2, Eye, MessageSquare, Search, RefreshCw,
+    CalendarCheck, ChevronDown
 } from 'lucide-react';
 
 interface PendingEvent {
@@ -257,8 +257,8 @@ const EventApprovals = () => {
                                 key={status}
                                 onClick={() => setFilterStatus(status)}
                                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterStatus === status
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 {status === 'all' ? 'All' : status === 'pending_approval' ? 'Pending' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -449,8 +449,8 @@ const EventApprovals = () => {
                                 onClick={handleApproval}
                                 disabled={processing === selectedEvent.id || (approvalAction === 'reject' && !approvalNotes.trim())}
                                 className={`flex-1 px-4 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${approvalAction === 'approve'
-                                        ? 'bg-green-600 text-white hover:bg-green-700'
-                                        : 'bg-red-600 text-white hover:bg-red-700'
+                                    ? 'bg-green-600 text-white hover:bg-green-700'
+                                    : 'bg-red-600 text-white hover:bg-red-700'
                                     }`}
                             >
                                 {processing === selectedEvent.id && <Loader2 className="w-4 h-4 animate-spin" />}

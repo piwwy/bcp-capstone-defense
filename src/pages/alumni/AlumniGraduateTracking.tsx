@@ -7,16 +7,6 @@ import {
     Loader2, TrendingUp, Award, BookOpen, Target, Edit3, CheckCircle
 } from 'lucide-react';
 
-interface CareerHistory {
-    id?: string;
-    position: string;
-    company: string;
-    industry: string;
-    start_date: string;
-    end_date: string;
-    is_current: boolean;
-    description: string;
-}
 
 const EMPLOYMENT_STATUSES = [
     { value: 'employed', label: 'Employed Full-Time', icon: Briefcase },
@@ -64,18 +54,6 @@ const AlumniGraduateTracking = () => {
         years_experience: '',
     });
 
-    // Career history
-    const [careerHistory, setCareerHistory] = useState<CareerHistory[]>([]);
-    const [showAddCareer, setShowAddCareer] = useState(false);
-    const [newCareer, setNewCareer] = useState<CareerHistory>({
-        position: '',
-        company: '',
-        industry: '',
-        start_date: '',
-        end_date: '',
-        is_current: false,
-        description: '',
-    });
 
     useEffect(() => {
         if (user) {

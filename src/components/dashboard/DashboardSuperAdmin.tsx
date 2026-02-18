@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
   Users, Shield, Activity, ArrowRight, Calendar, Loader2,
-  Crown, Database, BarChart3, Clock, CheckCircle, AlertTriangle,
+  Crown, Database, BarChart3, CheckCircle, AlertTriangle,
   Repeat, X, Lock
 } from 'lucide-react';
 
@@ -68,9 +68,9 @@ const DashboardSuperAdmin = () => {
 
       // Optional table counts (may not exist, so catch errors)
       let totalEvents = 0, totalJobs = 0, totalCampaigns = 0;
-      try { const r = await supabase.from('alumni_events').select('*', { count: 'exact', head: true }); totalEvents = r.count || 0; } catch {}
-      try { const r = await supabase.from('jobs').select('*', { count: 'exact', head: true }); totalJobs = r.count || 0; } catch {}
-      try { const r = await supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }); totalCampaigns = r.count || 0; } catch {}
+      try { const r = await supabase.from('alumni_events').select('*', { count: 'exact', head: true }); totalEvents = r.count || 0; } catch { }
+      try { const r = await supabase.from('jobs').select('*', { count: 'exact', head: true }); totalJobs = r.count || 0; } catch { }
+      try { const r = await supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }); totalCampaigns = r.count || 0; } catch { }
 
       setStats({
         totalUsers: totalUsers || 0, totalAlumni: totalAlumni || 0, totalAdmins: totalAdmins || 0,
@@ -180,7 +180,7 @@ const DashboardSuperAdmin = () => {
           <div className="absolute top-10 right-10 w-72 h-72 bg-yellow-500 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-10 left-10 w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
-        
+
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm text-white rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20">
@@ -192,7 +192,7 @@ const DashboardSuperAdmin = () => {
             <p className="text-purple-100 text-lg max-w-2xl leading-relaxed">
               Full system oversight — manage users, roles, security, and all platform operations with elevated privileges.
             </p>
-            
+
             <div className="flex items-center gap-6 mt-8">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
@@ -223,7 +223,7 @@ const DashboardSuperAdmin = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="hidden lg:flex flex-col gap-3">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 min-w-[200px]">
               <div className="flex items-center gap-2 mb-2">

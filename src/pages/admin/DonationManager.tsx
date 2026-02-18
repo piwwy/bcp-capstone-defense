@@ -165,7 +165,7 @@ const DonationManager = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+
 
       // 1. Update Donation Status and Reason
       await supabase.from('donations').update({
