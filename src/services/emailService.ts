@@ -6,6 +6,14 @@ const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || '';
 const BREVO_SENDER_EMAIL = import.meta.env.VITE_BREVO_SENDER_EMAIL || 'perrypesinocute@gmail.com';
 const BREVO_SENDER_NAME = import.meta.env.VITE_BREVO_SENDER_NAME || 'LCP Alumni Portal';
 
+// Helper to get the base URL of the application
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'https://bcpportal.netlify.app'; // Fallback
+};
+
 interface EmailParams {
   to: string;
   toName: string;
@@ -64,6 +72,7 @@ export const EmailService = {
    */
   sendApprovalEmail: async (email: string, firstName: string): Promise<{ success: boolean; error?: string }> => {
     const subject = '🎉 Your LCP Alumni Account Has Been Approved!';
+    const loginUrl = `${getBaseUrl()}/login`;
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -77,7 +86,6 @@ export const EmailService = {
           <!-- Header -->
           <tr>
             <td style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); padding: 40px 30px; text-align: center;">
-              <img src="https://i.imgur.com/YourLogoHere.png" alt="LCP Logo" style="width: 60px; height: 60px; margin-bottom: 15px;">
               <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Welcome to LCP Alumni!</h1>
             </td>
           </tr>
@@ -109,7 +117,7 @@ export const EmailService = {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding: 10px 0 30px 0;">
-                    <a href="https://main--lcp-capstone.netlify.app/login" 
+                    <a href="${loginUrl}" 
                        style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
                       Login to Your Account →
                     </a>
@@ -249,8 +257,9 @@ export const EmailService = {
   /**
    * Send tracer study / employment status survey email
    */
-  sendTracerSurveyEmail: async (email: string, firstName: string, portalUrl: string): Promise<{ success: boolean; error?: string }> => {
+  sendTracerSurveyEmail: async (email: string, firstName: string, portalUrl?: string): Promise<{ success: boolean; error?: string }> => {
     const subject = '📋 LCP Alumni — Kamusta ka na? Update Your Status!';
+    const finalPortalUrl = portalUrl || getBaseUrl();
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -304,7 +313,7 @@ export const EmailService = {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding: 10px 0 30px 0;">
-                    <a href="${portalUrl}/login" 
+                    <a href="${finalPortalUrl}/login" 
                        style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
                       I-Update ang Aking Status →
                     </a>
@@ -456,7 +465,7 @@ export const EmailService = {
    */
   sendNewCredentialsEmail: async (email: string, firstName: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const subject = '🔐 Your New LCP Alumni Portal Credentials';
-    const loginUrl = `${window.location.origin}/login`;
+    const loginUrl = `${getBaseUrl()}/login`;
 
     const htmlContent = `
       <!DOCTYPE html>
