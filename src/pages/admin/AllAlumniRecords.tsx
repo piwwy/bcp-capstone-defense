@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import {
   Search, Loader2, Database, Users, GraduationCap, Calendar,
@@ -210,6 +211,14 @@ const AllAlumniRecords: React.FC = () => {
       if (error) throw error;
 
       showToast({ type: 'success', title: 'Updated', message: 'Alumni record has been updated.' });
+
+      await logAudit(AUDIT_ACTIONS.USER_UPDATED, {
+        module: 'Alumni Records',
+        message: `Updated profile for alumni: ${editForm.first_name} ${editForm.last_name}`,
+        alumniId: editingRecord.id,
+        fields: editForm
+      });
+
       setEditingRecord(null);
       fetchRecords();
     } catch (err: any) {

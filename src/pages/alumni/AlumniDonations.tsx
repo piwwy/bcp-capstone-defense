@@ -7,7 +7,7 @@ import { CardGridSkeleton } from '../../components/ui/Skeleton';
 
 import {
   Heart,
-  Download, History, LayoutGrid, Loader2,
+  Download, History, LayoutGrid,
   Image as ChevronRight, ExternalLink, X, Trophy, Award,
   TrendingUp, Target, Wallet
 } from 'lucide-react';
@@ -264,7 +264,9 @@ const AlumniDonations = () => {
                         {idx < 3 ? <Award className="w-4 h-4" /> : idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-black text-slate-800 truncate">{donor.name}</p>
+                        <p className="text-xs font-black text-slate-800 truncate">
+                          {donor.name.split(' ').map((part: string) => part.charAt(0) + '*'.repeat(3)).join(' ')}
+                        </p>
                         <p className="text-[10px] text-slate-400 truncate">{donor.email ? donor.email.replace(/(.{2}).+(@.+)/, '$1***$2') : ''}</p>
                       </div>
                       <span className="text-xs font-black text-emerald-600 whitespace-nowrap">₱{donor.total.toLocaleString()}</span>

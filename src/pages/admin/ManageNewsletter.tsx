@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import { EmailService } from '../../services/emailService';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import {
   Newspaper, Plus, X, Loader2, Search, Eye, Edit3,
@@ -145,6 +146,13 @@ const ManageNewsletter: React.FC = () => {
         showToast({ title: form.status === 'published' ? 'Published!' : 'Saved as Draft', message: form.status === 'published' ? 'Newsletter is now visible to alumni.' : 'Newsletter saved as draft.', type: 'success' });
       }
 
+      await logAudit(isEditing ? AUDIT_ACTIONS.NEWS_UPDATED : AUDIT_ACTIONS.NEWS_CREATED, {
+        module: 'Newsletter',
+        message: `${isEditing ? 'Updated' : 'Created'} newsletter: ${form.title}`,
+        newsletterId: editingId,
+        status: form.status
+      });
+
       setIsModalOpen(false);
       resetForm();
       fetchNewsletters();
@@ -162,6 +170,12 @@ const ManageNewsletter: React.FC = () => {
       }).eq('id', id);
       if (error) throw error;
       showToast({ title: 'Published!', message: 'Newsletter is now live.', type: 'success' });
+      await logAudit(AUDIT_ACTIONS.NEWS_UPDATED, {
+        module: 'Newsletter',
+        message: `Published newsletter: ${newsletters.find(n => n.id === id)?.title}`,
+        newsletterId: id,
+        status: 'published'
+      });
       fetchNewsletters();
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
@@ -173,6 +187,12 @@ const ManageNewsletter: React.FC = () => {
       const { error } = await supabase.from('alumni_newsletters').update({ status: 'archived' }).eq('id', id);
       if (error) throw error;
       showToast({ title: 'Archived', message: 'Newsletter has been archived.', type: 'success' });
+      await logAudit(AUDIT_ACTIONS.NEWS_UPDATED, {
+        module: 'Newsletter',
+        message: `Archived newsletter: ${newsletters.find(n => n.id === id)?.title}`,
+        newsletterId: id,
+        status: 'archived'
+      });
       fetchNewsletters();
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
@@ -241,6 +261,14 @@ const ManageNewsletter: React.FC = () => {
       title: 'Newsletter Sent!',
       message: `Successfully sent to ${successCount} subscriber${successCount !== 1 ? 's' : ''}${failCount > 0 ? `. ${failCount} failed.` : '.'}`,
       type: failCount > 0 ? 'warning' : 'success',
+    });
+
+    await logAudit(AUDIT_ACTIONS.NEWSLETTER_SENT, {
+      module: 'Newsletter',
+      message: `Newsletter "${nl.title}" sent to ${successCount} subscribers`,
+      newsletterId: nl.id,
+      successCount,
+      failCount
     });
   };
 

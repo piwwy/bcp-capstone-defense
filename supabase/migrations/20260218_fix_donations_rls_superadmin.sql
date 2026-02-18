@@ -15,8 +15,15 @@ CREATE POLICY "donations_select"
   ON public.donations FOR SELECT
   TO authenticated
   USING (
+    -- Admin roles can see everything
     (SELECT role FROM public.profiles WHERE id = (SELECT auth.uid())) 
     IN ('admin', 'super_admin', 'superadmin', 'staff')
+    OR
+    -- Alumni can see their own donations (by email match)
+    guest_email = (SELECT email FROM auth.users WHERE id = auth.uid())
+    OR
+    -- Authenticated users can see verified donations (for Leaderboard/Top Donators)
+    status = 'verified'
   );
 
 CREATE POLICY "donations_update"
@@ -40,9 +47,15 @@ CREATE POLICY "donations_delete"
   );
 
 -- 2. FIX: donation_campaigns table policies
+DROP POLICY IF EXISTS "donation_campaigns_select" ON public.donation_campaigns;
 DROP POLICY IF EXISTS "donation_campaigns_insert" ON public.donation_campaigns;
 DROP POLICY IF EXISTS "donation_campaigns_update" ON public.donation_campaigns;
 DROP POLICY IF EXISTS "donation_campaigns_delete" ON public.donation_campaigns;
+
+CREATE POLICY "donation_campaigns_select"
+  ON public.donation_campaigns FOR SELECT
+  TO authenticated
+  USING (true); -- Anyone logged in can see campaigns
 
 CREATE POLICY "donation_campaigns_insert"
   ON public.donation_campaigns FOR INSERT

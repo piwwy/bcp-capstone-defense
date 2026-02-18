@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import { Heart, CheckCircle, CreditCard, Smartphone, Download, History, LayoutGrid, Loader2, Image as ImageIcon, ArrowLeft, ChevronRight } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
@@ -10,7 +11,7 @@ const AlumniDonations = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { width, height } = useWindowSize();
-  
+
   const [activeTab, setActiveTab] = useState<'causes' | 'history'>('causes');
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [myHistory, setMyHistory] = useState<any[]>([]);
@@ -72,6 +73,14 @@ const AlumniDonations = () => {
       if (error) throw error;
       setRefNumber(ref);
       setStep(3);
+
+      await logAudit(AUDIT_ACTIONS.DONATION_RECEIVED, {
+        module: 'Donations',
+        message: `New donation of ₱${form.amount} submitted by ${user?.name || 'Alumni Member'}`,
+        campaignId: selectedCampaign.id,
+        amount: parseFloat(form.amount),
+        referenceNumber: ref
+      });
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
     } finally { setIsProcessing(false); }
@@ -83,116 +92,116 @@ const AlumniDonations = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-            <Heart className="w-7 h-7 text-rose-500 fill-rose-500"/> Alumni Giving Hub
+            <Heart className="w-7 h-7 text-rose-500 fill-rose-500" /> Alumni Giving Hub
           </h1>
           <p className="text-gray-500 text-sm italic">Track your impact and support LCP batchelores.</p>
         </div>
         <div className="flex bg-gray-100 p-1 rounded-2xl w-full md:w-auto">
-          <button onClick={() => {setActiveTab('causes'); setStep(1);}} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'causes' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>Causes</button>
+          <button onClick={() => { setActiveTab('causes'); setStep(1); }} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'causes' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>Causes</button>
           <button onClick={() => setActiveTab('history')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'history' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>My History</button>
         </div>
       </div>
 
       {activeTab === 'causes' ? (
         <div className="space-y-8">
-           {/* STEP 1: CHOOSE A CAUSE */}
-           {step === 1 && (
-             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4">
-               {campaigns.map(camp => {
-  const progress = Math.min((camp.current_amount / camp.target_amount) * 100, 100);
-  return (
-    <div key={camp.id} onClick={() => { setSelectedCampaign(camp); setStep(2); }} className="group cursor-pointer bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col">
-       <div className="h-44 bg-slate-100 relative overflow-hidden">
-          <img src={camp.image_url || `https://picsum.photos/seed/${camp.id}/400/200`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={camp.title} />
-          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-blue-600 uppercase border border-blue-100 shadow-sm">{camp.category}</div>
-       </div>
-       <div className="p-6">
-         <div className="flex justify-between items-start mb-2">
-           <h4 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1 flex-1">{camp.title}</h4>
-           <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" /> {/* Ginamit ang ChevronRight */}
-         </div>
-         <p className="text-xs text-gray-500 line-clamp-2 mb-6">{camp.description}</p>
-         <div className="space-y-2">
-            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-               <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
-            </div>
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
-               <span className="text-emerald-600">₱{camp.current_amount.toLocaleString()}</span>
-               <span className="text-gray-400">{progress.toFixed(0)}% Funded</span>
-            </div>
-         </div>
-       </div>
-    </div>
-  );
-})}
-             </div>
-           )}
-
-           {/* STEP 2: PAYMENT */}
-           {step === 2 && selectedCampaign && (
-             <div className="max-w-md mx-auto bg-white p-8 rounded-3xl border border-gray-100 shadow-2xl relative animate-in zoom-in-95">
-                <button onClick={() => setStep(1)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"><ArrowLeft className="w-5 h-5"/></button>
-                <div className="text-center mb-8">
-                   <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-1">Payment for</p>
-                   <h2 className="text-xl font-black text-gray-900">{selectedCampaign.title}</h2>
-                </div>
-                <div className="space-y-4">
-                   <div className="relative">
-                      <span className="absolute left-4 top-4 font-bold text-gray-400">₱</span>
-                      <input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full bg-gray-50 border-gray-100 rounded-xl p-4 pl-8 font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00" />
-                   </div>
-                   <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => setForm({...form, method: 'GCash'})} className={`py-3 rounded-xl font-bold border flex items-center justify-center gap-2 transition-all ${form.method === 'GCash' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-400 border-gray-100'}`}>
-                            <Smartphone className="w-4 h-4" /> GCash {/* Ginamit ang Smartphone icon */}
-                        </button>
-                        <button onClick={() => setForm({...form, method: 'Maya'})} className={`py-3 rounded-xl font-bold border flex items-center justify-center gap-2 transition-all ${form.method === 'Maya' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-400 border-gray-100'}`}>
-                            <CreditCard className="w-4 h-4" /> Maya {/* Ginamit ang CreditCard icon */}
-                        </button>
+          {/* STEP 1: CHOOSE A CAUSE */}
+          {step === 1 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4">
+              {campaigns.map(camp => {
+                const progress = Math.min((camp.current_amount / camp.target_amount) * 100, 100);
+                return (
+                  <div key={camp.id} onClick={() => { setSelectedCampaign(camp); setStep(2); }} className="group cursor-pointer bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col">
+                    <div className="h-44 bg-slate-100 relative overflow-hidden">
+                      <img src={camp.image_url || `https://picsum.photos/seed/${camp.id}/400/200`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={camp.title} />
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-blue-600 uppercase border border-blue-100 shadow-sm">{camp.category}</div>
+                    </div>
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-1 flex-1">{camp.title}</h4>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" /> {/* Ginamit ang ChevronRight */}
+                      </div>
+                      <p className="text-xs text-gray-500 line-clamp-2 mb-6">{camp.description}</p>
+                      <div className="space-y-2">
+                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
                         </div>
-                   <div className="border-2 border-dashed border-gray-100 p-6 rounded-2xl text-center bg-slate-50 hover:bg-slate-100 transition-colors relative">
-                      <input type="file" accept="image/*" onChange={e => e.target.files && handleFileUpload(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {/* Line 131: Replace with this to use ImageIcon */}
-                        {form.proof_url ? (
-                        <div className="flex flex-col items-center text-green-600 font-bold text-xs"><CheckCircle className="w-8 h-8 mb-1"/> Receipt Attached</div>
-                        ) : (
-                        <div className="text-gray-400 text-xs flex flex-col items-center">
-                            <ImageIcon className="w-8 h-8 mb-2 text-gray-300"/> {/* Ginamit ang ImageIcon */}
-                            Upload Screenshot
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter">
+                          <span className="text-emerald-600">₱{camp.current_amount.toLocaleString()}</span>
+                          <span className="text-gray-400">{progress.toFixed(0)}% Funded</span>
                         </div>
-                        )}
-                   </div>
-                   <button onClick={handleDonate} disabled={isProcessing || !form.amount || !form.proof_url} className="w-full py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl hover:bg-emerald-600 transition-all disabled:opacity-50 flex justify-center items-center gap-2">
-                      {isProcessing ? <Loader2 className="animate-spin w-5 h-5" /> : 'Confirm Contribution'}
-                   </button>
-                </div>
-             </div>
-           )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-           {/* STEP 3: SUCCESS */}
-           {step === 3 && (
-             <div className="fixed inset-0 bg-emerald-600 z-50 flex items-center justify-center p-4">
-                <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />
-                <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl text-center max-w-sm z-10 animate-in zoom-in-95">
-                   <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-10 h-10 text-emerald-500 animate-bounce" /></div>
-                   <h2 className="text-2xl font-black text-gray-900 mb-2">Contribution Sent!</h2>
-                   <p className="text-gray-500 text-sm mb-8">Thank you, <b>{user?.name?.split(' ')[0]}</b>! Your support means a lot to the LCP community.</p>
-                   <div className="bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200 mb-8 text-left">
-                      <div className="flex justify-between mb-1"><span className="text-[10px] uppercase text-gray-400 font-bold">Reference</span><span className="font-mono text-xs font-bold text-gray-700">{refNumber}</span></div>
-                      <div className="flex justify-between"><span className="text-[10px] uppercase text-gray-400 font-bold">Amount</span><span className="text-xs font-black text-emerald-600">₱{parseFloat(form.amount).toLocaleString()}</span></div>
-                   </div>
-                   <button onClick={() => {setStep(1); setActiveTab('history'); fetchData();}} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-lg hover:bg-black transition-all">Close & View Records</button>
+          {/* STEP 2: PAYMENT */}
+          {step === 2 && selectedCampaign && (
+            <div className="max-w-md mx-auto bg-white p-8 rounded-3xl border border-gray-100 shadow-2xl relative animate-in zoom-in-95">
+              <button onClick={() => setStep(1)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"><ArrowLeft className="w-5 h-5" /></button>
+              <div className="text-center mb-8">
+                <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-1">Payment for</p>
+                <h2 className="text-xl font-black text-gray-900">{selectedCampaign.title}</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="relative">
+                  <span className="absolute left-4 top-4 font-bold text-gray-400">₱</span>
+                  <input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-gray-50 border-gray-100 rounded-xl p-4 pl-8 font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0.00" />
                 </div>
-                {/* Sa loob ng Step 3 div, palitan ang Close button block */}
-<div className="flex flex-col gap-2">
-   <button onClick={() => window.print()} className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
-      <Download className="w-4 h-4" /> Save as PDF {/* Ginamit ang Download icon */}
-   </button>
-   <button onClick={() => {setStep(1); setActiveTab('history'); fetchData();}} className="w-full py-3 text-emerald-700 font-bold hover:bg-emerald-50 rounded-xl transition-all">
-      View Giving History
-   </button>
-</div>
-             </div>
-           )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setForm({ ...form, method: 'GCash' })} className={`py-3 rounded-xl font-bold border flex items-center justify-center gap-2 transition-all ${form.method === 'GCash' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-400 border-gray-100'}`}>
+                    <Smartphone className="w-4 h-4" /> GCash {/* Ginamit ang Smartphone icon */}
+                  </button>
+                  <button onClick={() => setForm({ ...form, method: 'Maya' })} className={`py-3 rounded-xl font-bold border flex items-center justify-center gap-2 transition-all ${form.method === 'Maya' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-gray-400 border-gray-100'}`}>
+                    <CreditCard className="w-4 h-4" /> Maya {/* Ginamit ang CreditCard icon */}
+                  </button>
+                </div>
+                <div className="border-2 border-dashed border-gray-100 p-6 rounded-2xl text-center bg-slate-50 hover:bg-slate-100 transition-colors relative">
+                  <input type="file" accept="image/*" onChange={e => e.target.files && handleFileUpload(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  {/* Line 131: Replace with this to use ImageIcon */}
+                  {form.proof_url ? (
+                    <div className="flex flex-col items-center text-green-600 font-bold text-xs"><CheckCircle className="w-8 h-8 mb-1" /> Receipt Attached</div>
+                  ) : (
+                    <div className="text-gray-400 text-xs flex flex-col items-center">
+                      <ImageIcon className="w-8 h-8 mb-2 text-gray-300" /> {/* Ginamit ang ImageIcon */}
+                      Upload Screenshot
+                    </div>
+                  )}
+                </div>
+                <button onClick={handleDonate} disabled={isProcessing || !form.amount || !form.proof_url} className="w-full py-4 bg-emerald-500 text-white font-black rounded-2xl shadow-xl hover:bg-emerald-600 transition-all disabled:opacity-50 flex justify-center items-center gap-2">
+                  {isProcessing ? <Loader2 className="animate-spin w-5 h-5" /> : 'Confirm Contribution'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: SUCCESS */}
+          {step === 3 && (
+            <div className="fixed inset-0 bg-emerald-600 z-50 flex items-center justify-center p-4">
+              <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />
+              <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl text-center max-w-sm z-10 animate-in zoom-in-95">
+                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-10 h-10 text-emerald-500 animate-bounce" /></div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Contribution Sent!</h2>
+                <p className="text-gray-500 text-sm mb-8">Thank you, <b>{user?.name?.split(' ')[0]}</b>! Your support means a lot to the LCP community.</p>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200 mb-8 text-left">
+                  <div className="flex justify-between mb-1"><span className="text-[10px] uppercase text-gray-400 font-bold">Reference</span><span className="font-mono text-xs font-bold text-gray-700">{refNumber}</span></div>
+                  <div className="flex justify-between"><span className="text-[10px] uppercase text-gray-400 font-bold">Amount</span><span className="text-xs font-black text-emerald-600">₱{parseFloat(form.amount).toLocaleString()}</span></div>
+                </div>
+                <button onClick={() => { setStep(1); setActiveTab('history'); fetchData(); }} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-lg hover:bg-black transition-all">Close & View Records</button>
+              </div>
+              {/* Sa loob ng Step 3 div, palitan ang Close button block */}
+              <div className="flex flex-col gap-2">
+                <button onClick={() => window.print()} className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
+                  <Download className="w-4 h-4" /> Save as PDF {/* Ginamit ang Download icon */}
+                </button>
+                <button onClick={() => { setStep(1); setActiveTab('history'); fetchData(); }} className="w-full py-3 text-emerald-700 font-bold hover:bg-emerald-50 rounded-xl transition-all">
+                  View Giving History
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* MY GIVING HISTORY TAB */

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import { Building2, Loader2, Search, Briefcase, Mail, Phone, CheckCircle2, X, Send, Clock, ArrowRight, MessageSquare, Users, FileText } from 'lucide-react';
 
@@ -97,6 +98,12 @@ const PartnerInquiries: React.FC = () => {
       if (error) throw error;
       setInquiries((prev) => prev.map((e) => e.id === id ? { ...e, status: 'reviewed' } : e));
       showToast({ type: 'success', title: 'Updated', message: 'Inquiry marked as reviewed.' });
+
+      await logAudit(AUDIT_ACTIONS.INQUIRY_REVIEWED, {
+        module: 'Partner Inquiries',
+        message: `Marked inquiry ${id} as reviewed`,
+        inquiryId: id
+      });
     } catch (error: any) {
       showToast({ type: 'error', title: 'Update Failed', message: error.message || 'Unable to update.' });
     } finally { setSavingId(null); }
@@ -114,15 +121,12 @@ const PartnerInquiries: React.FC = () => {
 
       setInquiries((prev) => prev.map((e) => e.id === id ? { ...e, [field]: true, status: 'reviewed' } : e));
 
-      // Audit log
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('audit_logs').insert([{
-          user_id: user?.id,
-          action: `ROUTED_TO_${target.toUpperCase()}`,
-          details: { module: 'Partner Inquiries', message: `Inquiry ${id} routed to ${target.toUpperCase()}` }
-        }]);
-      } catch { }
+      await logAudit(AUDIT_ACTIONS.INQUIRY_ROUTED, {
+        module: 'Partner Inquiries',
+        message: `Inquiry ${id} routed to ${target.toUpperCase()}`,
+        inquiryId: id,
+        target: target.toUpperCase()
+      });
 
       showToast({ type: 'success', title: `Routed to ${target.toUpperCase()}`, message: target === 'osa' ? 'Inquiry forwarded to Office of Student Affairs.' : 'Inquiry forwarded to Human Resources.' });
     } catch (error: any) {
@@ -141,6 +145,13 @@ const PartnerInquiries: React.FC = () => {
       if (error) throw error;
       setInquiries((prev) => prev.map((e) => e.id === selectedInquiry.id ? { ...e, admin_notes: adminNotes } : e));
       showToast({ type: 'success', title: 'Notes Saved', message: 'Admin notes updated.' });
+
+      await logAudit(AUDIT_ACTIONS.INQUIRY_NOTES_UPDATED, {
+        module: 'Partner Inquiries',
+        message: `Updated internal notes for inquiry ${selectedInquiry.id}`,
+        inquiryId: selectedInquiry.id
+      });
+
       setSelectedInquiry(null);
     } catch (error: any) {
       showToast({ type: 'error', title: 'Save Failed', message: error.message });
@@ -265,7 +276,7 @@ const PartnerInquiries: React.FC = () => {
                           {entry.routed_to_hr ? '✓ HR' : 'Route HR'}
                         </button>
                         {entry.inquiry_type === 'company' && entry.position_offered && (
-                          <button 
+                          <button
                             onClick={() => window.location.href = `/admin/jobs/board?from_inquiry=${entry.id}&company=${encodeURIComponent(entry.company_name || '')}&position=${encodeURIComponent(entry.position_offered || '')}`}
                             className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 text-xs font-bold hover:bg-purple-50 transition-colors"
                             title="Convert to Job Posting"

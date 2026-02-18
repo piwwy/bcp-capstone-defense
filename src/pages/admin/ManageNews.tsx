@@ -3,6 +3,7 @@ import AdminPageLayout from './AdminPageLayout';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import {
     Newspaper, Plus, Edit2, Trash2, Eye, EyeOff,
     Loader2, X, Calendar, User, Search, RefreshCw,
@@ -186,14 +187,13 @@ const ManageNews = () => {
                 showToast({ title: 'Created!', message: `"${form.title}" has been ${form.is_published ? 'published' : 'saved as draft'}.`, type: 'success' });
             }
 
-            // Audit log (silent)
-            try {
-                await supabase.from('audit_logs').insert([{
-                    user_id: user?.id,
-                    action: editingArticle ? 'UPDATED_NEWS' : 'CREATED_NEWS',
-                    details: { module: 'News Feed', message: `${editingArticle ? 'Updated' : 'Created'} article: ${form.title}` }
-                }]);
-            } catch { }
+            // Audit log
+            await logAudit(editingArticle ? AUDIT_ACTIONS.NEWS_UPDATED : AUDIT_ACTIONS.NEWS_CREATED, {
+                module: 'News Feed',
+                message: `${editingArticle ? 'Updated' : 'Created'} article: ${form.title}`,
+                articleId: editingArticle?.id,
+                isPublished: form.is_published
+            });
 
             setIsModalOpen(false);
             fetchArticles();
@@ -222,6 +222,13 @@ const ManageNews = () => {
                 type: 'success'
             });
             fetchArticles();
+
+            await logAudit(AUDIT_ACTIONS.NEWS_UPDATED, {
+                module: 'News Feed',
+                message: `${article.is_published ? 'Unpublished' : 'Published'} article: ${article.title}`,
+                articleId: article.id,
+                status: article.is_published ? 'draft' : 'published'
+            });
         } catch (error: any) {
             showToast({ title: 'Error', message: error.message, type: 'error' });
         }
@@ -238,13 +245,11 @@ const ManageNews = () => {
             const { error } = await supabase.from('news_articles').delete().eq('id', deleteModal.id);
             if (error) throw error;
 
-            try {
-                await supabase.from('audit_logs').insert([{
-                    user_id: user?.id,
-                    action: 'DELETED_NEWS',
-                    details: { module: 'News Feed', message: `Deleted article: ${deleteModal.title}` }
-                }]);
-            } catch { }
+            await logAudit(AUDIT_ACTIONS.NEWS_DELETED, {
+                module: 'News Feed',
+                message: `Deleted article: ${deleteModal.title}`,
+                articleId: deleteModal.id
+            });
 
             showToast({ title: 'Deleted', message: `"${deleteModal.title}" has been removed.`, type: 'success' });
             setDeleteModal({ show: false, id: '', title: '' });

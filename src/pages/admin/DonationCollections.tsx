@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { logExport } from '../../services/auditLogger';
 import AdminResourceCard from './AdminResourceCard';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -102,7 +103,7 @@ const DonationCollections = () => {
   const filteredDonations = useMemo(() => {
     return donations.filter(d => {
       const matchesSearch = d.guest_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          d.reference_number.toLowerCase().includes(searchTerm.toLowerCase());
+        d.reference_number.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCampaign = selectedCampaignId ? d.donation_campaigns?.id === selectedCampaignId : true;
 
       // Date range filtering
@@ -151,16 +152,19 @@ const DonationCollections = () => {
   // 4. BUSINESS INTELLIGENCE: CSV EXPORT
   const exportToCSV = () => {
     const headers = ["Date,Reference,Donor,Email,Campaign,Amount,Method\n"];
-    const rows = filteredDonations.map(d => 
+    const rows = filteredDonations.map(d =>
       `${new Date(d.created_at).toLocaleDateString()},${d.reference_number},${d.guest_name},${d.guest_email},${d.donation_campaigns?.title},${d.amount},${d.payment_method}`
     ).join("\n");
-    
+
     const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `LCP_Audit_Report_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `LCP_Audit_Report_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+
+    // Log the export
+    logExport('CSV', filteredDonations.length, 'Donations');
   };
 
   // SKELETON LOADER
@@ -380,10 +384,10 @@ const DonationCollections = () => {
               <BarChart data={campaigns} style={{ cursor: 'pointer' }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="title" tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
                 <Tooltip
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}}
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                   formatter={(value: any) => showAmounts ? `₱${Number(value).toLocaleString()}` : '₱ •••••••'}
                 />
                 <Bar
@@ -407,18 +411,18 @@ const DonationCollections = () => {
 
         {/* PAYMENT METHOD BREAKDOWN */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Wallet className="w-5 h-5 text-purple-500"/> Gateway Breakdown</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Wallet className="w-5 h-5 text-purple-500" /> Gateway Breakdown</h3>
           {paymentMethodData.length > 0 ? (
             <div className="h-64">
-               <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={paymentMethodData} innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" nameKey="name">
-                      {paymentMethodData.map((_entry, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip formatter={(value: any) => showAmounts ? `₱${Number(value).toLocaleString()}` : '₱ •••••••'} />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
-                  </PieChart>
-               </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={paymentMethodData} innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" nameKey="name">
+                    {paymentMethodData.map((_entry, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(value: any) => showAmounts ? `₱${Number(value).toLocaleString()}` : '₱ •••••••'} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <div className="h-64 flex flex-col items-center justify-center">
@@ -435,17 +439,17 @@ const DonationCollections = () => {
         <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/30">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search donor or reference no..." 
+            <input
+              type="text"
+              placeholder="Search donor or reference no..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
             />
           </div>
           <div className="flex items-center gap-4">
-             <span className="text-xs font-black text-slate-400 uppercase">{filteredDonations.length} Results</span>
-             {selectedCampaignId && <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase">Filtered View</span>}
+            <span className="text-xs font-black text-slate-400 uppercase">{filteredDonations.length} Results</span>
+            {selectedCampaignId && <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase">Filtered View</span>}
           </div>
         </div>
 
@@ -476,27 +480,27 @@ const DonationCollections = () => {
                       <p className="text-[10px] text-slate-400 mt-1">{new Date(d.created_at).toLocaleString()}</p>
                     </td>
                     <td className="px-8 py-6">
-                       <p className="text-sm font-bold text-slate-800">{d.guest_name}</p>
-                       <p className="text-xs text-slate-400">{d.guest_email}</p>
+                      <p className="text-sm font-bold text-slate-800">{d.guest_name}</p>
+                      <p className="text-xs text-slate-400">{d.guest_email}</p>
                     </td>
                     <td className="px-8 py-6">
-                       <div className="flex flex-col">
-                          <span className="text-sm font-black text-emerald-600">{maskAmount(d.amount)}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase">{d.payment_method}</span>
-                       </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-emerald-600">{maskAmount(d.amount)}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">{d.payment_method}</span>
+                      </div>
                     </td>
                     <td className="px-8 py-6">
-                       <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg truncate block max-w-[200px]">{d.donation_campaigns?.title}</span>
+                      <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg truncate block max-w-[200px]">{d.donation_campaigns?.title}</span>
                     </td>
                     <td className="px-8 py-6">
-                       {d.proof_image_url ? (
-                         <a href={d.proof_image_url} target="_blank" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all inline-block"><Eye className="w-4 h-4"/></a>
-                       ) : <span className="text-[10px] text-slate-300 italic">No receipt</span>}
+                      {d.proof_image_url ? (
+                        <a href={d.proof_image_url} target="_blank" className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all inline-block"><Eye className="w-4 h-4" /></a>
+                      ) : <span className="text-[10px] text-slate-300 italic">No receipt</span>}
                     </td>
                     <td className="px-8 py-6 text-center">
-                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${d.status === 'verified' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                         <CheckCircle2 className="w-3 h-3" /> {d.status}
-                       </div>
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${d.status === 'verified' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        <CheckCircle2 className="w-3 h-3" /> {d.status}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -504,14 +508,14 @@ const DonationCollections = () => {
             </table>
           )}
         </div>
-        
+
         {/* PAGINATION CONTROLS */}
         <div className="p-6 border-t border-slate-50 flex justify-between items-center bg-slate-50/20">
-           <p className="text-xs text-slate-500 font-medium">Showing {(currentPage * itemsPerPage) + 1} to {Math.min((currentPage + 1) * itemsPerPage, filteredDonations.length)} of {filteredDonations.length} records</p>
-           <div className="flex gap-2">
-              <button disabled={currentPage === 0} onClick={() => setCurrentPage(c => c - 1)} className="px-4 py-2 border rounded-xl text-xs font-bold disabled:opacity-50">Previous</button>
-              <button disabled={(currentPage + 1) * itemsPerPage >= filteredDonations.length} onClick={() => setCurrentPage(c => c + 1)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold disabled:opacity-50">Next Page</button>
-           </div>
+          <p className="text-xs text-slate-500 font-medium">Showing {(currentPage * itemsPerPage) + 1} to {Math.min((currentPage + 1) * itemsPerPage, filteredDonations.length)} of {filteredDonations.length} records</p>
+          <div className="flex gap-2">
+            <button disabled={currentPage === 0} onClick={() => setCurrentPage(c => c - 1)} className="px-4 py-2 border rounded-xl text-xs font-bold disabled:opacity-50">Previous</button>
+            <button disabled={(currentPage + 1) * itemsPerPage >= filteredDonations.length} onClick={() => setCurrentPage(c => c + 1)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold disabled:opacity-50">Next Page</button>
+          </div>
         </div>
       </div>
     </div>

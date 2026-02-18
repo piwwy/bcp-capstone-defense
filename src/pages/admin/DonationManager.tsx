@@ -4,6 +4,7 @@ import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCi
 import AdminPageLayout from './AdminPageLayout';
 import AdminResourceCard from './AdminResourceCard';
 import { useToast } from '../../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 
 const DonationManager = () => {
   const { showToast } = useToast();
@@ -30,6 +31,12 @@ const DonationManager = () => {
 
     if (!error) {
       fetchData();
+      await logAudit(AUDIT_ACTIONS.RECORD_UPDATED, {
+        module: 'Donations',
+        message: `Restored archived campaign: ${campaigns.find(c => c.id === id)?.title}`,
+        campaignId: id,
+        status: 'active'
+      });
       showToast({ title: 'Restored', message: 'Campaign is now active again.', type: 'success' });
     }
   };
@@ -48,6 +55,12 @@ const DonationManager = () => {
 
     if (!error) {
       fetchData();
+      await logAudit(AUDIT_ACTIONS.RECORD_UPDATED, {
+        module: 'Donations',
+        message: `Archived campaign: ${campaigns.find(c => c.id === id)?.title}`,
+        campaignId: id,
+        status: 'archived'
+      });
       showToast({ title: 'Archived', message: 'Campaign moved to archives.', type: 'info' });
     } else {
       showToast({ title: 'Archive Failed', message: error.message, type: 'error' });
@@ -161,12 +174,12 @@ const DonationManager = () => {
       }).eq('id', activeDonationId);
 
       // 2. Insert into Audit Trail
-      await supabase.from('audit_logs').insert([{
-        admin_id: user?.id,
-        action: 'REJECTED_DONATION',
+      await logAudit(AUDIT_ACTIONS.DONATION_REJECTED, {
         module: 'Donations',
-        details: `Reason: ${rejectionReason} | ID: ${activeDonationId}`
-      }]);
+        message: `Rejected donation ID: ${activeDonationId}. Reason: ${rejectionReason}`,
+        donationId: activeDonationId,
+        reason: rejectionReason
+      });
 
       showToast({ title: 'Rejected', message: 'Donor will see the reason in their records.', type: 'info' });
       setIsRejectModalOpen(false);
@@ -229,6 +242,13 @@ const DonationManager = () => {
         type: 'success'
       });
 
+      await logAudit(isEditing ? AUDIT_ACTIONS.RECORD_UPDATED : AUDIT_ACTIONS.CAMPAIGN_CREATED, {
+        module: 'Donations',
+        message: `${isEditing ? 'Updated' : 'Launched'} campaign: ${formData.title}`,
+        campaignTitle: formData.title,
+        targetAmount: amount
+      });
+
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message || 'Operation failed.', type: 'error' });
     } finally {
@@ -256,6 +276,13 @@ const DonationManager = () => {
       await supabase.from('donation_campaigns').update({ current_amount: newTotal }).eq('id', campaignId);
 
       fetchData();
+      await logAudit(AUDIT_ACTIONS.DONATION_APPROVED, {
+        module: 'Donations',
+        message: `Verified donation of ₱${amount.toLocaleString()} for campaign ID: ${campaignId}`,
+        donationId,
+        campaignId,
+        amount
+      });
       showToast({ title: 'Verified', message: 'Funds successfully added to campaign.', type: 'success' });
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message || 'Verification failed.', type: 'error' });

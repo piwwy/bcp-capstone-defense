@@ -2,7 +2,7 @@
 -- FIXED SEED: Staff and Super Admin Users
 -- Date: 2026-02-18
 -- Passwords: Staff_123, Super_123
--- Optimized: Using WHERE NOT EXISTS instead of ON CONFLICT to avoid RLS/Constraint issues
+-- Optimized: Manual existing check to avoid RLS/Constraint issues
 -- ================================================================
 
 -- Enable necessary extensions
@@ -13,73 +13,90 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Account: super@gmail.com / Super_123
 DO $$
 DECLARE
-  super_uid UUID := uuid_generate_v4();
+  target_id UUID;
 BEGIN
-  -- Insert into auth.users only if email doesn't exist
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'super@gmail.com') THEN
+  -- Get existing ID if any
+  SELECT id INTO target_id FROM auth.users WHERE email = 'super@gmail.com';
+
+  IF target_id IS NOT NULL THEN
+    -- Update existing user
+    UPDATE auth.users SET 
+      encrypted_password = crypt('Super_123', gen_salt('bf')),
+      raw_user_meta_data = '{"first_name": "Super", "last_name": "Admin", "role": "superadmin"}',
+      updated_at = now(),
+      email_confirmed_at = COALESCE(email_confirmed_at, now())
+    WHERE id = target_id;
+  ELSE
+    -- Create new user
+    target_id := '00000000-0000-0000-0000-000000000001';
     INSERT INTO auth.users (
       id, instance_id, email, encrypted_password, email_confirmed_at, 
       raw_app_meta_data, raw_user_meta_data, is_super_admin, role, 
-      aud, confirmation_token, recovery_token, email_change_token_new, 
-      last_sign_in_at, created_at, updated_at, confirmation_sent_at
+      aud, created_at, updated_at
     )
     VALUES (
-      super_uid, 
+      target_id, 
       '00000000-0000-0000-0000-000000000000', 
       'super@gmail.com', 
       crypt('Super_123', gen_salt('bf')), 
       now(), 
       '{"provider": "email", "providers": ["email"]}', 
-      '{"name": "Super Admin"}', 
+      '{"first_name": "Super", "last_name": "Admin", "role": "superadmin"}', 
       false, 
       'authenticated', 
       'authenticated', 
-      '', '', '', 
-      now(), now(), now(), now()
+      now(), now()
     );
   END IF;
 
-  -- Insert/Update public.profiles
-  -- We select by email to ensure we map to the correct auth user
+  -- Ensure profile exists and has correct role
   INSERT INTO public.profiles (id, email, role, first_name, last_name, status)
-  SELECT id, email, 'superadmin', 'Super', 'Admin', 'verified'
-  FROM auth.users WHERE email = 'super@gmail.com'
-  ON CONFLICT (email) DO UPDATE SET role = 'superadmin', status = 'verified';
+  VALUES (target_id, 'super@gmail.com', 'superadmin', 'Super', 'Admin', 'verified')
+  ON CONFLICT (id) DO UPDATE SET role = 'superadmin', status = 'verified';
 END $$;
 
 -- 2. SEED STAFF
 -- Account: staff@gmail.com / Staff_123
 DO $$
 DECLARE
-  staff_uid UUID := uuid_generate_v4();
+  target_id UUID;
 BEGIN
-  -- Insert into auth.users only if email doesn't exist
-  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'staff@gmail.com') THEN
+  -- Get existing ID if any
+  SELECT id INTO target_id FROM auth.users WHERE email = 'staff@gmail.com';
+
+  IF target_id IS NOT NULL THEN
+    -- Update existing user
+    UPDATE auth.users SET 
+      encrypted_password = crypt('Staff_123', gen_salt('bf')),
+      raw_user_meta_data = '{"first_name": "Staff", "last_name": "Member", "role": "staff"}',
+      updated_at = now(),
+      email_confirmed_at = COALESCE(email_confirmed_at, now())
+    WHERE id = target_id;
+  ELSE
+    -- Create new user
+    target_id := '00000000-0000-0000-0000-000000000002';
     INSERT INTO auth.users (
       id, instance_id, email, encrypted_password, email_confirmed_at, 
       raw_app_meta_data, raw_user_meta_data, is_super_admin, role, 
-      aud, confirmation_token, recovery_token, email_change_token_new, 
-      last_sign_in_at, created_at, updated_at, confirmation_sent_at
+      aud, created_at, updated_at
     )
     VALUES (
-      staff_uid, 
+      target_id, 
       '00000000-0000-0000-0000-000000000000', 
       'staff@gmail.com', 
       crypt('Staff_123', gen_salt('bf')), 
       now(), 
       '{"provider": "email", "providers": ["email"]}', 
-      '{"name": "Staff Member"}', 
+      '{"first_name": "Staff", "last_name": "Member", "role": "staff"}', 
       false, 
       'authenticated', 
       'authenticated', 
-      '', '', '', 
-      now(), now(), now(), now()
+      now(), now()
     );
   END IF;
 
-  -- Insert/Update public.profiles
+  -- Ensure profile exists and has correct role
   INSERT INTO public.profiles (id, email, role, first_name, last_name, status)
-  SELECT id, email, 'staff', 'Staff', 'Member', 'verified'
-  FROM auth.users WHERE email = 'staff@gmail.com'
-  ON CONFLICT (email) DO UPDATE SET role = 'staff', status = 'verified';
+  VALUES (target_id, 'staff@gmail.com', 'staff', 'Staff', 'Member', 'verified')
+  ON CONFLICT (id) DO UPDATE SET role = 'staff', status = 'verified';
 END $$;
