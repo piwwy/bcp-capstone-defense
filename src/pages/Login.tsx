@@ -84,9 +84,8 @@ export default function Login() {
                 const { success, error: emailError } = await EmailService.sendOTPEmail(user.email, profile.first_name || 'Alumni', otp);
                 if (!success) {
                   console.error('OTP Send Error:', emailError);
-                  showToast({ type: 'error', title: '2FA Error', message: 'Failed to send verification code. Please try again.' });
-                  setLoading(false);
-                  return;
+                  // Still proceed to 2FA page — user can resend from there
+                  showToast({ type: 'warning', title: 'Code Sending Issue', message: 'Verification code may be delayed. You can resend from the next page.' });
                 }
               } else {
                 showToast({ type: 'error', title: '2FA Error', message: 'No email address found for this account.' });
@@ -94,6 +93,7 @@ export default function Login() {
                 return;
               }
 
+              // Always navigate to 2FA page (user can resend if email failed)
               navigate('/alumni/2fa', { replace: true });
             }
 

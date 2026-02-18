@@ -43,6 +43,16 @@ const PublicDonationPage = () => {
   };
 
   useEffect(() => {
+    // Pre-fill form from URL params (alumni redirect)
+    const urlName = searchParams.get('name');
+    const urlEmail = searchParams.get('email');
+    if (urlName || urlEmail) {
+      setForm(prev => ({
+        ...prev,
+        name: urlName ? decodeURIComponent(urlName) : prev.name,
+        email: urlEmail || prev.email
+      }));
+    }
     fetchCampaigns();
   }, []);
 
@@ -363,10 +373,13 @@ const PublicDonationPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Your Name" />
-                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Email Address" />
-              </div>
+              {/* Only show name/email inputs for guests (no URL params) */}
+              {!(searchParams.get('name') && searchParams.get('email')) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Your Name" />
+                  <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="Email Address" />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-blue-200/50 uppercase mb-2">Select Payment Method</label>

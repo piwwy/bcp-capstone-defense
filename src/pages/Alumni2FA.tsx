@@ -22,12 +22,41 @@ const Alumni2FA: React.FC = () => {
     ? storedEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     : '***@***.com';
 
-  // Redirect if no OTP session exists
+  // Redirect if no OTP session exists AND no auth session
   useEffect(() => {
-    const otpCode = sessionStorage.getItem('otp_code');
-    if (!otpCode) {
-      navigate('/login', { replace: true });
-    }
+    const checkSession = async () => {
+      const otpCode = sessionStorage.getItem('otp_code');
+      if (!otpCode) {
+        // Check if user has a valid Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // User is authenticated but OTP is missing (page refresh or email failed)
+          // Auto-generate new OTP and try to send
+          const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+          const newExpiry = Date.now() + 90 * 1000;
+          sessionStorage.setItem('otp_code', newOtp);
+          sessionStorage.setItem('otp_expiry', newExpiry.toString());
+          sessionStorage.setItem('otp_email', session.user.email || '');
+          sessionStorage.setItem('otp_user_id', session.user.id);
+
+          // Try to send OTP email
+          if (session.user.email) {
+            const { success } = await EmailService.sendOTPEmail(
+              session.user.email,
+              'Alumni',
+              newOtp
+            );
+            if (!success) {
+              setError('Could not send verification code. Please click "Resend Code" below.');
+            }
+          }
+        } else {
+          // No session at all — redirect to login
+          navigate('/login', { replace: true });
+        }
+      }
+    };
+    checkSession();
   }, [navigate]);
 
   // Focus management

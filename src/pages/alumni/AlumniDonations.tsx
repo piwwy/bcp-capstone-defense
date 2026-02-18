@@ -40,10 +40,11 @@ const AlumniDonations = () => {
       setCampaigns(camps || []);
 
       if (user?.email) {
+        // Query donations by email OR by profile_id to catch all user donations
         const { data: history } = await supabase
           .from('donations')
           .select('*, donation_campaigns(title)')
-          .eq('guest_email', user.email)
+          .or(`guest_email.eq.${user.email},profile_id.eq.${user.id}`)
           .order('created_at', { ascending: false });
         setMyHistory(history || []);
       }

@@ -1,8 +1,9 @@
 -- ================================================================
--- FIXED SEED: Staff and Super Admin Users
+-- ROBUST SEED: Staff and Super Admin Users
 -- Date: 2026-02-18
 -- Passwords: Staff_123, Super_123
--- Optimized: Manual existing check to avoid RLS/Constraint issues
+-- Optimized: Uses dynamic UUIDs to avoid primary key conflicts
+-- FIX: Includes auth.identities upsert (required for signInWithPassword)
 -- ================================================================
 
 -- Enable necessary extensions
@@ -19,16 +20,17 @@ BEGIN
   SELECT id INTO target_id FROM auth.users WHERE email = 'super@gmail.com';
 
   IF target_id IS NOT NULL THEN
-    -- Update existing user
+    -- Update existing user password and metadata
     UPDATE auth.users SET 
       encrypted_password = crypt('Super_123', gen_salt('bf')),
       raw_user_meta_data = '{"first_name": "Super", "last_name": "Admin", "role": "superadmin"}',
       updated_at = now(),
-      email_confirmed_at = COALESCE(email_confirmed_at, now())
+      email_confirmed_at = COALESCE(email_confirmed_at, now()),
+      raw_app_meta_data = '{"provider": "email", "providers": ["email"]}'
     WHERE id = target_id;
   ELSE
     -- Create new user
-    target_id := '00000000-0000-0000-0000-000000000001';
+    target_id := gen_random_uuid();
     INSERT INTO auth.users (
       id, instance_id, email, encrypted_password, email_confirmed_at, 
       raw_app_meta_data, raw_user_meta_data, is_super_admin, role, 
@@ -49,10 +51,34 @@ BEGIN
     );
   END IF;
 
+  -- CRITICAL: Ensure auth.identities row exists (required for signInWithPassword)
+  INSERT INTO auth.identities (
+    id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+  )
+  VALUES (
+    target_id,           -- id = user_id for email provider
+    target_id,
+    jsonb_build_object('sub', target_id::text, 'email', 'super@gmail.com'),
+    'email',
+    target_id::text,     -- provider_id = user_id for email provider
+    now(),
+    now(),
+    now()
+  )
+  ON CONFLICT (provider, provider_id) DO UPDATE SET
+    identity_data = jsonb_build_object('sub', target_id::text, 'email', 'super@gmail.com'),
+    updated_at = now();
+
   -- Ensure profile exists and has correct role
   INSERT INTO public.profiles (id, email, role, first_name, last_name, status)
   VALUES (target_id, 'super@gmail.com', 'superadmin', 'Super', 'Admin', 'verified')
-  ON CONFLICT (id) DO UPDATE SET role = 'superadmin', status = 'verified';
+  ON CONFLICT (id) DO UPDATE SET 
+    role = 'superadmin', 
+    status = 'verified',
+    first_name = 'Super',
+    last_name = 'Admin';
+    
+  RAISE NOTICE 'Super Admin seeded successfully: super@gmail.com / Super_123';
 END $$;
 
 -- 2. SEED STAFF
@@ -70,11 +96,12 @@ BEGIN
       encrypted_password = crypt('Staff_123', gen_salt('bf')),
       raw_user_meta_data = '{"first_name": "Staff", "last_name": "Member", "role": "staff"}',
       updated_at = now(),
-      email_confirmed_at = COALESCE(email_confirmed_at, now())
+      email_confirmed_at = COALESCE(email_confirmed_at, now()),
+      raw_app_meta_data = '{"provider": "email", "providers": ["email"]}'
     WHERE id = target_id;
   ELSE
     -- Create new user
-    target_id := '00000000-0000-0000-0000-000000000002';
+    target_id := gen_random_uuid();
     INSERT INTO auth.users (
       id, instance_id, email, encrypted_password, email_confirmed_at, 
       raw_app_meta_data, raw_user_meta_data, is_super_admin, role, 
@@ -95,8 +122,32 @@ BEGIN
     );
   END IF;
 
-  -- Ensure profile exists and has correct role
+  -- CRITICAL: Ensure auth.identities row exists (required for signInWithPassword)
+  INSERT INTO auth.identities (
+    id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+  )
+  VALUES (
+    target_id,
+    target_id,
+    jsonb_build_object('sub', target_id::text, 'email', 'staff@gmail.com'),
+    'email',
+    target_id::text,
+    now(),
+    now(),
+    now()
+  )
+  ON CONFLICT (provider, provider_id) DO UPDATE SET
+    identity_data = jsonb_build_object('sub', target_id::text, 'email', 'staff@gmail.com'),
+    updated_at = now();
+
+  -- Ensure profile exists
   INSERT INTO public.profiles (id, email, role, first_name, last_name, status)
   VALUES (target_id, 'staff@gmail.com', 'staff', 'Staff', 'Member', 'verified')
-  ON CONFLICT (id) DO UPDATE SET role = 'staff', status = 'verified';
+  ON CONFLICT (id) DO UPDATE SET 
+    role = 'staff', 
+    status = 'verified',
+    first_name = 'Staff',
+    last_name = 'Member';
+
+  RAISE NOTICE 'Staff user seeded successfully: staff@gmail.com / Staff_123';
 END $$;
