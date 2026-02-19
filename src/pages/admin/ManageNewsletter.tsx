@@ -210,45 +210,17 @@ const ManageNewsletter: React.FC = () => {
     let successCount = 0;
     let failCount = 0;
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-      <body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f3f4f6;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;">
-          <tr>
-            <td style="background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%);padding:40px 30px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:bold;">LCP Alumni Newsletter</h1>
-              <p style="color:#bfdbfe;margin:10px 0 0 0;font-size:14px;">${nl.category || 'General'}</p>
-            </td>
-          </tr>
-          ${nl.cover_image ? `<tr><td><img src="${nl.cover_image}" style="width:100%;max-height:300px;object-fit:cover;" alt="Cover" /></td></tr>` : ''}
-          <tr>
-            <td style="padding:40px 30px;">
-              <h2 style="color:#1e3a8a;margin:0 0 15px 0;font-size:22px;">${nl.title}</h2>
-              ${nl.summary ? `<p style="color:#6b7280;font-size:14px;font-style:italic;margin:0 0 20px 0;">${nl.summary}</p>` : ''}
-              <div style="color:#4b5563;font-size:16px;line-height:1.7;white-space:pre-wrap;">${nl.content}</div>
-            </td>
-          </tr>
-          <tr>
-            <td style="background-color:#1f2937;padding:25px 30px;text-align:center;">
-              <p style="color:#9ca3af;font-size:13px;margin:0 0 8px 0;">Linker College of the Philippines - Alumni Portal</p>
-              <p style="color:#6b7280;font-size:12px;margin:0;">&copy; ${new Date().getFullYear()} LCP Alumni. All rights reserved.</p>
-            </td>
-          </tr>
-        </table>
-      </body>
-      </html>
-    `;
+    // Build summary: use the newsletter summary if available, or truncate content
+    const emailSummary = nl.summary || (nl.content.length > 300 ? nl.content.substring(0, 300) + '...' : nl.content);
 
     for (const sub of subscribers) {
       try {
-        const result = await EmailService.sendEmail({
-          to: sub.email,
-          toName: sub.alumni_name || 'Alumni',
-          subject: `LCP Newsletter: ${nl.title}`,
-          htmlContent,
-        });
+        const result = await EmailService.sendNewsletterUpdate(
+          sub.email,
+          sub.alumni_name || 'Alumni',
+          nl.title,
+          emailSummary
+        );
         if (result.success) successCount++;
         else failCount++;
       } catch {

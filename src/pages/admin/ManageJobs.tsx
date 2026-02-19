@@ -11,6 +11,7 @@ import {
   UploadCloud, Globe, Mail, Star, UserCheck, CalendarCheck
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
+import EmailService from '../../services/emailService';
 
 const ManageJobs = () => {
   const { showToast } = useToast();
@@ -71,6 +72,8 @@ const ManageJobs = () => {
     salary_range: '',
     image_url: ''
   });
+
+  const [notifyMatchingAlumni, setNotifyMatchingAlumni] = useState(false);
 
   // --- LOGIC FUNCTIONS ---
   const addDept = (dept: string) => {
@@ -226,10 +229,44 @@ const ManageJobs = () => {
         jobId: isEditing ? editingId : undefined,
         company: formData.company
       });
+
+      // 3. Optional: Send Job Alerts to matching alumni
+      if (!isEditing && notifyMatchingAlumni && formData.target_courses.length > 0) {
+        try {
+          // Fetch matching alumni
+          const { data: matchingAlumni } = await supabase
+            .from('profiles')
+            .select('email, first_name')
+            .eq('role', 'alumni')
+            .in('course', formData.target_courses);
+
+          if (matchingAlumni && matchingAlumni.length > 0) {
+            showToast({ type: 'info', title: 'Sending Alerts', message: `Notifying ${matchingAlumni.length} matching alumni...` });
+
+            // Send alerts in batches or concurrently
+            const emailPromises = matchingAlumni.map(alumnus =>
+              EmailService.sendJobAlert(
+                alumnus.email,
+                alumnus.first_name,
+                formData.title,
+                formData.company,
+                formData.description,
+                `${window.location.origin}/alumni/jobs`
+              )
+            );
+            await Promise.all(emailPromises);
+            showToast({ type: 'success', title: 'Alerts Sent', message: 'Job notifications have been dispatched.' });
+          }
+        } catch (emailErr) {
+          console.error('Failed to send job alerts:', emailErr);
+        }
+      }
+
       showToast({ title: isEditing ? 'Updated' : 'Launched!', message: 'Job posting is now updated.', type: 'success' });
       setIsModalOpen(false);
       setFilePreview(null);
       setJobFile(null);
+      setNotifyMatchingAlumni(false);
       fetchJobs();
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
@@ -370,6 +407,21 @@ const ManageJobs = () => {
               </div>
 
               <textarea rows={3} className="w-full p-6 bg-slate-50 rounded-[2rem] border-none font-medium text-sm text-slate-600 outline-none resize-none" placeholder="Requirements & Job Description..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+
+              {!isEditing && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-2xl border border-blue-100">
+                  <input
+                    type="checkbox"
+                    id="notifyAlumni"
+                    className="w-5 h-5 rounded-lg accent-blue-600"
+                    checked={notifyMatchingAlumni}
+                    onChange={(e) => setNotifyMatchingAlumni(e.target.checked)}
+                  />
+                  <label htmlFor="notifyAlumni" className="text-sm font-black text-blue-800 cursor-pointer">
+                    Notify Matching Alumni via Email 📧
+                  </label>
+                </div>
+              )}
 
               <div className="flex gap-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 rounded-full font-black text-slate-400 uppercase text-[10px]">Discard</button>

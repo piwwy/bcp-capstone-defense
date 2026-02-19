@@ -3,9 +3,10 @@ import { supabase } from '../../services/supabaseClient';
 import { createClient } from '@supabase/supabase-js';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import EmailService from '../../services/emailService';
 import {
     X, Loader2, UserPlus, Eye, EyeOff, Copy, CheckCircle,
-    GraduationCap, Mail, Key, Shield, RefreshCw, User, Hash, Calendar
+    GraduationCap, Mail, Key, Shield, RefreshCw, User, Hash, Calendar, Send
 } from 'lucide-react';
 
 interface CreateUserModalProps {
@@ -47,6 +48,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
     const [loading, setLoading] = useState(false);
     const [created, setCreated] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
+    const [sendingEmail, setSendingEmail] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
 
     // Fetch current user's role for permission-based role selection
     useEffect(() => {
@@ -154,6 +157,24 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                 title: 'Account Created',
                 message: `${form.role.charAt(0).toUpperCase() + form.role.slice(1)} account created for ${form.first_name} ${form.last_name}`
             });
+
+            // Auto-send Account Ready email with credentials
+            try {
+                setSendingEmail(true);
+                const { success } = await EmailService.sendAccountReadyEmail(
+                    form.email,
+                    form.first_name,
+                    form.password
+                );
+                if (success) {
+                    setEmailSent(true);
+                    showToast({ type: 'success', title: 'Email Sent', message: `Credentials sent to ${form.email}` });
+                }
+            } catch (emailErr) {
+                console.error('Auto-send email failed:', emailErr);
+            } finally {
+                setSendingEmail(false);
+            }
         } catch (err: any) {
             console.error('Create user error:', err);
             showToast({ type: 'error', title: 'Creation Failed', message: err.message || 'Could not create user' });
@@ -207,6 +228,14 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                             </button>
                         </div>
 
+                        {/* Email Status */}
+                        {emailSent && (
+                            <div className="flex items-center gap-2 bg-green-50 text-green-700 rounded-2xl px-5 py-3 text-sm font-bold">
+                                <CheckCircle className="w-4 h-4" />
+                                Credentials emailed to {form.email}
+                            </div>
+                        )}
+
                         {/* Actions */}
                         <div className="flex gap-3 pt-2">
                             <button
@@ -215,6 +244,31 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                             >
                                 {copiedField === 'all' ? <><CheckCircle className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy All</>}
                             </button>
+                            {!emailSent && (
+                                <button
+                                    onClick={async () => {
+                                        setSendingEmail(true);
+                                        try {
+                                            const { success, error } = await EmailService.sendAccountReadyEmail(form.email, form.first_name, form.password);
+                                            if (success) {
+                                                setEmailSent(true);
+                                                showToast({ type: 'success', title: 'Email Sent', message: `Credentials sent to ${form.email}` });
+                                            } else {
+                                                showToast({ type: 'error', title: 'Email Failed', message: error || 'Could not send email' });
+                                            }
+                                        } catch (err: any) {
+                                            showToast({ type: 'error', title: 'Email Failed', message: err.message });
+                                        } finally {
+                                            setSendingEmail(false);
+                                        }
+                                    }}
+                                    disabled={sendingEmail}
+                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                    {sendingEmail ? 'Sending...' : 'Send via Email'}
+                                </button>
+                            )}
                             <button
                                 onClick={() => { onSuccess(); onClose(); }}
                                 className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all"
@@ -257,7 +311,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                                             : role === 'staff' ? 'bg-teal-500 text-white shadow-lg shadow-teal-200'
                                                 : 'bg-blue-600 text-white shadow-lg shadow-blue-200'
                                         : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-                                    }`}
+                                        }`}
                                 >
                                     {role.charAt(0).toUpperCase() + role.slice(1)}
                                 </button>

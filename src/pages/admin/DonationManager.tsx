@@ -5,6 +5,7 @@ import AdminPageLayout from './AdminPageLayout';
 import AdminResourceCard from './AdminResourceCard';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import EmailService from '../../services/emailService';
 
 const DonationManager = () => {
   const { showToast } = useToast();
@@ -284,6 +285,49 @@ const DonationManager = () => {
         amount
       });
       showToast({ title: 'Verified', message: 'Funds successfully added to campaign.', type: 'success' });
+
+      // Step 3: Check for Milestone (100% Achievement)
+      const { data: updatedCamp } = await supabase.from('donation_campaigns').select('*').eq('id', campaignId).single();
+      if (updatedCamp && updatedCamp.current_amount >= updatedCamp.target_amount) {
+        try {
+          // Fetch all unique verified donors for this campaign
+          const { data: donors } = await supabase
+            .from('donations')
+            .select('guest_name, guest_email, profile_id, profiles(first_name, email)')
+            .eq('campaign_id', campaignId)
+            .eq('status', 'verified');
+
+          if (donors && donors.length > 0) {
+            // Filter unique donors by email
+            const uniqueDonorsMap = new Map();
+            donors.forEach(don => {
+              // profiles might be returned as an array or object depending on schema
+              const profile = Array.isArray(don.profiles) ? don.profiles[0] : don.profiles;
+              const email = profile?.email || don.guest_email;
+              const name = profile?.first_name || don.guest_name || 'Donor';
+              if (email && !uniqueDonorsMap.has(email)) {
+                uniqueDonorsMap.set(email, name);
+              }
+            });
+
+            if (uniqueDonorsMap.size > 0) {
+              showToast({ type: 'info', title: 'Goal Achieved!', message: 'Dispatched milestone emails to donors.' });
+
+              const milestonePromises = Array.from(uniqueDonorsMap.entries()).map(([email, name]) =>
+                EmailService.sendDonationMilestone(
+                  email,
+                  name,
+                  updatedCamp.title,
+                  updatedCamp.current_amount.toLocaleString()
+                )
+              );
+              await Promise.all(milestonePromises);
+            }
+          }
+        } catch (milestoneErr) {
+          console.error('Failed to process donation milestone emails:', milestoneErr);
+        }
+      }
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message || 'Verification failed.', type: 'error' });
     }
