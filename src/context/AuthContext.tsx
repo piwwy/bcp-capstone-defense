@@ -27,28 +27,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     let mounted = true;
 
-    // Safety timeout: kung 8 seconds walang response, stop loading
-    const timeout = setTimeout(() => {
-      if (mounted) setIsLoading(false);
-    }, 8000);
+    // 1. Check current session immediately on mount
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
 
-    // SINGLE SOURCE OF TRUTH: onAuthStateChange handles EVERYTHING
-    // - INITIAL_SESSION fires once on page load (replaces getSession())
-    // - SIGNED_IN fires on fresh login
-    // - SIGNED_OUT fires on logout
-    // NO separate checkSession() = NO race condition
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
-      if (event === 'INITIAL_SESSION') {
-        // Page reload: restore session from stored token
         if (session?.user) {
           await fetchProfile(session.user.id, session.user.email!);
         } else {
-          setIsLoading(false); // No session = not logged in
+          setIsLoading(false);
         }
-      } else if (event === 'SIGNED_IN') {
-        // Fresh login
+      } catch (err) {
+        console.error('Initial session check error:', err);
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN') {
         if (session?.user) {
           await fetchProfile(session.user.id, session.user.email!);
         }
@@ -56,12 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(null);
         setIsLoading(false);
       }
-      // TOKEN_REFRESHED — ignore (no loading flash on tab switch)
     });
 
     return () => {
       mounted = false;
-      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);

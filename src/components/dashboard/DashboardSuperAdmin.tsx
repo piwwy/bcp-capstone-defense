@@ -33,7 +33,9 @@ const DashboardSuperAdmin = () => {
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchDashboardData();
+    if (user) {
+      fetchDashboardData();
+    }
 
     const subscription = supabase
       .channel('superadmin:profiles')
@@ -41,7 +43,7 @@ const DashboardSuperAdmin = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
-  }, []);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {

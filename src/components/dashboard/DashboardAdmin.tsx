@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
 import {
   Users, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Activity, Calendar, Loader2,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 
 const DashboardAdmin: React.FC = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState({
@@ -27,7 +29,9 @@ const DashboardAdmin: React.FC = () => {
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchDashboardData();
+    if (user) {
+      fetchDashboardData();
+    }
 
     // Real-time: listen to ALL tables the dashboard displays
     const subscription = supabase
@@ -41,7 +45,7 @@ const DashboardAdmin: React.FC = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
-  }, []);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
