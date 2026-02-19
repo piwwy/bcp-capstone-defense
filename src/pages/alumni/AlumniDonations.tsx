@@ -26,10 +26,9 @@ const AlumniDonations = () => {
   const [targetCampaign, setTargetCampaign] = useState<any>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (user) {
       fetchData();
-    }, 100);
-    return () => clearTimeout(timer);
+    }
   }, [user]);
 
   const fetchData = async () => {
@@ -44,7 +43,7 @@ const AlumniDonations = () => {
         const { data: history } = await supabase
           .from('donations')
           .select('*, donation_campaigns(title)')
-          .or(`guest_email.eq.${user.email},profile_id.eq.${user.id}`)
+          .or(`guest_email.eq."${user.email}",profile_id.eq."${user.id}"`)
           .order('created_at', { ascending: false });
         setMyHistory(history || []);
       }
@@ -57,7 +56,7 @@ const AlumniDonations = () => {
       if (allDonations && allDonations.length > 0) {
         const aggregated: Record<string, { name: string; email: string; total: number }> = {};
         allDonations.forEach(d => {
-          const key = d.guest_email || d.guest_name || 'Anonymous';
+          const key = (d.guest_email || d.guest_name || 'Anonymous').toLowerCase();
           if (!aggregated[key]) aggregated[key] = { name: d.guest_name || 'Anonymous', email: d.guest_email || '', total: 0 };
           aggregated[key].total += d.amount || 0;
         });
@@ -266,9 +265,12 @@ const AlumniDonations = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-black text-slate-800 truncate">
-                          {donor.name.split(' ').map((part: string) => part.charAt(0) + '*'.repeat(3)).join(' ')}
+                          {donor.name.split(' ').filter(Boolean).map((n: string, i: number, arr: string[]) => {
+                            if (i === 0 || i === arr.length - 1) return n[0] + '***';
+                            return '';
+                          }).filter(Boolean).join(' ')}
                         </p>
-                        <p className="text-[10px] text-slate-400 truncate">{donor.email ? donor.email.replace(/(.{2}).+(@.+)/, '$1***$2') : ''}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{donor.email ? donor.email.replace(/(.).+@(.+)/, '$1***@$2') : 'Anonymous Alumni'}</p>
                       </div>
                       <span className="text-xs font-black text-emerald-600 whitespace-nowrap">₱{donor.total.toLocaleString()}</span>
                     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { Eye, EyeOff, Loader2, LogIn, ArrowLeft } from 'lucide-react';
@@ -14,19 +14,25 @@ export default function Login() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
+  useEffect(() => {
+    setLoading(false);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
 
     try {
       // 1. Authenticate with Supabase Auth
-      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
-      if (authError) throw new Error("Invalid email or password.");
-      if (!user) throw new Error("User not found.");
+      if (authError) throw new Error(authError.message || "Invalid email or password.");
+      const user = authData?.user;
+      if (!user) throw new Error("Authentication failed.");
 
       // 2. Fetch Profile to check ROLE, STATUS, and AUTH_PROVIDER
       const { data: profile, error: profileError } = await supabase
@@ -36,31 +42,33 @@ export default function Login() {
         .single();
 
       if (profileError || !profile) {
-        throw new Error("Account not found. Please contact your administrator.");
+        // Log out as failsafe if profile is missing
+        await supabase.auth.signOut();
+        throw new Error("Profile record missing. Please contact system administrator.");
       }
 
       showToast({ type: 'success', title: 'Login Successful', message: `Welcome back, ${profile.first_name || 'User'}!` });
-
-      // Log to audit trail
       logLogin(email, 'email');
 
-      // 3. INTELLIGENT REDIRECT — immediate, no setTimeout delay
-      if (['admin', 'registrar'].includes(profile.role)) {
+      // 3. INTELLIGENT REDIRECT
+      const role = profile.role?.toLowerCase();
+
+      if (role === 'admin' || role === 'registrar') {
         navigate('/admin/dashboard', { replace: true });
         return;
       }
 
-      if (profile.role === 'staff') {
+      if (role === 'staff') {
         navigate('/staff/dashboard', { replace: true });
         return;
       }
 
-      if (profile.role === 'superadmin') {
+      if (role === 'superadmin') {
         navigate('/superadmin/dashboard', { replace: true });
         return;
       }
 
-      if (profile.role === 'alumni') {
+      if (role === 'alumni') {
         switch (profile.status) {
           case 'verified': {
             const isOAuthUser = profile.auth_provider === 'google' || profile.auth_provider === 'linkedin';
@@ -73,7 +81,7 @@ export default function Login() {
               navigate('/alumni/dashboard', { replace: true });
             } else {
               const otp = Math.floor(100000 + Math.random() * 900000).toString();
-              const expiry = Date.now() + 90 * 1000; // 1 minute and 30 seconds
+              const expiry = Date.now() + 90 * 1000;
 
               sessionStorage.setItem('otp_code', otp);
               sessionStorage.setItem('otp_expiry', expiry.toString());
@@ -81,49 +89,31 @@ export default function Login() {
               sessionStorage.setItem('otp_user_id', user.id);
 
               if (user.email) {
-                const { success, error: emailError } = await EmailService.sendOTPEmail(user.email, profile.first_name || 'Alumni', otp);
+                const { success } = await EmailService.sendOTPEmail(user.email, profile.first_name || 'Alumni', otp);
                 if (!success) {
-                  console.error('OTP Send Error:', emailError);
-                  // Still proceed to 2FA page — user can resend from there
-                  showToast({ type: 'warning', title: 'Code Sending Issue', message: 'Verification code may be delayed. You can resend from the next page.' });
+                  showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
                 }
-              } else {
-                showToast({ type: 'error', title: '2FA Error', message: 'No email address found for this account.' });
-                setLoading(false);
-                return;
               }
-
-              // Always navigate to 2FA page (user can resend if email failed)
               navigate('/alumni/2fa', { replace: true });
             }
-
             break;
           }
           case 'pending_approval':
-            supabase.auth.signOut();
-            showToast({ type: 'warning', title: 'Account Pending', message: 'Your account is still being set up. Please contact your administrator.' });
-            break;
-
+            await supabase.auth.signOut();
+            throw new Error("Your account is pending verification.");
           case 'rejected':
-            supabase.auth.signOut();
-            showToast({ type: 'error', title: 'Access Denied', message: 'Your application was declined.' });
-            break;
+            await supabase.auth.signOut();
+            throw new Error("Your registration was not approved.");
           default:
             navigate('/onboarding', { replace: true });
         }
         return;
-
       }
 
-      throw new Error("Role not recognized. Contact support.");
+      throw new Error("Access denied: Invalid role.");
 
     } catch (err: any) {
-      showToast({ type: 'error', title: 'Login Failed', message: err.message });
-      if (err.message.includes("declined")) {
-        await supabase.auth.signOut();
-
-      }
-    } finally {
+      showToast({ type: 'error', title: 'Login Error', message: err.message });
       setLoading(false);
     }
   };

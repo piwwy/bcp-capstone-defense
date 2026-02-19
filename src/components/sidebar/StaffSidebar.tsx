@@ -6,7 +6,7 @@ import {
     ChevronRight, LogOut, Database, User2, Settings,
     CalendarDays, Newspaper, FileText,
     MoreVertical, Loader2, AlertTriangle,
-    MessageSquare, PartyPopper, Briefcase, List, Layers
+    MessageSquare, PartyPopper, Briefcase, List, Layers, DollarSign
 } from "lucide-react";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
@@ -51,6 +51,7 @@ const StaffSidebar: React.FC = () => {
             name: "Tools", icon: Briefcase, subItems: [
                 { name: "Job Board", path: "/staff/jobs/board", icon: Briefcase },
                 { name: "Partner Inquiries", path: "/staff/partner-inquiries", icon: FileText },
+                { name: "Financial Collections", path: "/staff/collections", icon: DollarSign },
             ]
         },
     ];

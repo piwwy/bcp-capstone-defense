@@ -55,7 +55,7 @@ const DonationCollections = () => {
   const itemsPerPage = 10;
 
   // Amount visibility toggle
-  const [showAmounts, setShowAmounts] = useState(false);
+  const [showAmounts, setShowAmounts] = useState(true);
   const maskAmount = (amount: number) => showAmounts ? `₱${amount.toLocaleString()}` : '₱ •••••••';
 
   const COLORS = ['#059669', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
@@ -69,9 +69,10 @@ const DonationCollections = () => {
   const setupRealtimeSubscription = () => {
     const channel = supabase
       .channel('live-collections')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'donations' }, (payload) => {
-        if (payload.new.status === 'verified') {
-          showToast({ title: 'Collection Updated', message: `New verified donation from ${payload.new.guest_name}`, type: 'success' });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donations' }, (payload: any) => {
+        const newData = payload.new;
+        if (newData && (newData.status === 'verified' || payload.eventType === 'INSERT')) {
+          showToast({ title: 'Collection Updated', message: `Audit trail synced with live data.`, type: 'info' });
           fetchInitialData();
         }
       })

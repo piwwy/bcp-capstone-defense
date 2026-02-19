@@ -46,17 +46,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    // 2. Listen for auth changes
+    // 2. Listen for auth changes (Robust handling for persistence)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
           await fetchProfile(session.user.id, session.user.email!);
+        } else {
+          setIsLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsLoading(false);
+        localStorage.clear();
+      } else if (event === 'INITIAL_SESSION') {
+        if (!session) setIsLoading(false);
       }
     });
 

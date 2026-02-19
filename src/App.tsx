@@ -85,16 +85,29 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [timedOut, setTimedOut] = React.useState(false);
 
-  if (isLoading) {
+  // Safety Timeout: 5 seconds lang dapat ang auth check
+  React.useEffect(() => {
+    let timer: any;
+    if (isLoading) {
+      timer = setTimeout(() => {
+        setTimedOut(true);
+      }, 5000); // 5 second safety net
+    }
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-slate-400 text-sm animate-pulse">Securing Session...</p>
       </div>
     );
   }
 
-  // Kung hindi naka-login, balik sa Unified Login
+  // Kung lumampas sa timer at wala pa ring auth, balik sa login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -172,6 +185,7 @@ function AppRoutes() {
                   {/* Feedback & Surveys */}
                   <Route path="feedback" element={<ManageFeedback />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
+                  <Route path="collections" element={<DonationCollections />} />
 
                   {/* Batch Reunions */}
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />
@@ -267,6 +281,7 @@ function AppRoutes() {
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />
                   <Route path="jobs/board" element={<ManageJobs />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
+                  <Route path="collections" element={<DonationCollections />} />
                   <Route path="newsletter" element={<ManageNewsletter />} />
                   <Route path="settings" element={<AdminSettings />} />
                   <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
