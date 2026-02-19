@@ -51,23 +51,40 @@ const PartnerInquiries: React.FC = () => {
   const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
   const [tab, setTab] = useState<InquiryType | 'all'>('company');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Detail / Notes modal
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryRecord | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchInquiries();
-  }, []);
+  }, [debouncedSearch]);
 
   const fetchInquiries = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('contact_inquiries')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, inquiry_type, name, email, message, company_name, contact_person, company_email, company_phone, position_offered, company_message, status, routed_to_osa, routed_to_hr, admin_notes, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (debouncedSearch) {
+        // Search across multiple fields
+        query = query.or(`name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%,contact_person.ilike.%${debouncedSearch}%,company_email.ilike.%${debouncedSearch}%`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setInquiries((data || []) as InquiryRecord[]);
@@ -79,14 +96,11 @@ const PartnerInquiries: React.FC = () => {
   };
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
     return inquiries.filter((item) => {
       const tabMatch = tab === 'all' || item.inquiry_type === tab;
-      const textBlob = `${item.name || ''} ${item.email || ''} ${item.company_name || ''} ${item.contact_person || ''} ${item.company_email || ''} ${item.position_offered || ''}`.toLowerCase();
-      const searchMatch = !q || textBlob.includes(q);
-      return tabMatch && searchMatch;
+      return tabMatch;
     });
-  }, [inquiries, tab, search]);
+  }, [inquiries, tab]);
 
   const markReviewed = async (id: string) => {
     setSavingId(id);

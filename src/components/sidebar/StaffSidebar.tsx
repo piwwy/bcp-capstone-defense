@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-    AlertTriangle, Briefcase, Calendar, CalendarDays, ChevronRight, Database, DollarSign, FileText, LayoutDashboard, Layers, List, ListPlus, Loader2, LogOut, Mail, MessageSquare, MoreVertical, Newspaper, PartyPopper, RefreshCw, TrendingUp, User2, Users
+    AlertTriangle, Briefcase, Calendar, CalendarDays, ChevronRight, Database, DollarSign, FileText, LayoutDashboard, Layers, List, Loader2, LogOut, Mail, MessageSquare, MoreVertical, Newspaper, PartyPopper, RefreshCw, User2, Users
 } from "lucide-react";
 import RoleSwitcherModal from "../modals/RoleSwitcherModal";
 

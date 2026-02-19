@@ -66,8 +66,9 @@ const ManageNewsletter: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('alumni_newsletters')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, title, summary, content, cover_image, category, status, published_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) throw error;
       setNewsletters(data || []);
     } catch (err: any) {
@@ -81,9 +82,10 @@ const ManageNewsletter: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('newsletter_subscribers')
-        .select('*')
+        .select('id, alumni_id, alumni_name, email, subscribed, created_at')
         .eq('subscribed', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) throw error;
       setSubscribers(data || []);
     } catch (err: any) {

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Shield, CheckCircle, ScrollText, AlertTriangle, Loader2 } from 'lucide-react';
+import { Shield, CheckCircle, ScrollText, AlertTriangle, Loader2, Key, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { useToast } from '../../context/ToastContext';
 
 interface DPAConsentModalProps {
     onAccept: () => void;
@@ -10,6 +11,7 @@ interface DPAConsentModalProps {
 
 const DPAConsentModal: React.FC<DPAConsentModalProps> = ({ onAccept }) => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [agreed, setAgreed] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -17,19 +19,28 @@ const DPAConsentModal: React.FC<DPAConsentModalProps> = ({ onAccept }) => {
 
     const handleAccept = async () => {
         if (!agreed || !user) return;
+
         setSaving(true);
         try {
+            // 1. Update Profile DB
             await supabase
                 .from('profiles')
-                .update({ dpa_consented_at: new Date().toISOString() })
+                .update({
+                    dpa_consented_at: new Date().toISOString(),
+                    last_login: new Date().toISOString()
+                })
                 .eq('id', user.id);
+
             await logAudit(AUDIT_ACTIONS.DPA_CONSENT_ACCEPTED, {
                 module: 'DPA',
-                message: `User (${user.role}) accepted DPA 2012 consent`,
+                message: `User (${user.role}) accepted DPA 2012 terms and entered dashboard`,
             });
+
+            showToast({ title: 'Consent Recorded', message: 'DPA accepted. You may now proceed.', type: 'success' });
             onAccept();
-        } catch (err) {
+        } catch (err: any) {
             console.error('DPA consent save error:', err);
+            showToast({ title: 'Action Failed', message: err.message || 'Could not update account.', type: 'error' });
         } finally {
             setSaving(false);
         }
@@ -102,6 +113,8 @@ const DPAConsentModal: React.FC<DPAConsentModalProps> = ({ onAccept }) => {
                     </div>
                 </div>
 
+
+
                 {/* Footer */}
                 <div className="bg-slate-50 px-8 py-6 border-t border-slate-100">
                     <label className="flex items-start gap-4 cursor-pointer group mb-6">
@@ -134,7 +147,7 @@ const DPAConsentModal: React.FC<DPAConsentModalProps> = ({ onAccept }) => {
                         ) : (
                             <CheckCircle className="w-4 h-4" />
                         )}
-                        {saving ? 'Processing...' : 'I Accept — Enter Dashboard'}
+                        {saving ? 'Processing...' : 'Accept & Proceed'}
                     </button>
                 </div>
             </div>

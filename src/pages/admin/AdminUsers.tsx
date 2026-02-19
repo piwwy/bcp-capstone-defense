@@ -38,10 +38,10 @@ const AdminUsers: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
-    const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-    const [statusFilter] = useState<StatusFilter>('all');
-    const [roleFilter] = useState<RoleFilter>('all');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [actionMenuId, setActionMenuId] = useState<string | null>(null);
@@ -50,14 +50,33 @@ const AdminUsers: React.FC = () => {
     const [confirmAction, setConfirmAction] = useState<{ type: string; user: User } | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
-    // Fetch ALL users (all roles)
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch users with filters
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .select('id, first_name, last_name, middle_name, email, batch_year, course, student_id, status, role, avatar_url, created_at, phone')
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+            if (roleFilter !== 'all') query = query.eq('role', roleFilter);
+
+            if (debouncedSearch) {
+                const q = `%${debouncedSearch}%`;
+                query = query.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},student_id.ilike.${q}`);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             setUsers(data || []);
         } catch (err) {
@@ -67,24 +86,10 @@ const AdminUsers: React.FC = () => {
         }
     };
 
-    useEffect(() => { fetchUsers(); }, []);
+    useEffect(() => { fetchUsers(); }, [debouncedSearch, statusFilter, roleFilter]);
 
-    useEffect(() => {
-        let result = users;
-        if (statusFilter !== 'all') result = result.filter(u => u.status === statusFilter);
-        if (roleFilter !== 'all') result = result.filter(u => u.role === roleFilter);
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(u =>
-                `${u.first_name} ${u.last_name}`.toLowerCase().includes(query) ||
-                u.email?.toLowerCase().includes(query) ||
-                u.student_id?.toLowerCase().includes(query) ||
-                u.course?.toLowerCase().includes(query) ||
-                u.batch_year?.toString().includes(query)
-            );
-        }
-        setFilteredUsers(result);
-    }, [statusFilter, roleFilter, searchQuery, users]);
+    // For display counts, we might still want a global count, but for now we follow the rules
+    const filteredUsers = users; // Now users list is already filtered by server
 
     const counts = {
         all: users.length,
@@ -288,6 +293,30 @@ const AdminUsers: React.FC = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-12 pr-4 py-3.5 bg-slate-50 rounded-2xl border-none font-medium focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                         />
+                    </div>
+
+                    <div className="flex gap-2">
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                            className="px-4 py-3.5 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 focus:ring-blue-200 outline-none"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="verified">Verified</option>
+                            <option value="pending_approval">Pending</option>
+                            <option value="master_list">Active</option>
+                        </select>
+
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+                            className="px-4 py-3.5 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 focus:ring-blue-200 outline-none"
+                        >
+                            <option value="all">All Roles</option>
+                            <option value="alumni">Alumni</option>
+                            <option value="staff">Staff</option>
+                            <option value="admin">Admin</option>
+                        </select>
                     </div>
 
                     <div className="flex gap-2 flex-wrap">

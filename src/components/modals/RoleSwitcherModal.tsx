@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import { Shield, Key, Loader2, X, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface RoleSwitcherModalProps {
     isOpen: boolean;
@@ -9,6 +10,7 @@ interface RoleSwitcherModalProps {
 }
 
 const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }) => {
+    const { user } = useAuth();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
     const [targetRole, setTargetRole] = useState<'admin' | 'staff' | 'superadmin'>('admin');
@@ -20,6 +22,15 @@ const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }
         { id: 'superadmin', label: 'Super Admin', email: 'super@gmail.com', color: 'bg-purple-600' },
     ];
 
+    useEffect(() => {
+        // Default target role based on what's NOT the current role
+        if (user?.role === 'superadmin') {
+            setTargetRole('admin');
+        } else {
+            setTargetRole('superadmin');
+        }
+    }, [user?.role]);
+
     const handleSwitch = async () => {
         if (!password) {
             showToast({ title: 'Error', message: 'Password is required', type: 'error' });
@@ -30,6 +41,7 @@ const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }
         const selected = roles.find(r => r.id === targetRole);
 
         try {
+            // Re-authenticate with target role credentials
             const { error } = await supabase.auth.signInWithPassword({
                 email: selected!.email,
                 password: password
@@ -37,9 +49,14 @@ const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }
 
             if (error) throw error;
 
+            // Track switching state for bi-directional logic
+            localStorage.setItem('is_switched', 'true');
+            localStorage.setItem('original_role', user?.role || 'admin');
+
             showToast({ title: 'Success', message: `Switched to ${selected!.label} account`, type: 'success' });
             onClose();
-            // Force reload to update all contexts and routes
+
+            // Redirect based on target role
             window.location.href = `/${targetRole}/dashboard`;
         } catch (err: any) {
             showToast({ title: 'Switch Failed', message: err.message || 'Verification failed', type: 'error' });
@@ -102,8 +119,8 @@ const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({ isOpen, onClose }
                             />
                         </div>
                         <p className="text-[10px] text-slate-400 flex items-start gap-1.5 px-1 leading-relaxed">
-                            <Shield className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                            This will re-authenticate you as the selected role. Make sure you have the correct credentials.
+                            <Shield className="absolute left-1 mt-0.5 " />
+                            <span className="pl-5 inline-block">This will re-authenticate you as the selected role. Previous session data will be cleared and replaced.</span>
                         </p>
                     </div>
 

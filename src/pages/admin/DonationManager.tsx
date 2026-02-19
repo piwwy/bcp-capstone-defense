@@ -111,8 +111,20 @@ const DonationManager = () => {
 
 
   const fetchData = async () => {
-    const { data: campData } = await supabase.from('donation_campaigns').select('*').order('created_at', { ascending: false });
-    const { data: donData } = await supabase.from('donations').select('*, profiles(first_name, last_name)').order('created_at', { ascending: false });
+    // Limit to 50 recent campaigns
+    const { data: campData } = await supabase
+      .from('donation_campaigns')
+      .select('id, title, target_amount, current_amount, category, description, image_url, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // Limit to 50 recent donations for performance
+    const { data: donData } = await supabase
+      .from('donations')
+      .select('id, amount, status, payment_method, proof_image_url, guest_name, guest_email, campaign_id, profile_id, created_at, profiles(first_name, last_name, email)')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
     if (campData) setCampaigns(campData);
     if (donData) setDonations(donData);
   };

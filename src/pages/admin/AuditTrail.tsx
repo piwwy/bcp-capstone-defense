@@ -28,6 +28,7 @@ const AuditTrail = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -38,38 +39,57 @@ const AuditTrail = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   useEffect(() => {
     fetchLogs();
     // Log the access to the audit trail
     logAudit('VIEW_AUDIT_TRAIL', {
       module: 'Security',
       message: 'Administrator accessed the System Audit Trail'
-    }).then(() => {
-      // Fetch again after a small delay to show the new log
-      setTimeout(fetchLogs, 1500);
     });
-  }, []);
+  }, [debouncedSearch, actionFilter, moduleFilter, dateFrom, dateTo]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('audit_logs')
-        .select('*, profiles:user_id(first_name, last_name)')
-        .order('created_at', { ascending: false });
+        .select('id, user_id, action, details, ip_address, created_at, profiles:user_id(first_name, last_name)')
+        .order('created_at', { ascending: false })
+        .limit(100); // Server-side limit
+
+      if (actionFilter !== 'all') query = query.eq('action', actionFilter);
+
+      if (debouncedSearch) {
+        query = query.or(`action.ilike.%${debouncedSearch}%,ip_address.ilike.%${debouncedSearch}%`);
+      }
+
+      if (dateFrom) query = query.gte('created_at', dateFrom);
+      if (dateTo) query = query.lte('created_at', dateTo);
+
+      const { data, error } = await query;
 
       if (error) {
-        console.warn('Primary fetch failed (possibly missing FK), trying fallback...', error);
-
-        // Fallback 1: Simple fetch without profiles join
-        const { data: simpleData, error: simpleError } = await supabase
+        console.warn('Primary fetch failed, trying fallback...', error);
+        // Fallback: Simple fetch without profiles join
+        let fallbackQuery = supabase
           .from('audit_logs')
-          .select('*')
-          .order('created_at', { ascending: false });
+          .select('id, user_id, action, details, ip_address, created_at')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (actionFilter !== 'all') fallbackQuery = fallbackQuery.eq('action', actionFilter);
+        const { data: simpleData, error: simpleError } = await fallbackQuery;
 
         if (simpleError) throw simpleError;
 
-        // Manual join: fetch profiles separately for the users found in logs
         const userIds = [...new Set((simpleData || []).map(l => l.user_id))].filter(Boolean);
         if (userIds.length > 0) {
           const { data: profileData } = await supabase
@@ -87,7 +107,12 @@ const AuditTrail = () => {
           setLogs(simpleData as any);
         }
       } else if (data) {
-        setLogs(data);
+        // Handle profiles possibly being an array from join
+        const mappedData = data.map((l: any) => ({
+          ...l,
+          profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles
+        }));
+        setLogs(mappedData);
       }
     } catch (err) {
       console.error('Audit fetch catch:', err);
@@ -107,39 +132,7 @@ const AuditTrail = () => {
     }))].filter(Boolean).sort()
     , [logs]);
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const adminName = `${log.profiles?.first_name || 'System'} ${log.profiles?.last_name || 'Admin'}`.toLowerCase();
-        const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
-        const logModule = detailsObj?.module || '';
-        const logMessage = detailsObj?.message || '';
-        const matchesSearch =
-          adminName.includes(query) ||
-          log.action?.toLowerCase().includes(query) ||
-          logModule.toLowerCase().includes(query) ||
-          logMessage.toLowerCase().includes(query);
-        if (!matchesSearch) return false;
-      }
-      if (actionFilter !== 'all' && log.action !== actionFilter) return false;
-      if (moduleFilter !== 'all') {
-        const logModule = typeof log.details === 'object' && log.details?.module ? log.details.module : '';
-        if (logModule !== moduleFilter) return false;
-      }
-      if (dateFrom) {
-        const logDate = new Date(log.created_at).setHours(0, 0, 0, 0);
-        const fromDate = new Date(dateFrom).setHours(0, 0, 0, 0);
-        if (logDate < fromDate) return false;
-      }
-      if (dateTo) {
-        const logDate = new Date(log.created_at).setHours(23, 59, 59, 999);
-        const toDate = new Date(dateTo).setHours(23, 59, 59, 999);
-        if (logDate > toDate) return false;
-      }
-      return true;
-    });
-  }, [logs, searchQuery, actionFilter, moduleFilter, dateFrom, dateTo]);
+  const filteredLogs = logs; // Now server-side filtered
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = useMemo(() => {

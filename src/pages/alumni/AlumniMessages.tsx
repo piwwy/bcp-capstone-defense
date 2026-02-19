@@ -49,19 +49,34 @@ const AlumniMessages = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [debouncedContactSearch, setDebouncedContactSearch] = useState('');
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Debounce contact search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedContactSearch(contactSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [contactSearch]);
+
   // Load profiles and messages
   useEffect(() => {
     if (user?.id) {
-      fetchProfiles();
       fetchMessages();
     }
   }, [user]);
+
+  // Re-fetch profiles when debounced contact search changes
+  useEffect(() => {
+    if (user?.id) {
+      fetchProfiles();
+    }
+  }, [debouncedContactSearch, user]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -75,12 +90,19 @@ const AlumniMessages = () => {
 
   const fetchProfiles = async () => {
     try {
-      const { data } = await supabase
+      let query = supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, role')
         .eq('role', 'alumni')
         .eq('status', 'verified')
-        .order('last_name', { ascending: true });
+        .order('last_name', { ascending: true })
+        .limit(20);
+
+      if (debouncedContactSearch) {
+        query = query.or(`first_name.ilike.%${debouncedContactSearch}%,last_name.ilike.%${debouncedContactSearch}%`);
+      }
+
+      const { data } = await query;
       setProfiles(data || []);
     } catch (err) {
       console.error('Error fetching profiles:', err);
@@ -93,9 +115,11 @@ const AlumniMessages = () => {
     if (!user?.id) return;
     const { data, error } = await supabase
       .from('messages')
-      .select('*')
+      .select('id, sender_id, receiver_id, content, created_at, is_read, attachment_url, attachment_name, attachment_type')
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .limit(200); // Reasonable limit for chat history across all partners
+
     if (!error && data) setMessages(data.map(m => ({
       ...m,
       read: m.is_read,

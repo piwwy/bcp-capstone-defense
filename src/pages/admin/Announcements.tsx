@@ -87,11 +87,18 @@ const Announcements = () => {
         try {
             const { data, error } = await supabase
                 .from('announcements')
-                .select('*, profiles:created_by(first_name, last_name)')
-                .order('created_at', { ascending: false });
+                .select('id, title, content, category, target_audience, created_at, created_by, profiles:created_by(first_name, last_name)')
+                .order('created_at', { ascending: false })
+                .limit(50);
 
             if (error) throw error;
-            if (data) setAnnouncements(data);
+            if (data) {
+                const mappedData = data.map((a: any) => ({
+                    ...a,
+                    profiles: Array.isArray(a.profiles) ? a.profiles[0] : a.profiles
+                }));
+                setAnnouncements(mappedData);
+            }
         } catch (error: any) {
             console.error('Error fetching announcements:', error);
             showToast({

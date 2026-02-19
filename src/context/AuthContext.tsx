@@ -8,14 +8,16 @@ export interface User {
   email: string;
   role: string;
   avatar?: string;
-  status?: string; // Added status for better type safety
+  status?: string;
+  dpa_consented_at?: string;
+  last_login?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  logout: () => Promise<void>; // FIX: Ginawa nating Promise<void> para match sa async function
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,12 +33,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Auth Init - Session found:', !!session);
         if (!mounted) return;
 
         if (session?.user) {
+          console.log('Auth Init - Fetching profile for:', session.user.email);
           await fetchProfile(session.user.id, session.user.email!);
         } else {
           setIsLoading(false);
+          console.log('Auth Init - No session, loading finished');
         }
       } catch (err) {
         console.error('Initial session check error:', err);
@@ -48,20 +53,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // 2. Listen for auth changes (Robust handling for persistence)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth Change Event:', event, 'Has Session:', !!session);
       if (!mounted) return;
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
+          console.log('Auth Fetching profile due to change event:', event);
           await fetchProfile(session.user.id, session.user.email!);
         } else {
           setIsLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out, clearing data');
         setUser(null);
         setIsLoading(false);
         localStorage.clear();
       } else if (event === 'INITIAL_SESSION') {
-        if (!session) setIsLoading(false);
+        if (!session) {
+          setIsLoading(false);
+          console.log('Initial session ready - No user');
+        }
       }
     });
 
@@ -74,24 +85,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Helper para kunin ang ROLE sa profiles table
   const fetchProfile = async (userId: string, email: string) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*') // Select all para makuha pati status
+        .select('*')
         .eq('id', userId)
         .single();
 
-      if (profile) {
+      if (profileError) {
+        console.error("Profile query error in AuthContext (Metadata fallback triggered):", profileError);
+      }
+
+      if (profileData) {
         setUser({
           id: userId,
           email: email,
-          name: `${profile.first_name} ${profile.last_name}`,
-          role: profile.role || 'alumni',
-          status: profile.status,
-          avatar: profile.avatar_url
+          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'System User',
+          role: profileData.role || 'alumni',
+          status: profileData.status,
+          avatar: profileData.avatar_url,
+          dpa_consented_at: profileData.dpa_consented_at,
+          last_login: profileData.last_login
         });
+        console.log('User Role (from Profile):', profileData.role);
       } else {
-        // Fallback kung wala pang profile
-        setUser({ id: userId, email, name: 'User', role: 'guest' });
+        // EMERGENCY FALLBACK: Use Auth Metadata if DB fails or profile is missing
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const metadata = authUser?.user_metadata || {};
+
+        console.warn('Using Auth Metadata as fallback role:', metadata.role);
+
+        setUser({
+          id: userId,
+          email,
+          name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim() || 'System User',
+          role: metadata.role || 'alumni',
+          status: 'verified' // Assume verified if metadata fallback is active
+        });
       }
     } catch (err) {
       console.error('Profile fetch error:', err);
@@ -101,11 +130,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    localStorage.clear();
-    // Optional: Force reload to clear any cached states
-    // window.location.href = '/login'; 
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setUser(null);
+      localStorage.clear();
+      sessionStorage.clear();
+      // Siguraduhin na tanggal lahat ng persistent roles
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('is_switched');
+    }
   };
 
   return (

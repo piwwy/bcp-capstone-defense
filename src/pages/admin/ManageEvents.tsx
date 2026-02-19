@@ -26,6 +26,7 @@ const ManageEvents = () => {
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Calendar Navigation States
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -99,11 +100,29 @@ const ManageEvents = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => { fetchData(); }, [debouncedSearch]);
 
   const fetchData = async () => {
     setInitialLoading(true);
-    const { data } = await supabase.from('alumni_events').select('*, event_attendees(count)').order('date', { ascending: false });
+    let query = supabase
+      .from('alumni_events')
+      .select('id, title, description, date, location, category, image_url, is_featured, status, created_at, event_attendees(count)')
+      .order('date', { ascending: false })
+      .limit(100);
+
+    if (debouncedSearch) {
+      query = query.or(`title.ilike.%${debouncedSearch}%,description.ilike.%${debouncedSearch}%`);
+    }
+
+    const { data } = await query;
     if (data) setEvents(data);
     setInitialLoading(false);
   };

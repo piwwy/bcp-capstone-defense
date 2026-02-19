@@ -72,6 +72,7 @@ const AlumniNewsletter = React.lazy(() => import('./pages/alumni/AlumniNewslette
 // Dashboards
 const DashboardAdmin = React.lazy(() => import('./components/dashboard/DashboardAdmin'));
 const DashboardSuperAdmin = React.lazy(() => import('./components/dashboard/DashboardSuperAdmin'));
+const StaffDashboard = React.lazy(() => import('./pages/staff/StaffDashboard'));
 
 // --- LAYOUTS (keep eager — they wrap everything) ---
 import DashboardLayout from './layouts/DashboardLayout';
@@ -118,7 +119,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     switch (user.role) {
       case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
       case 'admin': return <Navigate to="/admin/dashboard" replace />;
-      case 'staff': return <Navigate to="/admin/dashboard" replace />;
+      case 'staff': return <Navigate to="/staff/dashboard" replace />;
       case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
       default: return <Navigate to="/" replace />;
     }
@@ -273,7 +274,7 @@ function AppRoutes() {
             <DashboardLayout>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
-                  <Route path="dashboard" element={<DashboardAdmin />} />
+                  <Route path="dashboard" element={<StaffDashboard />} />
                   <Route path="records" element={<AllAlumniRecords />} />
                   <Route path="events/calendar" element={<ManageEvents />} />
                   <Route path="news/manage" element={<ManageNews />} />

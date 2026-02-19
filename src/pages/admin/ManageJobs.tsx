@@ -128,7 +128,11 @@ const ManageJobs = () => {
   useEffect(() => { fetchJobs(); }, []);
 
   const fetchJobs = async () => {
-    const { data } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('jobs')
+      .select('id, title, company, location, type, work_type, category, description, target_courses, salary_range, image_url, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50);
     if (data) setJobs(data);
   };
 

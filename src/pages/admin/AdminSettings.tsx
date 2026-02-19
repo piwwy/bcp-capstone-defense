@@ -7,6 +7,7 @@ import {
   User2, Lock, Eye, EyeOff, Shield, Save, Loader2,
   Repeat, Crown, Phone, Camera, Database
 } from 'lucide-react';
+import RoleSwitcherModal from '../../components/modals/RoleSwitcherModal';
 
 const AdminSettings = () => {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ const AdminSettings = () => {
 
   // Switch Role
   const [showSwitchModal, setShowSwitchModal] = useState(false);
-  const [switching, setSwitching] = useState(false);
+  const isSwitched = localStorage.getItem('is_switched') === 'true';
 
   // Loading
   const [saving, setSaving] = useState(false);
@@ -130,30 +131,7 @@ const AdminSettings = () => {
     }
   };
 
-  const handleSwitchRole = async () => {
-    setSwitching(true);
-    try {
-      // Update role to superadmin in profiles table
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: 'superadmin' })
-        .eq('id', user?.id);
-
-      if (error) throw error;
-
-      showToast({ title: 'Role Switched', message: 'Switching to Super Admin...', type: 'success' });
-      setShowSwitchModal(false);
-
-      // Force reload to pick up new role from AuthContext
-      setTimeout(() => {
-        window.location.href = '/superadmin/dashboard';
-      }, 1000);
-    } catch (err: any) {
-      showToast({ title: 'Error', message: err.message, type: 'error' });
-    } finally {
-      setSwitching(false);
-    }
-  };
+  // handleSwitchRole removed — handled by RoleSwitcherModal component for consistency
 
   if (loading) {
     return (
@@ -172,8 +150,8 @@ const AdminSettings = () => {
         <p className="text-gray-500 text-sm mt-1">Manage your account, security, and role access.</p>
       </div>
 
-      {/* ====== SWITCH ROLE CARD ====== */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+      {/* ====== ROLE MANAGEMENT CARD ====== */}
+      <div className={`bg-gradient-to-r ${userRole === 'superadmin' ? 'from-purple-600 to-indigo-700' : 'from-blue-600 to-indigo-700'} rounded-2xl p-6 text-white shadow-lg`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
@@ -181,7 +159,7 @@ const AdminSettings = () => {
             </div>
             <div>
               <h2 className="text-lg font-bold">Role Management</h2>
-              <p className="text-purple-200 text-sm">Current role: <span className="font-bold uppercase text-white">{userRole}</span></p>
+              <p className="text-white/80 text-sm">Active Account: <span className="font-bold uppercase text-white">{userRole}</span> {isSwitched && '(Switched Session)'}</p>
             </div>
           </div>
 
@@ -190,7 +168,7 @@ const AdminSettings = () => {
             className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl font-bold text-sm border border-white/30 transition-all"
           >
             <Repeat className="w-4 h-4" />
-            Switch to Super Admin
+            {userRole === 'superadmin' ? 'Switch to Admin' : 'Switch Role'}
           </button>
         </div>
       </div>
@@ -316,77 +294,38 @@ const AdminSettings = () => {
 
       {/* ====== DEVELOPER TOOLS (SuperAdmin Only) ====== */}
       {userRole === 'superadmin' && (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Database className="w-5 h-5 text-purple-600" /> Developer Tools</h2>
-        <p className="text-xs text-gray-400 mb-4">Seed sample data into all modules for testing and analytics.</p>
-        <button
-          onClick={async () => {
-            setSeeding(true);
-            setSeedLog([]);
-            try {
-              await seedAllModules((msg) => setSeedLog(prev => [...prev, msg]));
-              showToast({ type: 'success', title: 'Seed Complete', message: 'Sample data inserted into all modules.' });
-            } catch (err: any) {
-              showToast({ type: 'error', title: 'Seed Failed', message: err.message });
-            } finally {
-              setSeeding(false);
-            }
-          }}
-          disabled={seeding}
-          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg"
-        >
-          {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-          {seeding ? 'Seeding...' : 'Seed Demo Data (All Modules)'}
-        </button>
-        {seedLog.length > 0 && (
-          <div className="mt-3 bg-gray-50 rounded-xl p-3 max-h-40 overflow-y-auto">
-            {seedLog.map((msg, i) => <p key={i} className="text-xs text-gray-600 font-mono">{msg}</p>)}
-          </div>
-        )}
-      </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Database className="w-5 h-5 text-purple-600" /> Developer Tools</h2>
+          <p className="text-xs text-gray-400 mb-4">Seed sample data into all modules for testing and analytics.</p>
+          <button
+            onClick={async () => {
+              setSeeding(true);
+              setSeedLog([]);
+              try {
+                await seedAllModules((msg) => setSeedLog(prev => [...prev, msg]));
+                showToast({ type: 'success', title: 'Seed Complete', message: 'Sample data inserted into all modules.' });
+              } catch (err: any) {
+                showToast({ type: 'error', title: 'Seed Failed', message: err.message });
+              } finally {
+                setSeeding(false);
+              }
+            }}
+            disabled={seeding}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg"
+          >
+            {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            {seeding ? 'Seeding...' : 'Seed Demo Data (All Modules)'}
+          </button>
+          {seedLog.length > 0 && (
+            <div className="mt-3 bg-gray-50 rounded-xl p-3 max-h-40 overflow-y-auto">
+              {seedLog.map((msg, i) => <p key={i} className="text-xs text-gray-600 font-mono">{msg}</p>)}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ====== SWITCH ROLE MODAL ====== */}
-      {showSwitchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowSwitchModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-700 p-6 text-white text-center">
-              <Crown className="w-12 h-12 mx-auto mb-3 text-yellow-300" />
-              <h2 className="text-xl font-bold">Switch to Super Admin</h2>
-              <p className="text-purple-200 text-sm mt-1">You're about to elevate your access level.</p>
-            </div>
-
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                As Super Admin, you'll have full system access including user management, role assignments, and system configuration.
-              </p>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                <p className="text-xs text-amber-700 font-bold">
-                  ⚠️ This will redirect you to the Super Admin portal. You can switch back anytime.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowSwitchModal(false)}
-                  className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSwitchRole}
-                  disabled={switching}
-                  className="flex-1 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-all text-sm flex items-center justify-center gap-2"
-                >
-                  {switching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Repeat className="w-4 h-4" />}
-                  {switching ? 'Switching...' : 'Confirm Switch'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <RoleSwitcherModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
     </div>
   );
 };
