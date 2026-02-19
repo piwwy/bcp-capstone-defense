@@ -122,8 +122,11 @@ Registration is now open through the alumni portal. Early registrants will recei
     // Use fetched data, fall back to samples if empty
     const articles = fetchedArticles.length > 0 ? fetchedArticles : SAMPLE_ARTICLES;
 
-    // Featured article (latest or most important)
-    const featuredArticle = useMemo(() => articles[0], [articles]);
+    // Featured article (based on is_featured flag)
+    const featuredArticle = useMemo(() => {
+        const featured = articles.find(a => a.is_featured === true);
+        return featured || articles[0]; // Fallback to latest if no featured item
+    }, [articles]);
 
     // Categories from data
     const categories = useMemo(() => {
@@ -131,12 +134,13 @@ Registration is now open through the alumni portal. Early registrants will recei
         return ['All', ...Array.from(new Set(cats))];
     }, [articles]);
 
-    // Filtered articles (excluding featured)
+    // Filtered articles (excluding the one in hero section)
     const filteredArticles = useMemo(() => {
-        return articles.slice(1).filter(article =>
-            activeCategory === 'All' || article.category === activeCategory
+        return articles.filter(article =>
+            article.id !== featuredArticle?.id && // Exclude hero article
+            (activeCategory === 'All' || article.category === activeCategory)
         );
-    }, [articles, activeCategory]);
+    }, [articles, featuredArticle, activeCategory]);
 
     const getCategoryLabel = (category: string) => {
         return CATEGORIES.find(c => c.value === category)?.label || category;
@@ -176,67 +180,67 @@ Registration is now open through the alumni portal. Early registrants will recei
     if (selectedArticle) {
         return (
             <PageTransition>
-            <div className="max-w-7xl mx-auto space-y-8 pb-20">
-                {/* Back Button */}
-                <button
-                    onClick={() => setSelectedArticle(null)}
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to News
-                </button>
+                <div className="max-w-7xl mx-auto space-y-8 pb-20">
+                    {/* Back Button */}
+                    <button
+                        onClick={() => setSelectedArticle(null)}
+                        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to News
+                    </button>
 
-                {/* Hero Image */}
-                <div className="relative h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl">
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10" />
-                    <img
-                        src={selectedArticle.thumbnail_url || `https://picsum.photos/seed/${selectedArticle.id}/1200/600`}
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        alt={selectedArticle.title}
-                    />
-                    <div className="relative z-20 h-full flex flex-col justify-end p-10 md:p-16 text-white max-w-4xl">
-                        <span className="bg-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit mb-4">
-                            {getCategoryLabel(selectedArticle.category)}
-                        </span>
-                        <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight leading-tight">
-                            {selectedArticle.title}
-                        </h1>
-                        <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-200">
-                            <span className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-2 rounded-xl">
-                                <User className="w-4 h-4 text-blue-400" />
-                                {selectedArticle.profiles?.first_name} {selectedArticle.profiles?.last_name}
+                    {/* Hero Image */}
+                    <div className="relative h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10" />
+                        <img
+                            src={selectedArticle.thumbnail_url || `https://picsum.photos/seed/${selectedArticle.id}/1200/600`}
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            alt={selectedArticle.title}
+                        />
+                        <div className="relative z-20 h-full flex flex-col justify-end p-10 md:p-16 text-white max-w-4xl">
+                            <span className="bg-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-fit mb-4">
+                                {getCategoryLabel(selectedArticle.category)}
                             </span>
-                            <span className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-2 rounded-xl">
-                                <Calendar className="w-4 h-4 text-emerald-400" />
-                                {formatDate(selectedArticle.published_at || selectedArticle.created_at)}
-                            </span>
+                            <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight leading-tight">
+                                {selectedArticle.title}
+                            </h1>
+                            <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-200">
+                                <span className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-2 rounded-xl">
+                                    <User className="w-4 h-4 text-blue-400" />
+                                    {selectedArticle.profiles?.first_name} {selectedArticle.profiles?.last_name}
+                                </span>
+                                <span className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-2 rounded-xl">
+                                    <Calendar className="w-4 h-4 text-emerald-400" />
+                                    {formatDate(selectedArticle.published_at || selectedArticle.created_at)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Article Content */}
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 md:p-12">
+                        <div className="prose prose-lg max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {selectedArticle.content}
+                        </div>
+
+                        <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
+                            <button
+                                onClick={() => handleShare(selectedArticle)}
+                                className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                                <Share2 className="w-4 h-4" /> Share Article
+                            </button>
+                            <button
+                                onClick={() => setSelectedArticle(null)}
+                                className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" /> Back to News
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                {/* Article Content */}
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 md:p-12">
-                    <div className="prose prose-lg max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {selectedArticle.content}
-                    </div>
-
-                    <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
-                        <button
-                            onClick={() => handleShare(selectedArticle)}
-                            className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                            <Share2 className="w-4 h-4" /> Share Article
-                        </button>
-                        <button
-                            onClick={() => setSelectedArticle(null)}
-                            className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                            <ArrowLeft className="w-4 h-4" /> Back to News
-                        </button>
-                    </div>
-                </div>
-            </div>
             </PageTransition>
         );
     }
@@ -244,132 +248,132 @@ Registration is now open through the alumni portal. Early registrants will recei
     // MAIN NEWS LIST VIEW
     return (
         <PageTransition>
-        <div className="max-w-7xl mx-auto space-y-10 pb-20">
+            <div className="max-w-7xl mx-auto space-y-10 pb-20">
 
-            {/* 1. FEATURED ARTICLE HERO (Same pattern as Events) */}
-            {featuredArticle && (
-                <div
-                    onClick={() => setSelectedArticle(featuredArticle)}
-                    className="relative h-[450px] rounded-[2.5rem] overflow-hidden group shadow-2xl cursor-pointer"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10" />
-                    <img
-                        src={featuredArticle.thumbnail_url || `https://picsum.photos/seed/${featuredArticle.id}/1200/600`}
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                        alt="Featured"
-                    />
+                {/* 1. FEATURED ARTICLE HERO (Same pattern as Events) */}
+                {featuredArticle && (
+                    <div
+                        onClick={() => setSelectedArticle(featuredArticle)}
+                        className="relative h-[450px] rounded-[2.5rem] overflow-hidden group shadow-2xl cursor-pointer"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10" />
+                        <img
+                            src={featuredArticle.thumbnail_url || `https://picsum.photos/seed/${featuredArticle.id}/1200/600`}
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                            alt="Featured"
+                        />
 
-                    <div className="relative z-20 h-full flex flex-col justify-end p-10 md:p-16 text-white max-w-3xl">
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="bg-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                                <Timer className="w-3 h-3" /> Latest Article
-                            </span>
-                            <span className="bg-white/10 backdrop-blur px-4 py-1 rounded-full text-[10px] font-bold uppercase border border-white/20">
-                                {getCategoryLabel(featuredArticle.category)}
-                            </span>
+                        <div className="relative z-20 h-full flex flex-col justify-end p-10 md:p-16 text-white max-w-3xl">
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="bg-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Timer className="w-3 h-3" /> {featuredArticle.is_featured ? 'Featured Story' : 'Latest Article'}
+                                </span>
+                                <span className="bg-white/10 backdrop-blur px-4 py-1 rounded-full text-[10px] font-bold uppercase border border-white/20">
+                                    {getCategoryLabel(featuredArticle.category)}
+                                </span>
+                            </div>
+
+                            <h1 className="text-4xl md:text-6xl font-black mb-4 tracking-tighter leading-none">
+                                {featuredArticle.title}
+                            </h1>
+
+                            <p className="text-slate-200 text-lg mb-6 line-clamp-2 max-w-2xl">
+                                {featuredArticle.excerpt}
+                            </p>
+
+                            <div className="flex flex-wrap gap-4 text-sm font-medium text-slate-200 mb-8">
+                                <span className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+                                    <Calendar className="w-4 h-4 text-blue-400" />
+                                    {formatDate(featuredArticle.published_at || featuredArticle.created_at)}
+                                </span>
+                                <span className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+                                    <User className="w-4 h-4 text-emerald-400" />
+                                    {featuredArticle.profiles?.first_name} {featuredArticle.profiles?.last_name}
+                                </span>
+                            </div>
+
+                            <button className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl flex items-center gap-2 w-fit">
+                                Read Full Article <ChevronRight className="w-5 h-5" />
+                            </button>
                         </div>
+                    </div>
+                )}
 
-                        <h1 className="text-4xl md:text-6xl font-black mb-4 tracking-tighter leading-none">
-                            {featuredArticle.title}
-                        </h1>
-
-                        <p className="text-slate-200 text-lg mb-6 line-clamp-2 max-w-2xl">
-                            {featuredArticle.excerpt}
-                        </p>
-
-                        <div className="flex flex-wrap gap-4 text-sm font-medium text-slate-200 mb-8">
-                            <span className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
-                                <Calendar className="w-4 h-4 text-blue-400" />
-                                {formatDate(featuredArticle.published_at || featuredArticle.created_at)}
-                            </span>
-                            <span className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
-                                <User className="w-4 h-4 text-emerald-400" />
-                                {featuredArticle.profiles?.first_name} {featuredArticle.profiles?.last_name}
-                            </span>
-                        </div>
-
-                        <button className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-xl flex items-center gap-2 w-fit">
-                            Read Full Article <ChevronRight className="w-5 h-5" />
-                        </button>
+                {/* 2. CATEGORY FILTER (Same pattern as Events) */}
+                <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {categories.map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeCategory === cat
+                                    ? 'bg-slate-900 text-white shadow-lg'
+                                    : 'text-slate-500 hover:bg-slate-100'
+                                    }`}
+                            >
+                                {cat === 'All' ? 'All News' : getCategoryLabel(cat)}
+                            </button>
+                        ))}
                     </div>
                 </div>
-            )}
 
-            {/* 2. CATEGORY FILTER (Same pattern as Events) */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                    {categories.map((cat) => (
-                        <button
-                            key={cat}
-                            onClick={() => setActiveCategory(cat)}
-                            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeCategory === cat
-                                ? 'bg-slate-900 text-white shadow-lg'
-                                : 'text-slate-500 hover:bg-slate-100'
-                                }`}
-                        >
-                            {cat === 'All' ? 'All News' : getCategoryLabel(cat)}
-                        </button>
-                    ))}
-                </div>
+                {/* 3. NEWS GRID (Same card pattern as Events) */}
+                {filteredArticles.length === 0 ? (
+                    <div className="text-center py-20">
+                        <Newspaper className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                        <h3 className="text-xl font-black text-slate-700">No Articles Yet</h3>
+                        <p className="text-slate-400 mt-2">Check back later for updates!</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredArticles.map((article) => (
+                            <div
+                                key={article.id}
+                                onClick={() => setSelectedArticle(article)}
+                                className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col group cursor-pointer"
+                            >
+                                {/* Image */}
+                                <div className="h-48 relative overflow-hidden bg-slate-100">
+                                    <img
+                                        src={article.thumbnail_url || `https://picsum.photos/seed/${article.id}/600/400`}
+                                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
+                                        alt={article.title}
+                                    />
+                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-slate-900 uppercase tracking-tighter">
+                                        {getCategoryLabel(article.category)}
+                                    </div>
+                                    <div className="absolute bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {new Date(article.published_at || article.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-8 flex-1 flex flex-col">
+                                    <h3 className="text-xl font-black text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                        {article.title}
+                                    </h3>
+                                    <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">
+                                        {article.excerpt}
+                                    </p>
+
+                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                                        <span className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                            <User className="w-3.5 h-3.5" />
+                                            {article.profiles?.first_name} {article.profiles?.last_name}
+                                        </span>
+                                        <span className="flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:gap-2 transition-all">
+                                            Read <ChevronRight className="w-4 h-4" />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
-
-            {/* 3. NEWS GRID (Same card pattern as Events) */}
-            {filteredArticles.length === 0 ? (
-                <div className="text-center py-20">
-                    <Newspaper className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                    <h3 className="text-xl font-black text-slate-700">No Articles Yet</h3>
-                    <p className="text-slate-400 mt-2">Check back later for updates!</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {filteredArticles.map((article) => (
-                        <div
-                            key={article.id}
-                            onClick={() => setSelectedArticle(article)}
-                            className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col group cursor-pointer"
-                        >
-                            {/* Image */}
-                            <div className="h-48 relative overflow-hidden bg-slate-100">
-                                <img
-                                    src={article.thumbnail_url || `https://picsum.photos/seed/${article.id}/600/400`}
-                                    onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
-                                    alt={article.title}
-                                />
-                                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-slate-900 uppercase tracking-tighter">
-                                    {getCategoryLabel(article.category)}
-                                </div>
-                                <div className="absolute bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {new Date(article.published_at || article.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
-                                </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="p-8 flex-1 flex flex-col">
-                                <h3 className="text-xl font-black text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
-                                    {article.title}
-                                </h3>
-                                <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">
-                                    {article.excerpt}
-                                </p>
-
-                                <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
-                                    <span className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                                        <User className="w-3.5 h-3.5" />
-                                        {article.profiles?.first_name} {article.profiles?.last_name}
-                                    </span>
-                                    <span className="flex items-center gap-1 text-xs font-bold text-blue-600 group-hover:gap-2 transition-all">
-                                        Read <ChevronRight className="w-4 h-4" />
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
         </PageTransition>
     );
 };

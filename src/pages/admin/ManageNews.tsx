@@ -278,7 +278,7 @@ const ManageNews = () => {
 
     const publishedCount = articles.filter(a => a.is_published).length;
     const draftCount = articles.filter(a => !a.is_published).length;
-    const featuredArticle = articles.find(a => a.is_featured && a.is_published);
+
 
     const setAsFeatured = async (articleId: string) => {
         try {
@@ -388,36 +388,7 @@ const ManageNews = () => {
                 </button>
             </div>
 
-            {/* Featured Banner Preview */}
-            {featuredArticle && (
-                <div className="mb-8 bg-gradient-to-r from-slate-900 to-blue-900 rounded-3xl overflow-hidden shadow-2xl relative group">
-                    <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-yellow-400 text-yellow-900 px-3 py-1.5 rounded-full text-[10px] font-black uppercase">
-                        <Crown className="w-3.5 h-3.5" /> Main Banner
-                    </div>
-                    <div className="flex flex-col md:flex-row">
-                        <div className="md:w-2/5 h-48 md:h-auto relative">
-                            {featuredArticle.thumbnail_url ? (
-                                <img src={featuredArticle.thumbnail_url} alt={featuredArticle.title} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                    <Newspaper className="w-16 h-16 text-white/30" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex-1 p-8 flex flex-col justify-center">
-                            <span className={`inline-block w-fit px-3 py-1 rounded-full text-[10px] font-bold uppercase mb-3 ${getCategoryStyle(featuredArticle.category)}`}>
-                                {getCategoryLabel(featuredArticle.category)}
-                            </span>
-                            <h2 className="text-2xl font-black text-white mb-2 leading-tight">{featuredArticle.title}</h2>
-                            <p className="text-sm text-blue-200 line-clamp-2 mb-4">{featuredArticle.excerpt}</p>
-                            <div className="flex items-center gap-3 text-xs text-blue-300">
-                                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {featuredArticle.profiles?.first_name} {featuredArticle.profiles?.last_name}</span>
-                                <span>{featuredArticle.published_at ? new Date(featuredArticle.published_at).toLocaleDateString() : ''}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* Articles Grid */}
             {loading ? (

@@ -52,7 +52,8 @@ const AlumniEvents = () => {
     const isSelectedFeatured = events.find(e => e.is_featured === true);
 
     if (!isSelectedFeatured) {
-      return [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+      // Fallback: Latest upcoming event
+      return [...upcomingEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
     }
 
     return isSelectedFeatured;
@@ -130,7 +131,7 @@ const AlumniEvents = () => {
             <div className="relative z-20 h-full flex flex-col justify-end p-10 md:p-16 text-white max-w-3xl">
               <div className="flex items-center gap-3 mb-4">
                 <span className="bg-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                  <Timer className="w-3 h-3" /> Featured Event
+                  <Timer className="w-3 h-3" /> {featuredEvent.is_featured ? 'Featured Event' : 'Upcoming Highlight'}
                 </span>
                 <span className="bg-white/10 backdrop-blur px-4 py-1 rounded-full text-[10px] font-bold uppercase border border-white/20">
                   {featuredEvent.category}
@@ -193,93 +194,96 @@ const AlumniEvents = () => {
 
         {/* 3. EVENT GRID (LinkedIn Style Cards) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {upcomingEvents.filter(e => activeCategory === 'All' || e.category === activeCategory).map((event) => {
-            const isRegistered = event.event_attendees?.some((att: any) => att.alumni_id === user?.id);
-            const count = event.event_attendees?.length || 0;
+          {upcomingEvents
+            .filter(e => e.id !== featuredEvent?.id) // Exclude the featured hero event
+            .filter(e => activeCategory === 'All' || e.category === activeCategory)
+            .map((event) => {
+              const isRegistered = event.event_attendees?.some((att: any) => att.alumni_id === user?.id);
+              const count = event.event_attendees?.length || 0;
 
-            return (
-              <div key={event.id} className="bg-white dark:bg-dark-800 rounded-[2rem] border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-2xl dark:hover:shadow-blue-900/10 transition-all duration-500 overflow-hidden flex flex-col group relative">
+              return (
+                <div key={event.id} className="bg-white dark:bg-dark-800 rounded-[2rem] border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-2xl dark:hover:shadow-blue-900/10 transition-all duration-500 overflow-hidden flex flex-col group relative">
 
-                {/* REGISTERED BADGE */}
-                {isRegistered && (
-                  <div className="absolute top-4 left-4 z-30 bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 animate-in fade-in zoom-in">
-                    <CheckCircle2 className="w-3 h-3" /> Registered
-                  </div>
-                )}
-
-                <div className="h-48 relative overflow-hidden bg-slate-100 dark:bg-dark-900">
-                  <img
-                    src={event.image_url || `https://picsum.photos/seed/${event.id}/400/200`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
-                    className={`w-full h-full object-cover transition-all duration-700 ${isRegistered ? 'opacity-90 grayscale-[0.5]' : 'opacity-90 group-hover:scale-110'}`}
-                    alt={event.title}
-                  />
-                  {!isRegistered && (
-                    <div className="absolute top-4 left-4 bg-white/90 dark:bg-dark-800/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-                      {event.category}
+                  {/* REGISTERED BADGE */}
+                  {isRegistered && (
+                    <div className="absolute top-4 left-4 z-30 bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 animate-in fade-in zoom-in">
+                      <CheckCircle2 className="w-3 h-3" /> Registered
                     </div>
                   )}
-                  <div className="absolute bottom-4 right-4 bg-blue-600 text-white w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black shadow-lg">
-                    <span className="text-[10px] leading-none">{new Date(event.date).toLocaleString('default', { month: 'short' }).toUpperCase()}</span>
-                    <span className="text-lg leading-none">{new Date(event.date).getDate()}</span>
+
+                  <div className="h-48 relative overflow-hidden bg-slate-100 dark:bg-dark-900">
+                    <img
+                      src={event.image_url || `https://picsum.photos/seed/${event.id}/400/200`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
+                      className={`w-full h-full object-cover transition-all duration-700 ${isRegistered ? 'opacity-90 grayscale-[0.5]' : 'opacity-90 group-hover:scale-110'}`}
+                      alt={event.title}
+                    />
+                    {!isRegistered && (
+                      <div className="absolute top-4 left-4 bg-white/90 dark:bg-dark-800/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+                        {event.category}
+                      </div>
+                    )}
+                    <div className="absolute bottom-4 right-4 bg-blue-600 text-white w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black shadow-lg">
+                      <span className="text-[10px] leading-none">{new Date(event.date).toLocaleString('default', { month: 'short' }).toUpperCase()}</span>
+                      <span className="text-lg leading-none">{new Date(event.date).getDate()}</span>
+                    </div>
+
+                    {/* Registration Count Badge */}
+                    <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-dark-800/90 backdrop-blur px-3 py-1 rounded-2xl text-[9px] font-black text-blue-600 dark:text-blue-400 shadow-sm">
+                      {count} {count === 1 ? 'Attendee' : 'Attendees'}
+                    </div>
                   </div>
 
-                  {/* Registration Count Badge */}
-                  <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-dark-800/90 backdrop-blur px-3 py-1 rounded-2xl text-[9px] font-black text-blue-600 dark:text-blue-400 shadow-sm">
-                    {count} {count === 1 ? 'Attendee' : 'Attendees'}
-                  </div>
-                </div>
+                  <div className="p-8 flex-1 flex flex-col transition-colors">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                      {event.title}
+                    </h3>
+                    <div className="space-y-2 mb-4">
+                      <p className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-gray-500">
+                        <Clock className="w-3.5 h-3.5 text-blue-500" />
+                        {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-gray-500 line-clamp-1">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500" /> {event.location}
+                      </p>
+                    </div>
 
-                <div className="p-8 flex-1 flex flex-col transition-colors">
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
-                    {event.title}
-                  </h3>
-                  <div className="space-y-2 mb-4">
-                    <p className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-gray-500">
-                      <Clock className="w-3.5 h-3.5 text-blue-500" />
-                      {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                    <p className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-gray-500 line-clamp-1">
-                      <MapPin className="w-3.5 h-3.5 text-rose-500" /> {event.location}
-                    </p>
-                  </div>
-
-                  {/* Add to Calendar link */}
-                  <button
-                    onClick={() => handleAddToCalendar(event)}
-                    className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors mb-6 uppercase tracking-widest"
-                  >
-                    <CalendarPlus className="w-3.5 h-3.5" /> Add to Calendar
-                  </button>
-
-                  <div className="mt-auto flex items-center justify-between gap-4">
+                    {/* Add to Calendar link */}
                     <button
-                      onClick={() => handleRSVP(event.id)}
-                      disabled={isRegistered || rsvpLoading === event.id}
-                      className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isRegistered
+                      onClick={() => handleAddToCalendar(event)}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-800 transition-colors mb-6 uppercase tracking-widest"
+                    >
+                      <CalendarPlus className="w-3.5 h-3.5" /> Add to Calendar
+                    </button>
+
+                    <div className="mt-auto flex items-center justify-between gap-4">
+                      <button
+                        onClick={() => handleRSVP(event.id)}
+                        disabled={isRegistered || rsvpLoading === event.id}
+                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isRegistered
                           ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default'
                           : 'bg-slate-50 text-slate-900 hover:bg-blue-600 hover:text-white shadow-lg'
-                        }`}
-                    >
-                      {rsvpLoading === event.id ? (
-                        <Loader2 className="animate-spin w-4 h-4" />
-                      ) : isRegistered ? (
-                        '\u2713 You are Going'
-                      ) : (
-                        'Confirm Attendance'
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleShare(event)}
-                      className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                      title="Share event"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
+                          }`}
+                      >
+                        {rsvpLoading === event.id ? (
+                          <Loader2 className="animate-spin w-4 h-4" />
+                        ) : isRegistered ? (
+                          '\u2713 You are Going'
+                        ) : (
+                          'Confirm Attendance'
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleShare(event)}
+                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Share event"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
 
         {/* 4. PAST EVENTS GALLERY */}
