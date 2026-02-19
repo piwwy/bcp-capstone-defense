@@ -142,15 +142,21 @@ const ChatWidget = () => {
     setSelectedFile(file);
   };
 
-  const uploadFile = async (file: File): Promise<{ url: string; name: string; type: string } | null> => {
+  const handleFileUpload = async (file: File): Promise<{ url: string; name: string; type: string } | null> => {
     try {
-      const ext = file.name.split('.').pop();
-      const path = `${user?.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('message-attachments').upload(path, file);
-      if (error) { console.error('Upload error:', error); return null; }
-      const { data: urlData } = supabase.storage.from('message-attachments').getPublicUrl(path);
-      return { url: urlData.publicUrl, name: file.name, type: file.type.startsWith('image/') ? 'image' : 'file' };
-    } catch (err) { console.error('Upload exception:', err); return null; }
+      const path = `${user?.id}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage.from('chat-attachments').upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(path);
+      return {
+        url: urlData.publicUrl,
+        name: file.name,
+        type: file.type.startsWith('image/') ? 'image' : 'file'
+      };
+    } catch (err: any) {
+      console.error('ChatWidget: upload error', err);
+      return null;
+    }
   };
 
   const sendMessage = async () => {
@@ -161,8 +167,9 @@ const ChatWidget = () => {
     let attachment: { url: string; name: string; type: string } | null = null;
     if (selectedFile) {
       setUploading(true);
-      attachment = await uploadFile(selectedFile);
+      attachment = await handleFileUpload(selectedFile);
       setUploading(false);
+      if (!attachment) return;
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -366,11 +373,10 @@ const ChatWidget = () => {
                       const isMine = msg.sender_id === user?.id;
                       return (
                         <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] px-3 py-2 rounded-2xl ${
-                            isMine
-                              ? 'bg-blue-600 text-white rounded-br-sm'
-                              : 'bg-slate-100 text-slate-700 rounded-bl-sm'
-                          }`}>
+                          <div className={`max-w-[80%] px-3 py-2 rounded-2xl ${isMine
+                            ? 'bg-blue-600 text-white rounded-br-sm'
+                            : 'bg-slate-100 text-slate-700 rounded-bl-sm'
+                            }`}>
                             {msg.attachment_url && msg.attachment_type === 'image' && (
                               <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="block mb-1">
                                 <img src={msg.attachment_url} alt={msg.attachment_name || 'image'} className="max-w-full max-h-40 rounded-lg object-cover" />
@@ -383,10 +389,7 @@ const ChatWidget = () => {
                                 <Download className="w-3 h-3 flex-shrink-0" />
                               </a>
                             )}
-                            {msg.content && !msg.content.startsWith('📎') && (
-                              <p className="text-xs leading-relaxed break-words">{msg.content}</p>
-                            )}
-                            {msg.content && msg.content.startsWith('📎') && !msg.attachment_url && (
+                            {msg.content && (
                               <p className="text-xs leading-relaxed break-words">{msg.content}</p>
                             )}
                             <p className={`text-[9px] mt-0.5 ${isMine ? 'text-blue-200' : 'text-slate-400'}`}>
