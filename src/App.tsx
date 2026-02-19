@@ -118,7 +118,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     switch (user.role) {
       case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
       case 'admin': return <Navigate to="/admin/dashboard" replace />;
-      case 'staff': return <Navigate to="/staff/dashboard" replace />;
+      case 'staff': return <Navigate to="/admin/dashboard" replace />;
       case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
       default: return <Navigate to="/" replace />;
     }
@@ -143,7 +143,7 @@ function AppRoutes() {
       ADMIN PORTAL
      ========================================================= */}
         <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'staff']}>
             <DashboardLayout>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>

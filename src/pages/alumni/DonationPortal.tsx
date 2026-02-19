@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
-import { Heart, CheckCircle, CreditCard, Smartphone, Download, History, LayoutGrid, Loader2, Image as ImageIcon, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Heart, CheckCircle, CreditCard, Smartphone, Download, History, Loader2, Image as ImageIcon, ArrowLeft, ChevronRight } from 'lucide-react';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
+import { EmailService } from '../../services/emailService';
 
 const AlumniDonations = () => {
   const { user } = useAuth();
@@ -81,6 +82,24 @@ const AlumniDonations = () => {
         amount: parseFloat(form.amount),
         referenceNumber: ref
       });
+
+      // --- Celebration Sound ---
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'); // Success/Celebration sound
+        audio.play();
+      } catch (e) { console.log('Audio play failed', e); }
+
+      // --- Email Receipt ---
+      if (user?.email) {
+        EmailService.sendDonationReceipt(
+          user.email,
+          user.name || 'Alumni Member',
+          selectedCampaign.title,
+          parseFloat(form.amount),
+          ref,
+          form.method
+        );
+      }
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
     } finally { setIsProcessing(false); }

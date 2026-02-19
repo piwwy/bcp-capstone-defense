@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext'; // 1. IMPORT TOAST
-import { ChevronRight } from 'lucide-react'; // Para sa stepper
+import { ChevronRight, CheckCircle, Loader2, Heart, ArrowLeft, CreditCard, Smartphone, Download, Image as ImageIcon } from 'lucide-react'; // Para sa stepper
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  Heart, ArrowLeft, CheckCircle, Loader2,
-  CreditCard, Smartphone, Download, Image as ImageIcon
-} from 'lucide-react';
+import { EmailService } from '../services/emailService';
+
 
 const PublicDonationPage = () => {
   const { showToast } = useToast(); // 2. USE TOAST HOOK
@@ -161,6 +159,25 @@ const PublicDonationPage = () => {
       }]);
 
       if (error) throw error;
+
+      // --- Celebration Sound ---
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+        audio.play();
+      } catch (e) { console.log('Audio play failed', e); }
+
+      // --- Email Receipt via Brevo ---
+      if (form.email) {
+        EmailService.sendDonationReceipt(
+          form.email,
+          form.name || 'Valued Donor',
+          selectedCampaign.title,
+          parseFloat(form.amount),
+          generatedRef,
+          form.method
+        );
+      }
+
       setStep(3);
     } catch (err: any) {
       console.error("Donation failed:", err.message);

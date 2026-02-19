@@ -2,12 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-    LayoutDashboard, Users, Calendar, Mail,
-    ChevronRight, LogOut, Database, User2, Settings,
-    CalendarDays, Newspaper, FileText,
-    MoreVertical, Loader2, AlertTriangle,
-    MessageSquare, PartyPopper, Briefcase, List, Layers, DollarSign
+    AlertTriangle, Briefcase, Calendar, CalendarDays, ChevronRight, Database, DollarSign, FileText, LayoutDashboard, Layers, List, ListPlus, Loader2, LogOut, Mail, MessageSquare, MoreVertical, Newspaper, PartyPopper, RefreshCw, TrendingUp, User2, Users
 } from "lucide-react";
+import RoleSwitcherModal from "../modals/RoleSwitcherModal";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
 interface MenuItem { name: string; icon: React.ElementType; path?: string; subItems?: SubMenuItem[]; }
@@ -22,6 +19,7 @@ const StaffSidebar: React.FC = () => {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [flatView, setFlatView] = useState(false);
+    const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
 
     const menuItems: MenuItem[] = [
         { name: "Dashboard", icon: LayoutDashboard, path: "/staff/dashboard" },
@@ -184,10 +182,9 @@ const StaffSidebar: React.FC = () => {
                 <div className="p-3 border-t border-gray-100 bg-gray-50/50 relative">
                     {showUserMenu && !collapsed && (
                         <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-xl shadow-xl border border-gray-200 p-1 animate-in slide-in-from-bottom-2 z-50">
-                            <button onClick={() => { setShowUserMenu(false); navigate('/staff/settings'); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
-                                <Settings className="w-4 h-4 text-gray-400" /> Account Settings
+                            <button onClick={() => { setShowUserMenu(false); setShowRoleSwitcher(true); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
+                                <RefreshCw className="w-4 h-4 text-gray-400" /> Switch Account
                             </button>
-                            <div className="h-px bg-gray-100 my-1"></div>
                             <div className="h-px bg-gray-100 my-1"></div>
                             <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg text-left font-medium">
                                 <LogOut className="w-4 h-4" /> Sign Out
@@ -242,6 +239,9 @@ const StaffSidebar: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* ROLE SWITCHER MODAL */}
+            <RoleSwitcherModal isOpen={showRoleSwitcher} onClose={() => setShowRoleSwitcher(false)} />
         </>
     );
 };

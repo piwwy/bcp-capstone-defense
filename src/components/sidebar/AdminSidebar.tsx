@@ -6,8 +6,9 @@ import {
   ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
   PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
   MessageSquare, PartyPopper, TrendingUp, List, Layers,
-  Bot, Settings, MoreVertical, AlertTriangle, Loader2
+  Bot, Settings, MoreVertical, AlertTriangle, Loader2, RefreshCw
 } from "lucide-react";
+import RoleSwitcherModal from "../modals/RoleSwitcherModal";
 
 interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
 interface MenuItem { name: string; icon: React.ElementType; path?: string; subItems?: SubMenuItem[]; }
@@ -23,6 +24,7 @@ const AdminSidebar: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [flatView, setFlatView] = useState(false);
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
@@ -207,6 +209,10 @@ const AdminSidebar: React.FC = () => {
                 <Settings className="w-4 h-4 text-gray-400" /> Account Settings
               </button>
               <div className="h-px bg-gray-100 my-1"></div>
+              <button onClick={() => { setShowUserMenu(false); setShowRoleSwitcher(true); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg text-left">
+                <RefreshCw className="w-4 h-4 text-gray-400" /> Switch Account
+              </button>
+              <div className="h-px bg-gray-100 my-1"></div>
               <button onClick={() => setShowLogoutModal(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg text-left font-medium">
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>
@@ -260,6 +266,9 @@ const AdminSidebar: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ROLE SWITCHER MODAL */}
+      <RoleSwitcherModal isOpen={showRoleSwitcher} onClose={() => setShowRoleSwitcher(false)} />
     </>
   );
 };

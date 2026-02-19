@@ -581,6 +581,63 @@ export const EmailService = {
     return EmailService.sendEmail({ to: email, toName: firstName, subject, htmlContent });
   },
 
+  sendDonationReceipt: async (
+    email: string,
+    donorName: string,
+    campaignTitle: string,
+    amount: number,
+    refNumber: string,
+    method: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const subject = `💖 Official Receipt: Your Donation to "${campaignTitle}"`;
+    const htmlContent = `
+      ${emailHeader('Official Donation Receipt', '💖')}
+      <tr>
+        <td style="padding: 40px 30px;">
+          <h2 style="color: #1e3a8a; margin: 0 0 15px 0; font-size: 22px;">Maraming Salamat, ${donorName}! 🙏</h2>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 25px 0;">
+            Tinanggap na namin ang iyong kontribusyon para sa <strong>${campaignTitle}</strong>. Ang iyong suporta ay makakatulong sa pag-abot ng aming layunin para sa BCP Alumni community.
+          </p>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; margin-bottom: 30px;">
+            <table width="100%" style="border-collapse: collapse;">
+              <tr>
+                <td style="padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+                  <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Reference Number</span><br>
+                  <strong style="color: #1e293b; font-size: 16px; font-family: monospace;">${refNumber}</strong>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9;">
+                  <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">Amount Contributed</span><br>
+                  <strong style="color: #059669; font-size: 24px; font-weight: 900;">₱${amount.toLocaleString()}</strong>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top: 12px;">
+                  <span style="color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase;">Payment Method</span><br>
+                  <strong style="color: #1e293b; font-size: 15px;">${method}</strong>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; margin-bottom: 25px;">
+            <p style="color: #92400e; font-size: 13px; margin: 0; line-height: 1.5;">
+              <strong>Note:</strong> Ang iyong donasyon ay kasalukuyang sumasailalim sa manual verification ng aming Finance Office. Kapag verified na, makikita mo ito sa iyong "Giving History" sa portal.
+            </p>
+          </div>
+
+          <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 0;">
+            Kung may katanungan tungkol sa iyong donasyon, mangyaring i-reply ang email na ito.
+          </p>
+        </td>
+      </tr>
+      ${emailFooter()}
+    `;
+    return EmailService.sendEmail({ to: email, toName: donorName, subject, htmlContent });
+  },
+
   // ============================================================
   // 11. APPROVAL EMAIL — Account approval notification (legacy)
   // ============================================================

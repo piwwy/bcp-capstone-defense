@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, X, Info, Calendar as CalendarIcon, Briefcase, TrendingUp, Heart, MessageSquare, ClipboardList } from 'lucide-react';
+import { Search, Bell, X, Info, Calendar as CalendarIcon, Briefcase, TrendingUp, Heart, MessageSquare, ClipboardList, Loader2 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import DPAConsentModal from '../components/modals/DPAConsentModal';
 
@@ -84,7 +84,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     switch (user?.role) {
       case "superadmin": return "Super Admin Portal";
       case "admin": return "Admin Dashboard";
-      case "staff": return "Staff Portal";
+      case "staff": return "Admin Dashboard";
       case "alumni": return "Alumni Portal";
       default: return "Dashboard";
     }
@@ -128,12 +128,20 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return currentDateTime.toLocaleString('en-US', options);
   };
 
-  return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-200 via-blue-100/60 to-indigo-100/50 text-gray-900 font-sans">
+  if (showDPAConsent) {
+    return <DPAConsentModal onAccept={() => setShowDPAConsent(false)} />;
+  }
 
-      {/* 1. LEFT: Dynamic Sidebar */}
-      {/* DPA Consent Modal */}
-      {showDPAConsent && <DPAConsentModal onAccept={() => setShowDPAConsent(false)} />}
+  if (!dpaChecked) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-gradient-to-br from-slate-200 via-blue-100/60 to-indigo-100/50 text-gray-900 font-sans font-medium">
 
       <aside className="h-full z-30 shadow-xl relative">
         {user?.role === 'admin' || user?.role === 'registrar' ? <AdminSidebar /> :
