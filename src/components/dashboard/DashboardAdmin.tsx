@@ -101,14 +101,32 @@ const DashboardAdmin: React.FC = () => {
 
       if (recents) setRecentUsers(recents);
 
-      // Fetch recent audit logs
-      const { data: logs } = await supabase
+      // Fetch recent audit logs (without broken FK join)
+      const { data: logs, error: logError } = await supabase
         .from('audit_logs')
-        .select('*, profiles:user_id(first_name, last_name)')
+        .select('id, user_id, action, details, created_at')
         .order('created_at', { ascending: false })
         .limit(6);
 
-      if (logs) setRecentLogs(logs);
+      if (!logError && logs) {
+        // Batch-fetch profiles for these logs
+        const userIds = [...new Set(logs.map(l => l.user_id))].filter(Boolean);
+        if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+
+          const profMap = new Map((profs || []).map(p => [p.id, p]));
+          const mappedLogs = logs.map(l => ({
+            ...l,
+            profiles: l.user_id ? profMap.get(l.user_id) : undefined
+          }));
+          setRecentLogs(mappedLogs);
+        } else {
+          setRecentLogs(logs);
+        }
+      }
 
     } catch (error) {
       console.error('Error fetching dashboard:', error);

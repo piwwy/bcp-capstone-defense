@@ -489,7 +489,7 @@ const ReportsAnalytics = () => {
                   </div>
                 </div>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <AreaChart data={verificationTrend}>
                       <defs>
                         <linearGradient id="colorVerified" x1="0" y1="0" x2="0" y2="1">
@@ -523,7 +523,7 @@ const ReportsAnalytics = () => {
                 </div>
                 <div className="h-64">
                   {showSensitive ? (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" debounce={50}>
                       <AreaChart data={donationTrendData}>
                         <defs>
                           <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
@@ -561,7 +561,7 @@ const ReportsAnalytics = () => {
                 </h3>
                 <p className="text-xs text-slate-400 mb-4 font-medium">Last 10 batch years</p>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <BarChart data={batchDistribution}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} />
@@ -581,7 +581,7 @@ const ReportsAnalytics = () => {
                 </h3>
                 <p className="text-xs text-slate-400 mb-4 font-medium">Top 8 academic programs</p>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <PieChart>
                       <Pie
                         data={courseDistribution}
@@ -610,7 +610,7 @@ const ReportsAnalytics = () => {
                 </h3>
                 <p className="text-xs text-slate-400 mb-4 font-medium">Career outcomes of verified alumni</p>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <BarChart data={employmentDistribution} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} />
@@ -630,7 +630,7 @@ const ReportsAnalytics = () => {
                 </h3>
                 <p className="text-xs text-slate-400 mb-4 font-medium">Verification status breakdown</p>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <PieChart>
                       <Pie
                         data={accountStatus}

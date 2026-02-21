@@ -24,16 +24,39 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 1. Authenticate with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const MAX_AUTH_ATTEMPTS = 3;
+      let authData: any = null;
+      let authError: any = null;
+
+      for (let attempt = 1; attempt <= MAX_AUTH_ATTEMPTS; attempt++) {
+        const result = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        authData = result.data;
+        authError = result.error;
+
+        if (!authError) break;
+
+        // Only retry on transient database/schema errors
+        const isTransientError = authError.message?.includes('Database error') || authError.status === 500;
+
+        if (isTransientError && attempt < MAX_AUTH_ATTEMPTS) {
+          const delay = attempt * 1000; // Exponential-ish backoff (1s, 2s)
+          console.warn(`Supabase schema error (Attempt ${attempt}/${MAX_AUTH_ATTEMPTS}), retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        break;
+      }
 
       console.log('Login attempt result:', authData, authError);
       if (authError) throw new Error(authError.message || "Invalid email or password.");
       const user = authData?.user;
       if (!user) throw new Error("Authentication failed.");
+
+      // Wait briefly to ensure session is persisted in localStorage
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // 2. Fetch Profile with Emergency Bypass for Schema/500 errors
       let profile: any = null;
@@ -41,7 +64,7 @@ export default function Login() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, role, status, dpa_consented_at')
+          .select('id, role, status, dpa_consented_at, first_name, last_name, auth_provider, last_login')
           .eq('id', user.id)
           .single();
 
@@ -80,21 +103,26 @@ export default function Login() {
       showToast({ type: 'success', title: 'Login Successful', message: `Welcome back, ${profile?.first_name || 'User'}!` });
       logLogin(email, 'email');
 
-      // 4. INTELLIGENT REDIRECT
+      // 4. INTELLIGENT REDIRECT (with small delay for session persistence)
       const role = profile.role?.toLowerCase();
 
+      // Helper: Navigate with session-safe delay
+      const safeNavigate = (path: string) => {
+        setTimeout(() => navigate(path, { replace: true }), 300);
+      };
+
       if (role === 'admin' || role === 'registrar') {
-        navigate('/admin/dashboard', { replace: true });
+        safeNavigate('/admin/dashboard');
         return;
       }
 
       if (role === 'staff') {
-        navigate('/staff/dashboard', { replace: true });
+        safeNavigate('/staff/dashboard');
         return;
       }
 
       if (role === 'superadmin') {
-        navigate('/superadmin/dashboard', { replace: true });
+        safeNavigate('/superadmin/dashboard');
         return;
       }
 
@@ -108,7 +136,7 @@ export default function Login() {
             const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
 
             if (isOAuthUser || isWithinMonth) {
-              navigate('/alumni/dashboard', { replace: true });
+              safeNavigate('/alumni/dashboard');
             } else {
               const otp = Math.floor(100000 + Math.random() * 900000).toString();
               const expiry = Date.now() + 90 * 1000;
@@ -124,7 +152,7 @@ export default function Login() {
                   showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
                 }
               }
-              navigate('/alumni/2fa', { replace: true });
+              safeNavigate('/alumni/2fa');
             }
             break;
           }
@@ -135,7 +163,7 @@ export default function Login() {
             await supabase.auth.signOut();
             throw new Error("Your registration was not approved.");
           default:
-            navigate('/onboarding', { replace: true });
+            safeNavigate('/onboarding');
         }
         return;
       }

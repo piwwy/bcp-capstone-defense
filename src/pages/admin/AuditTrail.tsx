@@ -59,11 +59,13 @@ const AuditTrail = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
+
+      // Fetch audit logs without FK join (no FK exists between audit_logs and profiles)
       let query = supabase
         .from('audit_logs')
-        .select('id, user_id, action, details, ip_address, created_at, profiles:user_id(first_name, last_name)')
+        .select('id, user_id, action, details, ip_address, created_at')
         .order('created_at', { ascending: false })
-        .limit(100); // Server-side limit
+        .limit(100);
 
       if (actionFilter !== 'all') query = query.eq('action', actionFilter);
 
@@ -76,44 +78,26 @@ const AuditTrail = () => {
 
       const { data, error } = await query;
 
-      if (error) {
-        console.warn('Primary fetch failed, trying fallback...', error);
-        // Fallback: Simple fetch without profiles join
-        let fallbackQuery = supabase
-          .from('audit_logs')
-          .select('id, user_id, action, details, ip_address, created_at')
-          .order('created_at', { ascending: false })
-          .limit(100);
+      if (error) throw error;
 
-        if (actionFilter !== 'all') fallbackQuery = fallbackQuery.eq('action', actionFilter);
-        const { data: simpleData, error: simpleError } = await fallbackQuery;
+      // Batch-fetch profiles for user names
+      const userIds = [...new Set((data || []).map(l => l.user_id))].filter(Boolean);
+      let profileMap = new Map();
 
-        if (simpleError) throw simpleError;
+      if (userIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
 
-        const userIds = [...new Set((simpleData || []).map(l => l.user_id))].filter(Boolean);
-        if (userIds.length > 0) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name')
-            .in('id', userIds);
-
-          const profileMap = new Map((profileData || []).map(p => [p.id, p]));
-          const mappedLogs = (simpleData || []).map(l => ({
-            ...l,
-            profiles: l.user_id ? profileMap.get(l.user_id) : undefined
-          }));
-          setLogs(mappedLogs as any);
-        } else {
-          setLogs(simpleData as any);
-        }
-      } else if (data) {
-        // Handle profiles possibly being an array from join
-        const mappedData = data.map((l: any) => ({
-          ...l,
-          profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles
-        }));
-        setLogs(mappedData);
+        profileMap = new Map((profileData || []).map(p => [p.id, p]));
       }
+
+      const mappedLogs = (data || []).map(l => ({
+        ...l,
+        profiles: l.user_id ? profileMap.get(l.user_id) : undefined
+      }));
+      setLogs(mappedLogs as any);
     } catch (err) {
       console.error('Audit fetch catch:', err);
     } finally {

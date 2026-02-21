@@ -333,7 +333,7 @@ const CareerTracking = () => {
                             Employment Status Distribution
                         </h3>
                         <div className="h-72">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <PieChart>
                                     <Pie
                                         data={employmentStats}
@@ -370,7 +370,7 @@ const CareerTracking = () => {
                             Top Industries
                         </h3>
                         <div className="h-72">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <BarChart data={industryStats} layout="vertical" margin={{ left: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis type="number" />

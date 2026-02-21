@@ -154,7 +154,7 @@ const AlumniDashboard: React.FC = () => {
 
               <div className="grid md:grid-cols-2 gap-6">
                 {loadingCampaigns ? (
-                  <div className="col-2 flex justify-center p-10"><Loader2 className="animate-spin text-gray-300 dark:text-gray-600" /></div>
+                  <div className="col-span-2 flex justify-center p-10"><Loader2 className="animate-spin text-gray-300 dark:text-gray-600" /></div>
                 ) : campaigns.length === 0 ? (
                   <div className="col-span-2 text-center p-8 bg-gray-50 dark:bg-dark-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 text-sm italic">
                     No active fundraisers at the moment.

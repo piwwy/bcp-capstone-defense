@@ -473,7 +473,7 @@ const ReportGenerator = () => {
               <ShieldCheck className="w-4 h-4 text-emerald-600" /> Verification Activity
             </h3>
             <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={50}>
                 <AreaChart data={verificationTrend}>
                   <defs>
                     <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -498,7 +498,7 @@ const ReportGenerator = () => {
                 <BarChart3 className="w-4 h-4 text-emerald-600" /> Alumni by Batch
               </h3>
               <div className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <BarChart data={batchData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis type="number" tick={{ fontSize: 11 }} />
@@ -516,7 +516,7 @@ const ReportGenerator = () => {
                 <PieChartIcon className="w-4 h-4 text-amber-600" /> Employment Status
               </h3>
               <div className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <PieChart>
                     <Pie
                       data={employmentData}
@@ -546,7 +546,7 @@ const ReportGenerator = () => {
               <GraduationCap className="w-4 h-4 text-violet-600" /> Alumni by Course (Top 8)
             </h3>
             <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={50}>
                 <BarChart data={courseData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={50} />

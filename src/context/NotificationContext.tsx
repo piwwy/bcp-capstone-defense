@@ -78,14 +78,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       for (const survey of surveys) {
         if (!respondedIds.has(survey.id) && !notifiedIds.has(survey.id)) {
           try {
-            await supabase.from('notifications').upsert({
+            await supabase.from('notifications').insert({
               user_id: user.id,
               title: 'New Survey Available',
               message: `Please take a moment to answer: "${survey.title}"`,
               type: 'survey',
               event_id: survey.id,
               is_read: false
-            }, { onConflict: 'user_id,event_id', ignoreDuplicates: true });
+            });
           } catch {
             // Ignore duplicate notification errors
           }

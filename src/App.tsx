@@ -7,6 +7,7 @@ import ResetPassword from './pages/ResetPassword';
 
 // USE THE REAL AUTH CONTEXT
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { supabase } from './services/supabaseClient';
 
 // toast
 
@@ -87,17 +88,41 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [timedOut, setTimedOut] = React.useState(false);
+  const [sessionVerified, setSessionVerified] = React.useState(false);
 
-  // Safety Timeout: 5 seconds lang dapat ang auth check
+  // Safety Timeout: 10 seconds for Netlify cold start tolerance
   React.useEffect(() => {
     let timer: any;
     if (isLoading) {
       timer = setTimeout(() => {
         setTimedOut(true);
-      }, 5000); // 5 second safety net
+      }, 10000); // 10 second safety net (was 5s, too aggressive for Netlify)
     }
     return () => clearTimeout(timer);
   }, [isLoading]);
+
+  // When timeout fires but user isn't authenticated yet, do one final session check
+  // This prevents the loop where valid sessions are discarded on slow networks
+  React.useEffect(() => {
+    if (timedOut && !isAuthenticated && !sessionVerified) {
+      const verifySession = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            console.warn('ProtectedRoute: Timeout fired but valid session exists. Waiting for AuthContext...');
+            // Session exists — give AuthContext more time instead of redirecting
+            setTimedOut(false);
+            setTimeout(() => setTimedOut(true), 5000); // Give 5 more seconds
+          }
+        } catch (err) {
+          console.error('Session verification failed:', err);
+        } finally {
+          setSessionVerified(true);
+        }
+      };
+      verifySession();
+    }
+  }, [timedOut, isAuthenticated, sessionVerified]);
 
   if (isLoading && !timedOut) {
     return (
@@ -108,7 +133,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     );
   }
 
-  // Kung lumampas sa timer at wala pa ring auth, balik sa login
+  // Only redirect to login if truly not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

@@ -123,7 +123,10 @@ const Alumni2FA: React.FC = () => {
         sessionStorage.removeItem('otp_email');
         sessionStorage.removeItem('otp_user_id');
 
-        navigate('/alumni/dashboard', { replace: true });
+        // Small delay to let session persist before redirect (Netlify fix)
+        setTimeout(() => {
+          navigate('/alumni/dashboard', { replace: true });
+        }, 500);
       } else {
         const newAttempts = attempts + 1;
         setAttempts(newAttempts);

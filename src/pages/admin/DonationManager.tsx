@@ -283,12 +283,8 @@ const DonationManager = () => {
 
       if (updateErr) throw updateErr;
 
-      // Step 2: Update Campaign Progress
-      const { data: campaign } = await supabase.from('donation_campaigns').select('current_amount').eq('id', campaignId).single();
-      const newTotal = (campaign?.current_amount || 0) + amount;
-      await supabase.from('donation_campaigns').update({ current_amount: newTotal }).eq('id', campaignId);
+      fetchData(); // Refresh data after status update
 
-      fetchData();
       await logAudit(AUDIT_ACTIONS.DONATION_APPROVED, {
         module: 'Donations',
         message: `Verified donation of ₱${amount.toLocaleString()} for campaign ID: ${campaignId}`,

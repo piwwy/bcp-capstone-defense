@@ -74,15 +74,58 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const handleNotifClick = (n: any) => {
     markAsRead(n.id);
-    const role = user?.role === 'admin' ? '/admin' : '/alumni';
+    const role = user?.role;
+
+    // Admin / Staff / SuperAdmin base paths
+    const isAdminStaff = ['admin', 'staff', 'superadmin'].includes(role || '');
+    const base = isAdminStaff ? `/${role}` : '/alumni';
+
     switch (n.type) {
-      case 'career_update': navigate(`${role === '/admin' ? '/admin/tracking/career' : '/alumni/graduate-tracking'}`); break;
-      case 'event_reminder': navigate(`${role}/events${role === '/admin' ? '/calendar' : ''}`); break;
-      case 'job': case 'job_alert': navigate(`${role === '/admin' ? '/admin/jobs/board' : '/alumni/jobs'}`); break;
-      case 'survey': navigate(`${role === '/admin' ? '/admin/feedback' : '/alumni/feedback'}`); break;
-      case 'donation': navigate(`${role === '/admin' ? '/admin/donations' : '/alumni/donations'}`); break;
-      case 'message': navigate('/alumni/messages'); break;
-      default: break;
+      case 'career_update':
+        if (role === 'superadmin') navigate('/superadmin/career-tracking');
+        else if (role === 'admin') navigate('/admin/tracking/career');
+        else if (role === 'alumni') navigate('/alumni/graduate-tracking');
+        break;
+
+      case 'event_reminder':
+        if (role === 'superadmin') navigate('/superadmin/events');
+        else if (isAdminStaff) navigate(`${base}/events/calendar`);
+        else navigate('/alumni/events');
+        break;
+
+      case 'job':
+      case 'job_alert':
+        if (role === 'superadmin') navigate('/superadmin/jobs');
+        else if (isAdminStaff) navigate(`${base}/jobs/board`);
+        else navigate('/alumni/jobs');
+        break;
+
+      case 'survey':
+        navigate(`${base}/feedback`);
+        break;
+
+      case 'donation':
+        if (role === 'staff') navigate('/staff/collections');
+        else navigate(`${base}/donations`);
+        break;
+
+      case 'message':
+        if (role === 'alumni') navigate('/alumni/messages');
+        else navigate(`${base}/dashboard`);
+        break;
+
+      case 'registration':
+      case 'pending_approval':
+        if (isAdminStaff) navigate(`${base}/approvals`);
+        break;
+
+      case 'inquiry':
+        if (isAdminStaff) navigate(`${base}/partner-inquiries`);
+        break;
+
+      default:
+        navigate(`${base}/dashboard`);
+        break;
     }
     setShowNotifications(false);
   };
