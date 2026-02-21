@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { logAudit } from '../../services/auditLogger';
+import { logAudit, logExport, logModuleView } from '../../services/auditLogger';
 import {
   ClipboardList, ShieldCheck, History, Search, Download,
   Filter, Calendar, ChevronLeft, ChevronRight, X, RefreshCw,
@@ -25,6 +25,9 @@ const AuditTrail = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
+  const [totalActions, setTotalActions] = useState(0);
+  const [filteredActions, setFilteredActions] = useState(0);
+  const [todayCount, setTodayCount] = useState(0);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,23 +52,49 @@ const AuditTrail = () => {
 
   useEffect(() => {
     fetchLogs();
-    // Log the access to the audit trail
-    logAudit('VIEW_AUDIT_TRAIL', {
+  }, [debouncedSearch, actionFilter, moduleFilter, dateFrom, dateTo]);
+
+  useEffect(() => {
+    void logModuleView('System Audit Trail', '/admin/audit-trail');
+    void logAudit('VIEW_AUDIT_TRAIL', {
       module: 'Security',
       message: 'Administrator accessed the System Audit Trail'
     });
-  }, [debouncedSearch, actionFilter, moduleFilter, dateFrom, dateTo]);
+  }, []);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
+
+      // Global counters (not filter-limited)
+      const [{ count: totalCount }, { count: todayTotal }] = await Promise.all([
+        supabase.from('audit_logs').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('audit_logs')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+      ]);
+      setTotalActions(totalCount || 0);
+      setTodayCount(todayTotal || 0);
+
+      let countQuery = supabase
+        .from('audit_logs')
+        .select('*', { count: 'exact', head: true });
+      if (actionFilter !== 'all') countQuery = countQuery.eq('action', actionFilter);
+      if (debouncedSearch) {
+        countQuery = countQuery.or(`action.ilike.%${debouncedSearch}%,ip_address.ilike.%${debouncedSearch}%`);
+      }
+      if (dateFrom) countQuery = countQuery.gte('created_at', dateFrom);
+      if (dateTo) countQuery = countQuery.lte('created_at', dateTo);
+      const { count: filteredCount } = await countQuery;
+      setFilteredActions(filteredCount || 0);
 
       // Fetch audit logs without FK join (no FK exists between audit_logs and profiles)
       let query = supabase
         .from('audit_logs')
         .select('id, user_id, action, details, ip_address, created_at')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(500);
 
       if (actionFilter !== 'all') query = query.eq('action', actionFilter);
 
@@ -148,6 +177,7 @@ const AuditTrail = () => {
     link.href = URL.createObjectURL(blob);
     link.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
+    void logExport('CSV', filteredLogs.length, 'Audit Trail');
   };
 
   const clearFilters = () => {
@@ -179,11 +209,6 @@ const AuditTrail = () => {
     if (action?.includes('LOGIN') || action?.includes('LOGOUT')) return 'bg-purple-500';
     return 'bg-blue-500';
   };
-
-  const todayCount = useMemo(() => {
-    const today = new Date().toDateString();
-    return logs.filter(l => new Date(l.created_at).toDateString() === today).length;
-  }, [logs]);
 
   const formatTimeAgo = (dateStr: string) => {
     const now = new Date();
@@ -224,7 +249,7 @@ const AuditTrail = () => {
               <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Today</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{logs.length}</p>
+              <p className="text-2xl font-black text-white">{totalActions}</p>
               <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Total</p>
             </div>
           </div>
@@ -239,14 +264,14 @@ const AuditTrail = () => {
             <div className="p-2.5 bg-blue-100 rounded-xl"><Activity className="w-5 h-5 text-blue-600" /></div>
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Actions</span>
           </div>
-          <p className="text-3xl font-black text-slate-900">{logs.length}</p>
+          <p className="text-3xl font-black text-slate-900">{totalActions}</p>
         </div>
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2.5 bg-indigo-100 rounded-xl"><Filter className="w-5 h-5 text-indigo-600" /></div>
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Filtered</span>
           </div>
-          <p className="text-3xl font-black text-slate-900">{filteredLogs.length}</p>
+          <p className="text-3xl font-black text-slate-900">{filteredActions}</p>
         </div>
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">

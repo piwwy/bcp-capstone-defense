@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
-import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import CreateUserModal from '../../components/modals/CreateUserModal';
 import EmailService from '../../services/emailService';
@@ -150,7 +150,8 @@ const AdminUsers: React.FC = () => {
             await logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
                 module: 'User Management',
                 message: `Approved user: ${user.first_name} ${user.last_name}`,
-                userId: user.id, oldStatus: user.status, newStatus: 'verified'
+                userId: user.id,
+                ...buildFieldDiff({ status: user.status }, { status: 'verified' }, ['status'])
             });
             showToast({ type: 'success', title: 'User Approved', message: `${user.first_name} ${user.last_name} has been verified.` });
             fetchUsers();
@@ -216,7 +217,8 @@ const AdminUsers: React.FC = () => {
             await logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
                 module: 'User Management',
                 message: `Archived user: ${user.first_name} ${user.last_name} (${user.email})`,
-                userId: user.id, oldStatus: user.status, newStatus: 'archived'
+                userId: user.id,
+                ...buildFieldDiff({ status: user.status }, { status: 'archived' }, ['status'])
             });
             showToast({ type: 'success', title: 'User Archived', message: `${user.first_name} ${user.last_name} has been archived.` });
             fetchUsers();
@@ -236,7 +238,8 @@ const AdminUsers: React.FC = () => {
             await logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
                 module: 'User Management',
                 message: `Restored user: ${user.first_name} ${user.last_name} (${user.email})`,
-                userId: user.id, oldStatus: 'archived', newStatus: restoredStatus
+                userId: user.id,
+                ...buildFieldDiff({ status: 'archived' }, { status: restoredStatus }, ['status'])
             });
             showToast({ type: 'success', title: 'User Restored', message: `${user.first_name} ${user.last_name} has been restored.` });
             fetchUsers();
@@ -246,6 +249,16 @@ const AdminUsers: React.FC = () => {
             setActionLoading(false);
             setConfirmAction(null);
         }
+    };
+
+    const openUserDetails = (user: User) => {
+        setSelectedUser(user);
+        void logAudit('PROFILE_VIEWED', {
+            module: 'User Management',
+            message: `Viewed profile details: ${user.first_name} ${user.last_name}`,
+            viewedUserId: user.id,
+            viewedUserEmail: user.email
+        });
     };
 
 
@@ -441,7 +454,7 @@ const AdminUsers: React.FC = () => {
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-center gap-1 relative">
-                                                <button onClick={() => setSelectedUser(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="View Details">
+                                                <button onClick={() => openUserDetails(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="View Details">
                                                     <Eye className="w-4 h-4" />
                                                 </button>
                                                 <div className="relative">

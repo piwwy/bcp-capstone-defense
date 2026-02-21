@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
 import AdminResourceCard from './AdminResourceCard';
 import {
   Plus, Calendar as CalendarIcon, MapPin, X, Loader2, Timer,
@@ -35,6 +35,7 @@ const ManageEvents = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [originalEventSnapshot, setOriginalEventSnapshot] = useState<any | null>(null);
   const [eventFile, setEventFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
 
@@ -142,7 +143,7 @@ const ManageEvents = () => {
         module: 'Events',
         message: `${newStatus === 'archived' ? 'Archived' : 'Restored'} event: ${archiveTarget.title}`,
         eventId: archiveTarget.id,
-        status: newStatus
+        ...buildFieldDiff({ status: archiveTarget.status }, { status: newStatus }, ['status'])
       });
       fetchData();
       showToast({
@@ -258,12 +259,39 @@ const ManageEvents = () => {
       setFilePreview(null);
       fetchData();
 
-      await logAudit(isEditing ? AUDIT_ACTIONS.EVENT_UPDATED : AUDIT_ACTIONS.EVENT_CREATED, {
-        module: 'Events',
-        message: `${isEditing ? 'Updated' : 'Created'} event: ${formData.title}`,
-        eventId: isEditing ? editingId : undefined,
-        eventTitle: formData.title
-      });
+      if (isEditing) {
+        await logAudit(AUDIT_ACTIONS.EVENT_UPDATED, {
+          module: 'Events',
+          message: `Updated event: ${formData.title}`,
+          eventId: editingId || undefined,
+          ...buildFieldDiff(
+            {
+              title: originalEventSnapshot?.title,
+              description: originalEventSnapshot?.description,
+              date: originalEventSnapshot?.date,
+              location: originalEventSnapshot?.location,
+              category: originalEventSnapshot?.category,
+              image_url: originalEventSnapshot?.image_url,
+              is_featured: originalEventSnapshot?.is_featured,
+            },
+            {
+              title: formData.title,
+              description: formData.description,
+              date: formData.date,
+              location: formData.location,
+              category: formData.category,
+              image_url: finalImageUrl,
+              is_featured: formData.is_featured,
+            }
+          )
+        });
+      } else {
+        await logAudit(AUDIT_ACTIONS.EVENT_CREATED, {
+          module: 'Events',
+          message: `Created event: ${formData.title}`,
+          eventTitle: formData.title
+        });
+      }
 
       const _d = new Date(formData.date);
       const _dayName = _d.toLocaleDateString('en-US', { weekday: 'long' });
@@ -314,7 +342,12 @@ const ManageEvents = () => {
         module: 'Events',
         message: `${approvalAction === 'approve' ? 'Approved' : 'Rejected'} event: ${selectedEvent.title}`,
         eventId: selectedEvent.id,
-        notes: approvalNotes
+        notes: approvalNotes,
+        ...buildFieldDiff(
+          { status: selectedEvent.status, approval_notes: selectedEvent.approval_notes || null },
+          { status: newStatus, approval_notes: approvalNotes || null },
+          ['status', 'approval_notes']
+        )
       });
 
       setIsApprovalModalOpen(false);
@@ -337,7 +370,7 @@ const ManageEvents = () => {
         module: 'Events',
         message: `Published event: ${event.title}`,
         eventId: event.id,
-        status: 'active'
+        ...buildFieldDiff({ status: event.status }, { status: 'active' }, ['status'])
       });
 
       fetchData();
@@ -419,6 +452,7 @@ const ManageEvents = () => {
   const openCreateModal = () => {
     setIsEditing(false);
     setEditingId(null);
+    setOriginalEventSnapshot(null);
     setFormData({ title: '', description: '', date: '', location: '', category: 'Webinars', image_url: '', is_featured: false, require_approval: false });
     setTimeParts({ hour: '1', minute: '00', ampm: 'PM' });
     setDatePart('');
@@ -431,6 +465,7 @@ const ManageEvents = () => {
     const defaultTime = { hour: '1', minute: '00', ampm: 'PM' };
     setIsEditing(false);
     setEditingId(null);
+    setOriginalEventSnapshot(null);
     setTimeParts(defaultTime);
     setDatePart(clickedDate);
     setFormData({ title: '', description: '', date: combineDateAndTime(clickedDate, defaultTime), location: '', category: 'Webinars', image_url: '', is_featured: false, require_approval: false });
@@ -443,6 +478,7 @@ const ManageEvents = () => {
     setFormData(event);
     setEditingId(event.id);
     setIsEditing(true);
+    setOriginalEventSnapshot(event);
     parseExistingDate(event.date);
     setFilePreview(null);
     setEventFile(null);

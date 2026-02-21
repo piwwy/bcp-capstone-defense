@@ -226,6 +226,16 @@ const AlumniMessages = () => {
         console.error('Send message error:', error);
         showToast({ title: 'Error', message: 'Failed to send message. ' + (error.message || ''), type: 'error' });
         setNewMessage(content);
+      } else {
+        // Push a notification so receiver can see message alerts in dashboard bell.
+        await supabase.from('notifications').insert({
+          user_id: selectedPartner,
+          title: 'New Message',
+          message: `${user?.name || 'Someone'} sent you a message`,
+          type: 'message',
+          event_id: null,
+          is_read: false
+        });
       }
     } catch (err) {
       console.error('Send message exception:', err);

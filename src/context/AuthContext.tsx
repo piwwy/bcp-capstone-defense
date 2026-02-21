@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
+import { logAudit, logLogout, AUDIT_ACTIONS } from '../services/auditLogger';
 
 // User type definition
 export interface User {
@@ -198,21 +199,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     const handleFocus = () => resolveSession(null, true);
     const handleOnline = () => resolveSession(null, true);
+    const handleOffline = () => { void logAudit(AUDIT_ACTIONS.NETWORK_OFFLINE, { module: 'Auth', message: 'User went offline' }); };
+    const handleBackOnline = () => {
+      void logAudit(AUDIT_ACTIONS.NETWORK_ONLINE, { module: 'Auth', message: 'User reconnected' });
+      handleOnline();
+    };
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('online', handleOnline);
+    window.addEventListener('online', handleBackOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('online', handleBackOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
   const logout = async () => {
     try {
+      await logLogout();
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout error:', err);

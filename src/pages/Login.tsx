@@ -4,7 +4,7 @@ import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
 import { Eye, EyeOff, Loader2, LogIn, ArrowLeft } from 'lucide-react';
 import EmailService from '../services/emailService';
 import { useToast } from '../context/ToastContext';
-import { logLogin } from '../services/auditLogger';
+import { logLogin, logFailedLogin } from '../services/auditLogger';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -191,6 +191,7 @@ export default function Login() {
       throw new Error("Access denied: Invalid role.");
 
     } catch (err: any) {
+      await logFailedLogin(email.trim(), err?.message || 'Invalid credentials');
       showToast({ type: 'error', title: 'Login Error', message: err.message });
       setLoading(false);
     }

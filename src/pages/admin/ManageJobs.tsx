@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
 import AdminResourceCard from './AdminResourceCard';
 import {
   Plus, Briefcase, MapPin, X, Loader2,
@@ -50,6 +50,7 @@ const ManageJobs = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [originalJobSnapshot, setOriginalJobSnapshot] = useState<any | null>(null);
   const [jobFile, setJobFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
 
@@ -87,7 +88,7 @@ const ManageJobs = () => {
     }
   };
 
-  const updateApplicationStatus = async (appId: string, applicantId: string, newStatus: string, jobTitle: string) => {
+  const updateApplicationStatus = async (appId: string, applicantId: string, oldStatus: string, newStatus: string, jobTitle: string) => {
     try {
       // 1. Update ang application status
       const { error: statusError } = await supabase
@@ -115,7 +116,7 @@ const ManageJobs = () => {
         message: `Updated application status to ${newStatus.toUpperCase()} for ${jobTitle}`,
         applicationId: appId,
         applicantId,
-        status: newStatus
+        ...buildFieldDiff({ status: oldStatus }, { status: newStatus }, ['status'])
       });
 
       showToast({ title: 'Status Updated', message: `Applicant is now ${newStatus}`, type: 'success' });
@@ -207,7 +208,7 @@ const ManageJobs = () => {
         module: 'Career',
         message: `${newStatus === 'archived' ? 'Archived' : 'Restored'} job: ${jobs.find(j => j.id === id)?.title}`,
         jobId: id,
-        status: newStatus
+        ...buildFieldDiff({ status: currentStatus }, { status: newStatus }, ['status'])
       });
       showToast({
         title: newStatus === 'archived' ? 'Job Archived' : 'Job Restored',
@@ -287,12 +288,45 @@ const ManageJobs = () => {
         : await supabase.from('jobs').insert([{ ...payload, status: 'active' }]);
 
       if (error) throw error;
-      await logAudit(isEditing ? AUDIT_ACTIONS.JOB_UPDATED : AUDIT_ACTIONS.JOB_POSTED, {
-        module: 'Career',
-        message: `${isEditing ? 'Updated' : 'Launched'} job posting: ${formData.title}`,
-        jobId: isEditing ? editingId : undefined,
-        company: formData.company
-      });
+      if (isEditing) {
+        await logAudit(AUDIT_ACTIONS.JOB_UPDATED, {
+          module: 'Career',
+          message: `Updated job posting: ${formData.title}`,
+          jobId: editingId || undefined,
+          ...buildFieldDiff(
+            {
+              title: originalJobSnapshot?.title,
+              company: originalJobSnapshot?.company,
+              location: originalJobSnapshot?.location,
+              type: originalJobSnapshot?.type,
+              work_type: originalJobSnapshot?.work_type,
+              category: originalJobSnapshot?.category,
+              description: originalJobSnapshot?.description,
+              salary_range: originalJobSnapshot?.salary_range,
+              target_courses: originalJobSnapshot?.target_courses || [],
+              image_url: originalJobSnapshot?.image_url || '',
+            },
+            {
+              title: formData.title,
+              company: formData.company,
+              location: formData.location,
+              type: formData.type,
+              work_type: formData.work_type,
+              category: formData.category,
+              description: formData.description,
+              salary_range: formData.salary_range,
+              target_courses: formData.target_courses,
+              image_url: finalImageUrl || '',
+            }
+          )
+        });
+      } else {
+        await logAudit(AUDIT_ACTIONS.JOB_POSTED, {
+          module: 'Career',
+          message: `Launched job posting: ${formData.title}`,
+          company: formData.company
+        });
+      }
 
       // 3. Optional: Send Job Alerts to matching alumni
       if (!isEditing && notifyMatchingAlumni && formData.target_courses.length > 0) {
@@ -330,6 +364,7 @@ const ManageJobs = () => {
       setIsModalOpen(false);
       setFilePreview(null);
       setJobFile(null);
+      setOriginalJobSnapshot(null);
       setNotifyMatchingAlumni(false);
       fetchJobs();
     } catch (err: any) {
@@ -347,7 +382,7 @@ const ManageJobs = () => {
           <button onClick={() => setFilterTab('archived')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${filterTab === 'archived' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500'}`}>Archived</button>
         </div>
         <button
-          onClick={() => { setFormData({ title: '', company: '', location: '', type: 'Full-time', work_type: 'On-site', category: 'BSIT', description: '', target_courses: [], salary_range: '', image_url: '' }); setFilePreview(null); setIsEditing(false); setIsModalOpen(true); }}
+          onClick={() => { setFormData({ title: '', company: '', location: '', type: 'Full-time', work_type: 'On-site', category: 'BSIT', description: '', target_courses: [], salary_range: '', image_url: '' }); setFilePreview(null); setIsEditing(false); setOriginalJobSnapshot(null); setIsModalOpen(true); }}
           className="bg-blue-600 text-white px-8 py-3.5 rounded-full font-black flex items-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all"
         >
           <Plus className="w-5 h-5" /> New Career Opening
@@ -401,7 +436,7 @@ const ManageJobs = () => {
         {jobs.filter(j => j.status === filterTab).map(job => (
           <AdminResourceCard
             key={job.id} title={job.title} subtitle={job.company} category={job.category} status={job.status} image={job.image_url}
-            onEdit={() => { setFormData({ ...job, target_courses: job.target_courses || [] }); setEditingId(job.id); setIsEditing(true); setIsModalOpen(true); }}
+            onEdit={() => { setFormData({ ...job, target_courses: job.target_courses || [] }); setOriginalJobSnapshot(job); setEditingId(job.id); setIsEditing(true); setIsModalOpen(true); }}
             onDelete={isStaff ? undefined : () => handleStatusToggle(job.id, job.status)}
           >
             <div className="mt-4 space-y-3">
@@ -566,11 +601,11 @@ const ManageJobs = () => {
                         </p>
                       </div>
                       <div className="flex gap-1.5 flex-wrap">
-                        <button onClick={() => updateApplicationStatus(app.id, app.alumni_id, 'reviewed', activeJobTitle)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'reviewed' ? 'bg-blue-600 text-white shadow' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'}`}><CheckCircle className="w-3.5 h-3.5" /> Reviewed</button>
-                        <button onClick={() => updateApplicationStatus(app.id, app.alumni_id, 'shortlisted', activeJobTitle)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'shortlisted' ? 'bg-amber-500 text-white shadow' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-100'}`}><Star className="w-3.5 h-3.5" /> Shortlisted</button>
+                        <button onClick={() => updateApplicationStatus(app.id, app.alumni_id, app.status, 'reviewed', activeJobTitle)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'reviewed' ? 'bg-blue-600 text-white shadow' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'}`}><CheckCircle className="w-3.5 h-3.5" /> Reviewed</button>
+                        <button onClick={() => updateApplicationStatus(app.id, app.alumni_id, app.status, 'shortlisted', activeJobTitle)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'shortlisted' ? 'bg-amber-500 text-white shadow' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-100'}`}><Star className="w-3.5 h-3.5" /> Shortlisted</button>
                         <button
                           onClick={() => {
-                            updateApplicationStatus(app.id, app.alumni_id, 'hired', activeJobTitle);
+                            updateApplicationStatus(app.id, app.alumni_id, app.status, 'hired', activeJobTitle);
                           }}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${app.status === 'hired' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100'}`}
                         >
@@ -597,7 +632,7 @@ const ManageJobs = () => {
                           const subject = encodeURIComponent(`Interview Schedule - ${activeJobTitle}`);
                           const body = encodeURIComponent(`Hi ${app.profiles?.first_name},\n\nCongratulations! You have been shortlisted for the position of ${activeJobTitle}.\n\nWe would like to schedule an interview with you. Please let us know your available date and time.\n\nBest regards,\nLinker College Alumni Office`);
                           window.open(`https://mail.google.com/mail/?view=cm&to=${email}&su=${subject}&body=${body}`, '_blank');
-                          updateApplicationStatus(app.id, app.alumni_id, 'shortlisted', activeJobTitle);
+                          updateApplicationStatus(app.id, app.alumni_id, app.status, 'shortlisted', activeJobTitle);
                         }}
                         className="flex-1 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase text-center flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
                       >

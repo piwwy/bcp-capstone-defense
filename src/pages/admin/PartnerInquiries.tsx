@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
-import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import { Building2, Loader2, Search, Briefcase, Mail, Phone, CheckCircle2, X, Send, Clock, ArrowRight, MessageSquare, Users, FileText } from 'lucide-react';
 
@@ -104,6 +104,7 @@ const PartnerInquiries: React.FC = () => {
 
   const markReviewed = async (id: string) => {
     setSavingId(id);
+    const entry = inquiries.find((i) => i.id === id);
     try {
       const { error } = await supabase
         .from('contact_inquiries')
@@ -116,7 +117,8 @@ const PartnerInquiries: React.FC = () => {
       await logAudit(AUDIT_ACTIONS.INQUIRY_REVIEWED, {
         module: 'Partner Inquiries',
         message: `Marked inquiry ${id} as reviewed`,
-        inquiryId: id
+        inquiryId: id,
+        ...buildFieldDiff({ status: entry?.status || 'pending' }, { status: 'reviewed' }, ['status'])
       });
     } catch (error: any) {
       showToast({ type: 'error', title: 'Update Failed', message: error.message || 'Unable to update.' });
@@ -125,6 +127,7 @@ const PartnerInquiries: React.FC = () => {
 
   const routeInquiry = async (id: string, target: 'osa' | 'hr') => {
     setSavingId(id);
+    const entry = inquiries.find((i) => i.id === id);
     const field = target === 'osa' ? 'routed_to_osa' : 'routed_to_hr';
     try {
       const { error } = await supabase
@@ -139,7 +142,20 @@ const PartnerInquiries: React.FC = () => {
         module: 'Partner Inquiries',
         message: `Inquiry ${id} routed to ${target.toUpperCase()}`,
         inquiryId: id,
-        target: target.toUpperCase()
+        target: target.toUpperCase(),
+        ...buildFieldDiff(
+          {
+            status: entry?.status || 'pending',
+            routed_to_osa: !!entry?.routed_to_osa,
+            routed_to_hr: !!entry?.routed_to_hr,
+          },
+          {
+            status: 'reviewed',
+            routed_to_osa: target === 'osa' ? true : !!entry?.routed_to_osa,
+            routed_to_hr: target === 'hr' ? true : !!entry?.routed_to_hr,
+          },
+          ['status', 'routed_to_osa', 'routed_to_hr']
+        )
       });
 
       showToast({ type: 'success', title: `Routed to ${target.toUpperCase()}`, message: target === 'osa' ? 'Inquiry forwarded to Office of Student Affairs.' : 'Inquiry forwarded to Human Resources.' });
@@ -163,7 +179,12 @@ const PartnerInquiries: React.FC = () => {
       await logAudit(AUDIT_ACTIONS.INQUIRY_NOTES_UPDATED, {
         module: 'Partner Inquiries',
         message: `Updated internal notes for inquiry ${selectedInquiry.id}`,
-        inquiryId: selectedInquiry.id
+        inquiryId: selectedInquiry.id,
+        ...buildFieldDiff(
+          { admin_notes: selectedInquiry.admin_notes || null },
+          { admin_notes: adminNotes || null },
+          ['admin_notes']
+        )
       });
 
       setSelectedInquiry(null);

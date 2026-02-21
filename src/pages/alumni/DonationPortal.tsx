@@ -7,6 +7,7 @@ import { Heart, CheckCircle, CreditCard, Smartphone, Download, History, Loader2,
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { EmailService } from '../../services/emailService';
+import jsPDF from 'jspdf';
 
 const AlumniDonations = () => {
   const { user } = useAuth();
@@ -103,6 +104,23 @@ const AlumniDonations = () => {
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
     } finally { setIsProcessing(false); }
+  };
+
+  const handleDownloadReceiptPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('BCP Alumni Donation Receipt', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Reference Number: ${refNumber}`, 14, 36);
+    doc.text(`Donor: ${user?.name || 'Alumni Member'}`, 14, 46);
+    doc.text(`Email: ${user?.email || '-'}`, 14, 56);
+    doc.text(`Campaign: ${selectedCampaign?.title || '-'}`, 14, 66);
+    doc.text(`Amount: PHP ${Number(form.amount || 0).toLocaleString()}`, 14, 76);
+    doc.text(`Payment Method: ${form.method}`, 14, 86);
+    doc.text(`Date: ${new Date().toLocaleString()}`, 14, 96);
+    doc.setFontSize(9);
+    doc.text('Status: Pending verification by Finance Office', 14, 112);
+    doc.save(`donation_receipt_${refNumber || Date.now()}.pdf`);
   };
 
   return (
@@ -212,8 +230,8 @@ const AlumniDonations = () => {
               </div>
               {/* Sa loob ng Step 3 div, palitan ang Close button block */}
               <div className="flex flex-col gap-2">
-                <button onClick={() => window.print()} className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
-                  <Download className="w-4 h-4" /> Save as PDF {/* Ginamit ang Download icon */}
+                <button onClick={handleDownloadReceiptPDF} className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all">
+                  <Download className="w-4 h-4" /> Download Receipt PDF
                 </button>
                 <button onClick={() => { setStep(1); setActiveTab('history'); fetchData(); }} className="w-full py-3 text-emerald-700 font-bold hover:bg-emerald-50 rounded-xl transition-all">
                   View Giving History

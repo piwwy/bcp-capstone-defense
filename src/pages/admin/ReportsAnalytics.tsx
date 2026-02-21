@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import AdminPageLayout from './AdminPageLayout';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { logExport } from '../../services/auditLogger';
 import {
   FileText, Download, Filter, Lock, Loader2,
   Users, Briefcase, GraduationCap, TrendingUp, PieChart as PieChartIcon,
@@ -26,6 +27,36 @@ interface Profile {
   location?: string;
 }
 
+interface JobRow {
+  id: string;
+  title: string;
+  company: string;
+  status: string;
+  created_at: string;
+}
+
+interface JobApplicationRow {
+  id: string;
+  job_id: string;
+  status: string;
+  applied_at?: string;
+  created_at?: string;
+}
+
+interface EventRow {
+  id: string;
+  title: string;
+  date: string;
+  location?: string;
+  status: string;
+}
+
+interface AuditRow {
+  id: string;
+  action: string;
+  created_at: string;
+}
+
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#6366F1'];
 
 const ReportsAnalytics = () => {
@@ -36,6 +67,10 @@ const ReportsAnalytics = () => {
   const [donationStats, setDonationStats] = useState({ total: 0, count: 0 });
   const [donationRawData, setDonationRawData] = useState<any[]>([]);
   const [eventStats, setEventStats] = useState({ total: 0, attendees: 0 });
+  const [jobs, setJobs] = useState<JobRow[]>([]);
+  const [jobApplications, setJobApplications] = useState<JobApplicationRow[]>([]);
+  const [eventsRaw, setEventsRaw] = useState<EventRow[]>([]);
+  const [auditRaw, setAuditRaw] = useState<AuditRow[]>([]);
 
   // Analytics-specific state
   const [showSensitive, setShowSensitive] = useState(false);
@@ -46,6 +81,13 @@ const ReportsAnalytics = () => {
   const [pdfPassword, setPdfPassword] = useState('');
   const [showPdfPassword, setShowPdfPassword] = useState(false);
   const [filters, setFilters] = useState({ batch: 'All', course: 'All', status: 'All' });
+  const [moduleSelection, setModuleSelection] = useState({
+    alumni: true,
+    donations: true,
+    jobs: true,
+    events: true,
+    audit: false
+  });
 
   useEffect(() => {
     fetchAllData();
@@ -77,6 +119,34 @@ const ReportsAnalytics = () => {
         .from('event_attendees')
         .select('*', { count: 'exact', head: true });
       setEventStats({ total: eventCount || 0, attendees: attendeeCount || 0 });
+
+      const { data: jobsData } = await supabase
+        .from('jobs')
+        .select('id, title, company, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      setJobs((jobsData as JobRow[]) || []);
+
+      const { data: jobAppsData } = await supabase
+        .from('job_applications')
+        .select('id, job_id, status, applied_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(3000);
+      setJobApplications((jobAppsData as JobApplicationRow[]) || []);
+
+      const { data: eventsData } = await supabase
+        .from('alumni_events')
+        .select('id, title, date, location, status')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      setEventsRaw((eventsData as EventRow[]) || []);
+
+      const { data: auditData } = await supabase
+        .from('audit_logs')
+        .select('id, action, created_at')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      setAuditRaw((auditData as AuditRow[]) || []);
     } catch (error: any) {
       console.error('Error:', error);
       showToast({ title: 'Error', message: 'Failed to load data.', type: 'error' });
@@ -271,11 +341,174 @@ const ReportsAnalytics = () => {
     };
   }, [filteredProfiles]);
 
+  const jobInsights = useMemo(() => {
+    const hiredApps = jobApplications.filter((a) => a.status === 'hired');
+    const totalApplications = jobApplications.length;
+    const employmentRateFromJobs = totalApplications > 0
+      ? Number(((hiredApps.length / totalApplications) * 100).toFixed(1))
+      : 0;
+
+    const jobById = new Map(jobs.map((j) => [j.id, j]));
+    const companyCount: Record<string, number> = {};
+    hiredApps.forEach((app) => {
+      const company = jobById.get(app.job_id)?.company;
+      if (!company) return;
+      companyCount[company] = (companyCount[company] || 0) + 1;
+    });
+    const topHiringPartners = Object.entries(companyCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, hires]) => ({ name, hires }));
+
+    return {
+      totalJobs: jobs.length,
+      totalApplications,
+      hiredCount: hiredApps.length,
+      employmentRateFromJobs,
+      topHiringPartners,
+    };
+  }, [jobs, jobApplications]);
+
   // ==================== PDF GENERATION ====================
+  const hasSelectedModule = Object.values(moduleSelection).some(Boolean);
+
   const handleGenerateClick = () => {
+    if (!hasSelectedModule) {
+      showToast({ title: 'No Module Selected', message: 'Select at least one module before exporting.', type: 'warning' });
+      return;
+    }
     setPdfPassword('');
     setShowPdfPassword(false);
     setShowPasswordModal(true);
+  };
+
+  const reportRows = useMemo(() => {
+    const rows: Record<string, any>[] = [];
+
+    if (moduleSelection.alumni) {
+      filteredProfiles.forEach((p) => {
+        rows.push({
+          module: 'alumni',
+          id: p.id,
+          batch_year: p.batch_year || '',
+          course: p.course || '',
+          employment_status: p.employment_status || '',
+          account_status: p.status || '',
+          created_at: p.created_at || '',
+        });
+      });
+    }
+
+    if (moduleSelection.donations) {
+      donationRawData.forEach((d: any) => {
+        rows.push({
+          module: 'donations',
+          amount: d.amount || 0,
+          created_at: d.created_at || '',
+        });
+      });
+    }
+
+    if (moduleSelection.jobs) {
+      jobs.forEach((j) => {
+        rows.push({
+          module: 'jobs',
+          id: j.id,
+          title: j.title,
+          company: j.company,
+          status: j.status,
+          created_at: j.created_at,
+        });
+      });
+      rows.push({
+        module: 'jobs_summary',
+        total_jobs: jobInsights.totalJobs,
+        total_applications: jobInsights.totalApplications,
+        hired_count: jobInsights.hiredCount,
+        employment_rate: `${jobInsights.employmentRateFromJobs}%`,
+        top_hiring_partners: jobInsights.topHiringPartners.map((p) => `${p.name} (${p.hires})`).join('; '),
+      });
+    }
+
+    if (moduleSelection.events) {
+      eventsRaw.forEach((e) => {
+        rows.push({
+          module: 'events',
+          id: e.id,
+          title: e.title,
+          date: e.date,
+          location: e.location || '',
+          status: e.status,
+        });
+      });
+    }
+
+    if (moduleSelection.audit) {
+      auditRaw.forEach((a) => {
+        rows.push({
+          module: 'audit',
+          id: a.id,
+          action: a.action,
+          created_at: a.created_at,
+        });
+      });
+    }
+
+    return rows;
+  }, [filteredProfiles, donationRawData, jobs, eventsRaw, auditRaw, moduleSelection, jobInsights]);
+
+  const exportCSV = () => {
+    if (reportRows.length === 0) {
+      showToast({ title: 'No Data', message: 'No module data selected for export.', type: 'warning' });
+      return;
+    }
+    const headerSet = new Set<string>();
+    reportRows.forEach((r) => Object.keys(r).forEach((k) => headerSet.add(k)));
+    const headers = Array.from(headerSet);
+    const rows = reportRows.map((r) => headers.map((h) => r[h] ?? ''));
+    const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `bcp_report_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    void logExport('CSV', reportRows.length, 'Reports');
+    showToast({ title: 'Export Complete', message: `CSV downloaded (${reportRows.length} rows).`, type: 'success' });
+  };
+
+  const exportJSON = () => {
+    if (reportRows.length === 0) {
+      showToast({ title: 'No Data', message: 'No module data selected for export.', type: 'warning' });
+      return;
+    }
+    const payload = {
+      generated_at: new Date().toISOString(),
+      filters,
+      selected_modules: moduleSelection,
+      summary: {
+        total_alumni: reportStats.total,
+        employed_alumni: reportStats.employed,
+        employment_rate: `${reportStats.employmentRate}%`,
+        verified_accounts: reportStats.verified,
+        donation_total: donationStats.total,
+        donation_count: donationStats.count,
+        jobs: {
+          total_jobs: jobInsights.totalJobs,
+          total_applications: jobInsights.totalApplications,
+          hired_count: jobInsights.hiredCount,
+          employment_rate: `${jobInsights.employmentRateFromJobs}%`,
+          top_hiring_partners: jobInsights.topHiringPartners,
+        },
+      },
+      rows: reportRows,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `bcp_report_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    void logExport('JSON', reportRows.length, 'Reports');
+    showToast({ title: 'Export Complete', message: `JSON downloaded (${reportRows.length} rows).`, type: 'success' });
   };
 
   const generatePDF = () => {
@@ -364,6 +597,7 @@ const ReportsAnalytics = () => {
       }
 
       doc.save(`BCP_Alumni_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      void logExport('PDF', reportRows.length, 'Reports');
       showToast({ title: 'Success', message: 'PDF report generated successfully!', type: 'success' });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -788,18 +1022,54 @@ const ReportsAnalytics = () => {
                         <option>Freelance</option>
                       </select>
                     </div>
+
+                    <div className="pt-2 border-t border-gray-100">
+                      <label className="text-xs font-bold text-gray-500 uppercase">Modules to Include</label>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {[
+                          ['alumni', 'Alumni'],
+                          ['donations', 'Donations'],
+                          ['jobs', 'Jobs'],
+                          ['events', 'Events'],
+                          ['audit', 'Audit Logs'],
+                        ].map(([key, label]) => (
+                          <label key={key} className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-50 rounded-lg px-2 py-2">
+                            <input
+                              type="checkbox"
+                              checked={(moduleSelection as any)[key]}
+                              onChange={(e) => setModuleSelection((prev: any) => ({ ...prev, [key]: e.target.checked }))}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-3 mt-6">
                     <button
                       onClick={fetchAllData}
-                      className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                     >
                       <RefreshCw className="w-4 h-4" /> Refresh
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+                    <button
+                      onClick={exportCSV}
+                      className="bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Download className="w-4 h-4" /> CSV
+                    </button>
+                    <button
+                      onClick={exportJSON}
+                      className="bg-violet-600 text-white py-2.5 rounded-xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                      <Download className="w-4 h-4" /> JSON
                     </button>
                     <button
                       onClick={handleGenerateClick}
                       disabled={generating}
-                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
                     >
                       {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Lock className="w-4 h-4" /> Export PDF</>}
                       {generating && 'Generating...'}
@@ -822,6 +1092,38 @@ const ReportsAnalytics = () => {
                     <div className="flex justify-between items-center py-2">
                       <span className="text-gray-500">Total Donations</span>
                       <span className="font-bold text-violet-600">{donationStats.count}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4">Jobs Insights</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Total Jobs</span>
+                      <span className="font-bold text-gray-900">{jobInsights.totalJobs}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Applications</span>
+                      <span className="font-bold text-gray-900">{jobInsights.totalApplications}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Status Tracker (Hired)</span>
+                      <span className="font-bold text-emerald-600">{jobInsights.hiredCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Employment Rate</span>
+                      <span className="font-bold text-blue-600">{jobInsights.employmentRateFromJobs}%</span>
+                    </div>
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-gray-500 mb-1">Top Hiring Partners</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(jobInsights.topHiringPartners.length > 0 ? jobInsights.topHiringPartners : [{ name: 'No data', hires: 0 }]).map((p) => (
+                          <span key={p.name} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold">
+                            {p.name} {p.hires > 0 ? `(${p.hires})` : ''}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

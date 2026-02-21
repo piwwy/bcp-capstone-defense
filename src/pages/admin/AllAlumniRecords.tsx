@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
-import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import {
   Search, Loader2, Database, Users, GraduationCap, Calendar,
@@ -216,7 +216,16 @@ const AllAlumniRecords: React.FC = () => {
         module: 'Alumni Records',
         message: `Updated profile for alumni: ${editForm.first_name} ${editForm.last_name}`,
         alumniId: editingRecord.id,
-        fields: editForm
+        ...buildFieldDiff(
+          {
+            first_name: editingRecord.first_name,
+            last_name: editingRecord.last_name,
+            batch_year: editingRecord.batch_year,
+            course: editingRecord.course,
+          },
+          editForm,
+          ['first_name', 'last_name', 'batch_year', 'course']
+        )
       });
 
       setEditingRecord(null);
