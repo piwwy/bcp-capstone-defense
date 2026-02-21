@@ -309,7 +309,6 @@ function AppRoutes() {
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
                   <Route path="collections" element={<DonationCollections />} />
                   <Route path="newsletter" element={<ManageNewsletter />} />
-                  <Route path="settings" element={<AdminSettings />} />
                   <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
                 </Routes>
               </Suspense>

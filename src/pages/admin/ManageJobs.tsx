@@ -21,6 +21,11 @@ const ManageJobs = () => {
   const [loading, setLoading] = useState(false);
   const [filterTab, setFilterTab] = useState<'active' | 'archived'>('active');
 
+  // Banner stats
+  const [employmentRate, setEmploymentRate] = useState<number | null>(null);
+  const [topPartners, setTopPartners] = useState<string[]>([]);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
+
   // Check for URL parameters from partner inquiry
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -125,7 +130,10 @@ const ManageJobs = () => {
     setFormData({ ...formData, target_courses: formData.target_courses.filter(d => d !== deptToRemove) });
   };
 
-  useEffect(() => { fetchJobs(); }, []);
+  useEffect(() => { 
+    fetchJobs(); 
+    fetchBannerStats(); 
+  }, []);
 
   const fetchJobs = async () => {
     const { data } = await supabase
@@ -134,6 +142,58 @@ const ManageJobs = () => {
       .order('created_at', { ascending: false })
       .limit(50);
     if (data) setJobs(data);
+  };
+
+  const fetchBannerStats = async () => {
+    try {
+      setStatsLoading(true);
+      const since = new Date();
+      since.setMonth(since.getMonth() - 12);
+      const sinceISO = since.toISOString();
+
+      // Employment Rate = hired applications / total applications (last 12 months)
+      const totalRes = await supabase
+        .from('job_applications')
+        .select('id', { count: 'exact', head: true })
+        .gte('applied_at', sinceISO);
+
+      const hiredRes = await supabase
+        .from('job_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'hired')
+        .gte('applied_at', sinceISO);
+
+      const total = totalRes.count || 0;
+      const hired = hiredRes.count || 0;
+      setEmploymentRate(total > 0 ? Math.round((hired / total) * 100) : 0);
+
+      // Top Hiring Partners = companies with most "hired" applications (last 12 months)
+      const { data: hiredApps } = await supabase
+        .from('job_applications')
+        .select('job_id, jobs:job_id ( company )')
+        .eq('status', 'hired')
+        .gte('applied_at', sinceISO)
+        .limit(1000);
+
+      if (hiredApps && hiredApps.length > 0) {
+        const freq: Record<string, number> = {};
+        hiredApps.forEach((row: any) => {
+          const comp = row?.jobs?.company || '';
+          if (comp) freq[comp] = (freq[comp] || 0) + 1;
+        });
+        const sorted = Object.entries(freq)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name]) => name);
+        setTopPartners(sorted);
+      } else {
+        setTopPartners([]);
+      }
+    } catch (err) {
+      console.warn('Failed to compute banner stats:', err);
+    } finally {
+      setStatsLoading(false);
+    }
   };
 
   const handleStatusToggle = async (id: string, currentStatus: string) => {
@@ -294,24 +354,46 @@ const ManageJobs = () => {
         </button>
       </div>
 
-      {/* TALENT PLACEMENT OVERVIEW */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-[2.5rem] text-white shadow-xl mb-8 flex items-center justify-between overflow-hidden relative">
-        <div className="relative z-10">
-          <h2 className="text-2xl font-black uppercase tracking-tighter italic">Talent Placement Overview</h2>
-          <p className="text-blue-100 text-xs font-bold opacity-80 uppercase tracking-widest mt-1">Measuring Linker College recruitment impact</p>
-          <div className="flex gap-8 mt-6">
-            <div>
-              <p className="text-[10px] font-black text-blue-200 uppercase">Employment Rate</p>
-              <p className="text-3xl font-black italic">84%</p>
+      {/* TALENT PLACEMENT OVERVIEW (Aligned Banner) */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] text-white shadow-xl mb-8 overflow-hidden relative">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -right-10 -top-8 w-56 h-56 bg-white/10 rounded-full blur-2xl"></div>
+          <div className="absolute right-10 bottom-0 w-40 h-40 bg-indigo-400/20 rounded-full blur-xl"></div>
+        </div>
+        <div className="relative z-10 p-8 lg:p-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 items-center gap-8">
+            {/* Left: Heading */}
+            <div className="lg:col-span-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20 mb-3">
+                <TrendingUp className="w-3.5 h-3.5" /> Career Insights
+              </div>
+              <h2 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter italic leading-tight">
+                Talent Placement Overview
+              </h2>
+              <p className="text-blue-100 text-xs font-bold opacity-90 uppercase tracking-[0.2em] mt-2">
+                Measuring Linker College recruitment impact
+              </p>
             </div>
-            <div className="w-[1px] h-10 bg-white/20 my-auto"></div>
-            <div>
-              <p className="text-[10px] font-black text-blue-200 uppercase">Top Hiring Partners</p>
-              <p className="text-sm font-bold mt-1">Google PH, Icp, Val...</p>
+
+            {/* Right: Stats */}
+            <div className="grid grid-cols-2 gap-3 lg:gap-4">
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-black text-blue-100/90 uppercase tracking-widest">Employment Rate</p>
+                <p className="text-4xl font-black italic leading-none mt-1">
+                  {statsLoading || employmentRate === null ? '—' : `${employmentRate}%`}
+                </p>
+              </div>
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-black text-blue-100/90 uppercase tracking-widest">Top Hiring Partners</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {(topPartners.length > 0 ? topPartners : ['Google PH', 'ICP', 'Val…']).slice(0,3).map((p, i) => (
+                    <span key={i} className="px-2 py-1 rounded-lg bg-white/20 text-[10px] font-black">{p}</span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <TrendingUp className="w-32 h-32 absolute -right-4 opacity-10 rotate-12" />
       </div>
 
       {/* 2. JOB GRID */}

@@ -26,6 +26,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Quick session sync on tab focus/visibility or network reconnect
+  const syncSession = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const email = session.user.email || '';
+        await fetchProfile(session.user.id, email);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error('Session sync error:', err);
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -49,6 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 2. Listen for auth changes (Robust handling for persistence)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        setIsLoading(true);
         if (session?.user) {
           await fetchProfile(session.user.id, session.user.email!);
         } else {
@@ -59,15 +78,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsLoading(false);
         localStorage.clear();
       } else if (event === 'INITIAL_SESSION') {
-        if (!session) {
+        if (session?.user) {
+          setIsLoading(true);
+          await fetchProfile(session.user.id, session.user.email || '');
+        } else {
           setIsLoading(false);
         }
       }
     });
 
+    // 3. Tab focus / visibility & network online sync
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncSession();
+      }
+    };
+    const handleFocus = () => syncSession();
+    const handleOnline = () => syncSession();
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 

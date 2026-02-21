@@ -34,6 +34,7 @@ const SuperAdminSidebar: React.FC = () => {
         { name: "Manage Users", path: "/superadmin/users", icon: Users },
         { name: "Alumni Records", path: "/superadmin/records", icon: Database },
         { name: "Master List", path: "/superadmin/upload", icon: UploadCloud },
+        { name: "Alumni Resources", path: "/superadmin/resources", icon: FileText },
       ]
     },
     {
@@ -76,7 +77,6 @@ const SuperAdminSidebar: React.FC = () => {
         { name: "Audit Trail", path: "/superadmin/audit-trail", icon: ClipboardCheck },
       ]
     },
-    { name: "Alumni Resources", icon: FileText, path: "/superadmin/resources" },
     { name: "Settings", icon: Settings, path: "/superadmin/settings" },
   ];
 

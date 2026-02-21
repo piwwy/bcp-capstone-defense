@@ -38,6 +38,7 @@ const StaffSidebar: React.FC = () => {
             name: "Communication", icon: Mail, subItems: [
                 { name: "News Feed", path: "/staff/news/manage", icon: Newspaper },
                 { name: "Newsletter", path: "/staff/newsletter", icon: Mail },
+                { name: "Partner Inquiries", path: "/staff/partner-inquiries", icon: FileText },
             ]
         },
         {
@@ -48,7 +49,6 @@ const StaffSidebar: React.FC = () => {
         {
             name: "Tools", icon: Briefcase, subItems: [
                 { name: "Job Board", path: "/staff/jobs/board", icon: Briefcase },
-                { name: "Partner Inquiries", path: "/staff/partner-inquiries", icon: FileText },
                 { name: "Financial Collections", path: "/staff/collections", icon: DollarSign },
             ]
         },
