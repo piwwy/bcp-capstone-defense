@@ -92,7 +92,7 @@ const normalizeRole = (role?: string) => {
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { status, user } = useAuth();
+  const { status, user, isLoading, isAuthenticated } = useAuth();
   const [checkingPersistedSession, setCheckingPersistedSession] = React.useState(false);
   const [persistedSessionChecked, setPersistedSessionChecked] = React.useState(false);
 
@@ -130,7 +130,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return () => { active = false; };
   }, [status, user, hasPersistedSessionSnapshot, persistedSessionChecked]);
 
-  if (status === 'loading' || checkingPersistedSession) {
+  if ((status === 'loading' || isLoading || checkingPersistedSession) && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
@@ -139,7 +139,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     );
   }
 
-  if (status !== 'authenticated' || !user) {
+  if (!isAuthenticated && !user) {
     return <Navigate to="/login" replace />;
   }
 
