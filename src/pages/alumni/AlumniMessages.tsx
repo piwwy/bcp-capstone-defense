@@ -94,9 +94,8 @@ const AlumniMessages = () => {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, role')
         .eq('role', 'alumni')
-        .eq('status', 'verified')
-        .order('last_name', { ascending: true })
-        .limit(20);
+        .neq('status', 'archived')
+        .order('last_name', { ascending: true });
 
       if (debouncedContactSearch) {
         query = query.or(`first_name.ilike.%${debouncedContactSearch}%,last_name.ilike.%${debouncedContactSearch}%`);

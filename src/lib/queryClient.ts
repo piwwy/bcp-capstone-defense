@@ -7,6 +7,8 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       // Cache stays in memory for 5 minutes even after component unmounts
       gcTime: 5 * 60 * 1000,
+      // Always refresh data when route/module remounts
+      refetchOnMount: 'always',
       // Auto-refetch when user returns to tab (keeps data fresh)
       refetchOnWindowFocus: true,
       // Don't retry failed queries aggressively

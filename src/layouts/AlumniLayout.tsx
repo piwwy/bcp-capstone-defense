@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import AlumniNavbar from './AlumniNavbar';
 import ChatWidget from '../components/ChatWidget';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +13,7 @@ interface AlumniLayoutProps {
 
 const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const [showDPAConsent, setShowDPAConsent] = useState(false);
   const [dpaChecked, setDpaChecked] = useState(true);
 
@@ -48,7 +50,7 @@ const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
       <AlumniNavbar />
 
       {/* 2. Main Content Area (Centered like Upwork) */}
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main key={location.pathname} className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
 

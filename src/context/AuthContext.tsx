@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
 
 // User type definition
 export interface User {
@@ -15,6 +15,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  status: 'loading' | 'authenticated' | 'unauthenticated';
   isAuthenticated: boolean;
   isLoading: boolean;
   logout: () => Promise<void>;
@@ -24,77 +25,164 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
+  const hasInitializedRef = React.useRef(false);
+  const requestIdRef = React.useRef(0);
+  const userRef = React.useRef<User | null>(null);
 
-  // Quick session sync on tab focus/visibility or network reconnect
-  const syncSession = async () => {
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const hasStoredSupabaseSession = () => {
     try {
-      setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const email = session.user.email || '';
-        await fetchProfile(session.user.id, email);
+      const raw = localStorage.getItem(SUPABASE_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      const accessToken =
+        parsed?.access_token ||
+        parsed?.currentSession?.access_token ||
+        parsed?.session?.access_token;
+      return !!accessToken;
+    } catch {
+      return false;
+    }
+  };
+
+  const fetchProfile = async (userId: string, email: string): Promise<User | null> => {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error("Profile query error in AuthContext (Metadata fallback triggered):", profileError);
+      }
+
+      if (profileData) {
+        return {
+          id: userId,
+          email,
+          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'System User',
+          role: profileData.role || 'alumni',
+          status: profileData.status,
+          avatar: profileData.avatar_url,
+          dpa_consented_at: profileData.dpa_consented_at,
+          last_login: profileData.last_login
+        };
+      }
+
+      // EMERGENCY FALLBACK: Use Auth Metadata if DB fails or profile is missing
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const metadata = authUser?.user_metadata || {};
+
+      console.warn('Using Auth Metadata as fallback role:', metadata.role);
+
+      return {
+        id: userId,
+        email,
+        name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim() || 'System User',
+        role: metadata.role || 'alumni',
+        status: 'verified'
+      };
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+      return null;
+    }
+  };
+
+  const resolveSession = async (sessionUser?: { id: string; email?: string | null } | null, isSilent = false) => {
+    const requestId = ++requestIdRef.current;
+    try {
+      if (!isSilent && !hasInitializedRef.current) {
+        setStatus('loading');
+      }
+      const currentUser = sessionUser ?? (await supabase.auth.getSession()).data.session?.user;
+
+      if (currentUser?.id && currentUser.email) {
+        const nextUser = await fetchProfile(currentUser.id, currentUser.email);
+        if (requestId !== requestIdRef.current) return;
+
+        if (nextUser) {
+          setUser(nextUser);
+          setStatus('authenticated');
+        } else {
+          setUser(null);
+          setStatus('unauthenticated');
+        }
       } else {
+        // During silent checks, never drop an already authenticated UI because of a transient null session.
+        if (isSilent && userRef.current) {
+          setStatus('authenticated');
+          return;
+        }
+
+        // On first boot, retry once if localStorage still has a persisted session snapshot.
+        if (!hasInitializedRef.current && hasStoredSupabaseSession()) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+          const retryUser = (await supabase.auth.getSession()).data.session?.user;
+          if (retryUser?.id && retryUser.email) {
+            const nextUser = await fetchProfile(retryUser.id, retryUser.email);
+            if (requestId !== requestIdRef.current) return;
+            if (nextUser) {
+              setUser(nextUser);
+              setStatus('authenticated');
+              return;
+            }
+          }
+        }
+
+        if (requestId !== requestIdRef.current) return;
         setUser(null);
-        setIsLoading(false);
+        setStatus('unauthenticated');
       }
     } catch (err) {
       console.error('Session sync error:', err);
-      setIsLoading(false);
+      if (requestId !== requestIdRef.current) return;
+
+      // Keep existing authenticated state on transient network/auth sync failures.
+      if (isSilent && userRef.current) {
+        setStatus('authenticated');
+        return;
+      }
+
+      setUser(null);
+      setStatus('unauthenticated');
+    } finally {
+      hasInitializedRef.current = true;
     }
   };
 
   useEffect(() => {
     let mounted = true;
 
-    // 1. Check current session immediately on mount
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await fetchProfile(session.user.id, session.user.email!);
-        } else {
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Initial session check error:', err);
-        if (mounted) setIsLoading(false);
-      }
-    };
+    resolveSession(undefined, false);
 
-    initAuth();
-
-    // 2. Listen for auth changes (Robust handling for persistence)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        setIsLoading(true);
-        if (session?.user) {
-          await fetchProfile(session.user.id, session.user.email!);
-        } else {
-          setIsLoading(false);
-        }
-      } else if (event === 'SIGNED_OUT') {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_OUT') {
         setUser(null);
-        setIsLoading(false);
+        setStatus('unauthenticated');
         localStorage.clear();
-      } else if (event === 'INITIAL_SESSION') {
-        if (session?.user) {
-          setIsLoading(true);
-          await fetchProfile(session.user.id, session.user.email || '');
-        } else {
-          setIsLoading(false);
-        }
+        return;
       }
+
+      // Keep authenticated UI stable after first load; refresh silently.
+      const isSilentRefresh = hasInitializedRef.current || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED';
+      await resolveSession(session?.user || null, isSilentRefresh);
     });
 
-    // 3. Tab focus / visibility & network online sync
+    // Keep session/profile in sync across tab focus and reconnect silently.
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        syncSession();
+        resolveSession(null, true);
       }
     };
-    const handleFocus = () => syncSession();
-    const handleOnline = () => syncSession();
+    const handleFocus = () => resolveSession(null, true);
+    const handleOnline = () => resolveSession(null, true);
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
@@ -108,52 +196,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  // Helper para kunin ang ROLE sa profiles table
-  const fetchProfile = async (userId: string, email: string) => {
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (profileError) {
-        console.error("Profile query error in AuthContext (Metadata fallback triggered):", profileError);
-      }
-
-      if (profileData) {
-        setUser({
-          id: userId,
-          email: email,
-          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'System User',
-          role: profileData.role || 'alumni',
-          status: profileData.status,
-          avatar: profileData.avatar_url,
-          dpa_consented_at: profileData.dpa_consented_at,
-          last_login: profileData.last_login
-        });
-      } else {
-        // EMERGENCY FALLBACK: Use Auth Metadata if DB fails or profile is missing
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        const metadata = authUser?.user_metadata || {};
-
-        console.warn('Using Auth Metadata as fallback role:', metadata.role);
-
-        setUser({
-          id: userId,
-          email,
-          name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim() || 'System User',
-          role: metadata.role || 'alumni',
-          status: 'verified' // Assume verified if metadata fallback is active
-        });
-      }
-    } catch (err) {
-      console.error('Profile fetch error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -161,6 +203,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Logout error:', err);
     } finally {
       setUser(null);
+      setStatus('unauthenticated');
       localStorage.clear();
       sessionStorage.clear();
       // Siguraduhin na tanggal lahat ng persistent roles
@@ -170,7 +213,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        status,
+        isAuthenticated: status === 'authenticated' && !!user,
+        isLoading: status === 'loading',
+        logout
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

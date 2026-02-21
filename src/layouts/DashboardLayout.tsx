@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, X, Info, Calendar as CalendarIcon, Briefcase, TrendingUp, Heart, MessageSquare, ClipboardList, Loader2 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import DPAConsentModal from '../components/modals/DPAConsentModal';
@@ -18,6 +18,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [showNotifications, setShowNotifications] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead, dismissNotification } = useNotifications();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // DPA 2012 Consent state - EMERGENCY BYPASS: set dpaChecked to true
   const [showDPAConsent, setShowDPAConsent] = useState(false);
@@ -309,7 +310,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </header>
 
         {/* --- BODY CONTENT (Glass BG) --- */}
-        <main className="flex-1 overflow-y-auto p-6 relative scroll-smooth bg-gradient-to-br from-white/30 via-transparent to-blue-50/20">
+        <main key={location.pathname} className="flex-1 overflow-y-auto p-6 relative scroll-smooth bg-gradient-to-br from-white/30 via-transparent to-blue-50/20">
           {children}
         </main>
       </div>

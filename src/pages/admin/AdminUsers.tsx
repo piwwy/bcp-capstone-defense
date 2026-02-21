@@ -8,7 +8,7 @@ import CreateUserModal from '../../components/modals/CreateUserModal';
 import EmailService from '../../services/emailService';
 import {
     Users, Loader2, Search, Calendar, GraduationCap, Filter, RefreshCw,
-    Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2,
+    Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2, Archive, History,
     Clock, X, UserCheck, CheckCircle
 } from 'lucide-react';
 
@@ -28,7 +28,7 @@ interface User {
     phone?: string;
 }
 
-type StatusFilter = 'all' | 'verified' | 'master_list' | 'pending_approval';
+type StatusFilter = 'all' | 'verified' | 'master_list' | 'pending_approval' | 'archived';
 type RoleFilter = 'all' | 'alumni' | 'staff' | 'admin';
 
 const AdminUsers: React.FC = () => {
@@ -99,6 +99,7 @@ const AdminUsers: React.FC = () => {
         verified: users.filter(u => u.status === 'verified').length,
         master_list: users.filter(u => u.status === 'master_list').length,
         pending: users.filter(u => u.status === 'pending_approval').length,
+        archived: users.filter(u => u.status === 'archived').length,
     };
 
     const getStatusBadge = (status: string) => {
@@ -107,6 +108,7 @@ const AdminUsers: React.FC = () => {
             master_list: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', label: 'Active' },
             pending_approval: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', label: 'Pending' },
             rejected: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', label: 'Rejected' },
+            archived: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-300', label: 'Archived' },
         };
         const badge = badges[status] || { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', label: status };
         return (
@@ -207,16 +209,36 @@ const AdminUsers: React.FC = () => {
         }
     };
 
-    const handleDeleteUser = async (user: User) => {
+    const handleArchiveUser = async (user: User) => {
         setActionLoading(true);
         try {
-            await supabase.from('profiles').delete().eq('id', user.id);
-            await logAudit(AUDIT_ACTIONS.USER_DELETED, {
+            await supabase.from('profiles').update({ status: 'archived' }).eq('id', user.id);
+            await logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
                 module: 'User Management',
-                message: `Deleted user: ${user.first_name} ${user.last_name} (${user.email})`,
-                userId: user.id
+                message: `Archived user: ${user.first_name} ${user.last_name} (${user.email})`,
+                userId: user.id, oldStatus: user.status, newStatus: 'archived'
             });
-            showToast({ type: 'success', title: 'User Deleted', message: `${user.first_name} ${user.last_name} has been removed.` });
+            showToast({ type: 'success', title: 'User Archived', message: `${user.first_name} ${user.last_name} has been archived.` });
+            fetchUsers();
+        } catch (err: any) {
+            showToast({ type: 'error', title: 'Error', message: err.message });
+        } finally {
+            setActionLoading(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const handleRestoreUser = async (user: User) => {
+        setActionLoading(true);
+        try {
+            const restoredStatus = user.role === 'alumni' ? 'verified' : 'master_list';
+            await supabase.from('profiles').update({ status: restoredStatus }).eq('id', user.id);
+            await logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
+                module: 'User Management',
+                message: `Restored user: ${user.first_name} ${user.last_name} (${user.email})`,
+                userId: user.id, oldStatus: 'archived', newStatus: restoredStatus
+            });
+            showToast({ type: 'success', title: 'User Restored', message: `${user.first_name} ${user.last_name} has been restored.` });
             fetchUsers();
         } catch (err: any) {
             showToast({ type: 'error', title: 'Error', message: err.message });
@@ -229,7 +251,6 @@ const AdminUsers: React.FC = () => {
 
     return (
         <AdminPageLayout title="Manage Users" subtitle="Create, view, edit, and manage all system accounts" icon={Users}>
-
             {/* Hero Banner */}
             <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
                 <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
@@ -305,6 +326,7 @@ const AdminUsers: React.FC = () => {
                             <option value="verified">Verified</option>
                             <option value="pending_approval">Pending</option>
                             <option value="master_list">Active</option>
+                            <option value="archived">Archived</option>
                         </select>
 
                         <select
@@ -332,6 +354,22 @@ const AdminUsers: React.FC = () => {
                         </button>
                     </div>
                 </div>
+                {isSuperAdmin && (
+                    <div className="mt-4 flex items-center gap-2">
+                        <button
+                            onClick={() => setStatusFilter('all')}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold border ${statusFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                            Active Accounts
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter('archived')}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold border ${statusFilter === 'archived' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                            Archived Accounts
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Results Info */}
@@ -421,12 +459,21 @@ const AdminUsers: React.FC = () => {
                                                                     <Key className="w-3.5 h-3.5 text-amber-500" /> Reset Password
                                                                 </button>
                                                                 <div className="h-px bg-slate-100 my-1" />
-                                                                <button onClick={() => { setConfirmAction({ type: 'delete', user }); setActionMenuId(null); }}
-                                                                    disabled={!isSuperAdmin}
-                                                                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-left ${!isSuperAdmin ? 'text-slate-300' : 'text-rose-600 hover:bg-rose-50'}`}>
-                                                                    <Trash2 className="w-3.5 h-3.5" /> Delete User
-                                                                    {!isSuperAdmin && <Shield className="w-3 h-3 ml-auto opacity-50" />}
-                                                                </button>
+                                                                {user.status !== 'archived' ? (
+                                                                    <button onClick={() => { setConfirmAction({ type: 'archive', user }); setActionMenuId(null); }}
+                                                                        disabled={!isSuperAdmin}
+                                                                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-left ${!isSuperAdmin ? 'text-slate-300' : 'text-slate-700 hover:bg-slate-50'}`}>
+                                                                        <Archive className="w-3.5 h-3.5" /> Archive User
+                                                                        {!isSuperAdmin && <Shield className="w-3 h-3 ml-auto opacity-50" />}
+                                                                    </button>
+                                                                ) : (
+                                                                    <button onClick={() => { setConfirmAction({ type: 'restore', user }); setActionMenuId(null); }}
+                                                                        disabled={!isSuperAdmin}
+                                                                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold text-left ${!isSuperAdmin ? 'text-slate-300' : 'text-emerald-700 hover:bg-emerald-50'}`}>
+                                                                        <History className="w-3.5 h-3.5" /> Restore User
+                                                                        {!isSuperAdmin && <Shield className="w-3 h-3 ml-auto opacity-50" />}
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </>
                                                     )}
@@ -507,20 +554,25 @@ const AdminUsers: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
                     <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
                         <div className="p-8 text-center">
-                            <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center mx-auto mb-5 ${confirmAction.type === 'delete' ? 'bg-rose-100' :
+                            <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center mx-auto mb-5 ${
+                                confirmAction.type === 'archive' ? 'bg-slate-100' :
+                                confirmAction.type === 'restore' ? 'bg-emerald-100' :
                                 confirmAction.type === 'approve' ? 'bg-emerald-100' : 'bg-amber-100'
                                 }`}>
-                                {confirmAction.type === 'delete' && <Trash2 className="w-8 h-8 text-rose-600" />}
+                                {confirmAction.type === 'archive' && <Archive className="w-8 h-8 text-slate-700" />}
+                                {confirmAction.type === 'restore' && <History className="w-8 h-8 text-emerald-600" />}
                                 {confirmAction.type === 'approve' && <CheckCircle className="w-8 h-8 text-emerald-600" />}
                                 {confirmAction.type === 'reset' && <Key className="w-8 h-8 text-amber-600" />}
                             </div>
                             <h3 className="text-xl font-black text-slate-900 mb-2">
-                                {confirmAction.type === 'delete' && 'Delete User?'}
+                                {confirmAction.type === 'archive' && 'Archive User?'}
+                                {confirmAction.type === 'restore' && 'Restore User?'}
                                 {confirmAction.type === 'approve' && 'Approve User?'}
                                 {confirmAction.type === 'reset' && 'Reset Password?'}
                             </h3>
                             <p className="text-sm text-slate-500 leading-relaxed">
-                                {confirmAction.type === 'delete' && `This will permanently remove ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s account.`}
+                                {confirmAction.type === 'archive' && `This will hide ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s access without deleting data.`}
+                                {confirmAction.type === 'restore' && `This will restore ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s access.`}
                                 {confirmAction.type === 'approve' && `This will verify ${confirmAction.user.first_name} ${confirmAction.user.last_name}'s account.`}
                                 {confirmAction.type === 'reset' && `This will generate a new unique password and send it directly to ${confirmAction.user.email}.`}
                             </p>
@@ -531,12 +583,15 @@ const AdminUsers: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (confirmAction.type === 'delete') handleDeleteUser(confirmAction.user);
+                                    if (confirmAction.type === 'archive') handleArchiveUser(confirmAction.user);
+                                    if (confirmAction.type === 'restore') handleRestoreUser(confirmAction.user);
                                     if (confirmAction.type === 'approve') handleApprove(confirmAction.user);
                                     if (confirmAction.type === 'reset') handleResetPassword(confirmAction.user);
                                 }}
                                 disabled={actionLoading}
-                                className={`flex-1 py-3 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg ${confirmAction.type === 'delete' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' :
+                                className={`flex-1 py-3 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg ${
+                                    confirmAction.type === 'archive' ? 'bg-slate-700 hover:bg-slate-800 shadow-slate-200' :
+                                    confirmAction.type === 'restore' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' :
                                     confirmAction.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' :
                                         'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
                                     }`}

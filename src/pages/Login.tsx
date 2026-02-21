@@ -92,6 +92,12 @@ export default function Login() {
         };
       }
 
+      // Block archived accounts
+      if (profile?.status === 'archived') {
+        await supabase.auth.signOut();
+        throw new Error("This account is archived. Contact admin to restore access.");
+      }
+
       // 3. Update LAST_LOGIN (only if not first time, otherwise modal handles it)
       if (profile?.last_login && profile?.dpa_consented_at) {
         await supabase
@@ -127,44 +133,46 @@ export default function Login() {
       }
 
       if (role === 'alumni') {
-        switch (profile.status) {
-          case 'verified': {
-            const isOAuthUser = profile?.auth_provider === 'google' || profile?.auth_provider === 'linkedin';
-            const lastOtpKey = `otp_verified_${user.id}`;
-            const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
-            const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-            const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
-
-            if (isOAuthUser || isWithinMonth) {
-              safeNavigate('/alumni/dashboard');
-            } else {
-              const otp = Math.floor(100000 + Math.random() * 900000).toString();
-              const expiry = Date.now() + 90 * 1000;
-
-              sessionStorage.setItem('otp_code', otp);
-              sessionStorage.setItem('otp_expiry', expiry.toString());
-              sessionStorage.setItem('otp_email', user.email || '');
-              sessionStorage.setItem('otp_user_id', user.id);
-
-              if (user.email) {
-                const { success } = await EmailService.sendOTPEmail(user.email, profile?.first_name || 'Alumni', otp);
-                if (!success) {
-                  showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
-                }
-              }
-              safeNavigate('/alumni/2fa');
-            }
-            break;
-          }
-          case 'pending_approval':
-            await supabase.auth.signOut();
-            throw new Error("Your account is pending verification.");
-          case 'rejected':
-            await supabase.auth.signOut();
-            throw new Error("Your registration was not approved.");
-          default:
-            safeNavigate('/onboarding');
+        let status = profile.status;
+        if (status === 'pending_approval') {
+          try {
+            await supabase.from('profiles').update({ status: 'verified' }).eq('id', user.id);
+          } catch {}
+          status = 'verified';
         }
+        if (status === 'rejected') {
+          await supabase.auth.signOut();
+          throw new Error("Your registration was not approved.");
+        }
+        if (status === 'verified') {
+          const isOAuthUser = profile?.auth_provider === 'google' || profile?.auth_provider === 'linkedin';
+          const lastOtpKey = `otp_verified_${user.id}`;
+          const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
+          const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+          const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
+
+          if (isOAuthUser || isWithinMonth) {
+            safeNavigate('/alumni/dashboard');
+          } else {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiry = Date.now() + 90 * 1000;
+
+            sessionStorage.setItem('otp_code', otp);
+            sessionStorage.setItem('otp_expiry', expiry.toString());
+            sessionStorage.setItem('otp_email', user.email || '');
+            sessionStorage.setItem('otp_user_id', user.id);
+
+            if (user.email) {
+              const { success } = await EmailService.sendOTPEmail(user.email, profile?.first_name || 'Alumni', otp);
+              if (!success) {
+                showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
+              }
+            }
+            safeNavigate('/alumni/2fa');
+          }
+          return;
+        }
+        safeNavigate('/onboarding');
         return;
       }
 

@@ -82,7 +82,7 @@ export function useAlumniDirectory() {
         .from('profiles')
         .select('id, first_name, last_name, email, batch_year, course, avatar_url')
         .eq('role', 'alumni')
-        .eq('status', 'verified')
+        .neq('status', 'archived')
         .order('last_name', { ascending: true });
 
       if (error) throw error;

@@ -77,7 +77,7 @@ const ChatWidget = () => {
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, role')
         .eq('role', 'alumni')
-        .eq('status', 'verified')
+        .neq('status', 'archived')
         .order('last_name', { ascending: true });
       if (!error) setProfiles(data || []);
     } catch (err) {

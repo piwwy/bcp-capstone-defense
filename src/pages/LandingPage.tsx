@@ -1,4 +1,6 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
 import HeroSection from '../components/landing/HeroSection';
 import AboutSection from '../components/landing/AboutSection';
@@ -12,6 +14,20 @@ import NewsSection from '../components/landing/NewsSection';
 import DonationSection from '../components/landing/DonationSection';
 
 const LandingPage: React.FC = () => {
+  const { user } = useAuth();
+
+  // If authenticated, redirect to the appropriate dashboard
+  if (user) {
+    switch (user.role) {
+      case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
+      case 'admin':
+      case 'registrar': return <Navigate to="/admin/dashboard" replace />;
+      case 'staff': return <Navigate to="/staff/dashboard" replace />;
+      case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
+      default: break;
+    }
+  }
+
   return (
     <div className="min-h-screen bg-dark-900">
       <Navbar />

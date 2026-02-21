@@ -38,8 +38,13 @@ const DashboardSuperAdmin = () => {
     }
 
     const subscription = supabase
-      .channel('superadmin:profiles')
+      .channel('superadmin-dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, fetchDashboardData)
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };

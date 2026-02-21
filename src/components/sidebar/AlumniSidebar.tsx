@@ -142,8 +142,8 @@ const AlumniSidebar: React.FC = () => {
               <div
                 onClick={() => handleClickCollapsed(item)}
                 className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer select-none transition-all ${isActive
-                    ? "text-blue-600 font-semibold"
-                    : "text-gray-500 hover:text-gray-700"
+                  ? "text-blue-600 font-semibold"
+                  : "text-gray-500 hover:text-gray-700"
                   }`}
               >
                 <div className="flex items-center gap-2">
@@ -172,8 +172,8 @@ const AlumniSidebar: React.FC = () => {
                         key={j}
                         to={sub.path}
                         className={`block px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${activeSub
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow"
-                            : "hover:bg-gray-100 text-gray-700"
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow"
+                          : "hover:bg-gray-100 text-gray-700"
                           }`}
                       >
                         {sub.name}

@@ -71,6 +71,12 @@ export default function AdminLogin() {
         throw new Error("Profile error. Please contact IT support.");
       }
 
+      // Block archived accounts
+      if (profile.status === 'archived') {
+        await supabase.auth.signOut();
+        throw new Error("This admin account is archived. Contact super admin.");
+      }
+
       // 3. Validate Admin Access - STRICT CHECK
       const allowedRoles = ['admin', 'superadmin', 'registrar'];
       

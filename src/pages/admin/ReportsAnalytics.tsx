@@ -88,6 +88,9 @@ const ReportsAnalytics = () => {
   const verifiedAlumni = useMemo(() =>
     profiles.filter(p => p.status === 'verified'), [profiles]);
 
+  const activeAlumni = useMemo(() =>
+    profiles.filter(p => p.status !== 'archived'), [profiles]);
+
   const uniqueBatches = useMemo(() =>
     ['All', ...new Set(profiles.map(p => p.batch_year).filter(Boolean))].sort(), [profiles]);
 
@@ -163,7 +166,7 @@ const ReportsAnalytics = () => {
       'Employed': 0, 'Self-Employed': 0, 'Freelance': 0,
       'Seeking Work': 0, 'Further Studies': 0, 'Other': 0
     };
-    verifiedAlumni.forEach(p => {
+    activeAlumni.forEach(p => {
       switch (p.employment_status) {
         case 'employed': statuses['Employed']++; break;
         case 'self_employed': statuses['Self-Employed']++; break;
@@ -174,7 +177,7 @@ const ReportsAnalytics = () => {
       }
     });
     return Object.entries(statuses).map(([name, value]) => ({ name, value }));
-  }, [verifiedAlumni]);
+  }, [activeAlumni]);
 
   const accountStatus = useMemo(() => {
     const verified = profiles.filter(p => p.status === 'verified').length;
@@ -188,11 +191,11 @@ const ReportsAnalytics = () => {
   }, [profiles]);
 
   const employmentRate = useMemo(() => {
-    const employed = verifiedAlumni.filter(p =>
+    const employed = activeAlumni.filter(p =>
       ['employed', 'self_employed', 'freelance'].includes(p.employment_status)
     ).length;
-    return verifiedAlumni.length > 0 ? ((employed / verifiedAlumni.length) * 100).toFixed(1) : '0';
-  }, [verifiedAlumni]);
+    return activeAlumni.length > 0 ? ((employed / activeAlumni.length) * 100).toFixed(1) : '0';
+  }, [activeAlumni]);
 
   // ==================== REPORT GENERATOR TAB DATA ====================
   const filteredProfiles = useMemo(() => {

@@ -7,7 +7,7 @@ import ResetPassword from './pages/ResetPassword';
 
 // USE THE REAL AUTH CONTEXT
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { supabase } from './services/supabaseClient';
+import { supabase, SUPABASE_STORAGE_KEY } from './services/supabaseClient';
 
 // toast
 
@@ -86,45 +86,45 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const [timedOut, setTimedOut] = React.useState(false);
-  const [sessionVerified, setSessionVerified] = React.useState(false);
+  const { status, user } = useAuth();
+  const [checkingPersistedSession, setCheckingPersistedSession] = React.useState(false);
+  const [persistedSessionChecked, setPersistedSessionChecked] = React.useState(false);
 
-  // Safety Timeout: 10 seconds for Netlify cold start tolerance
-  React.useEffect(() => {
-    let timer: any;
-    if (isLoading) {
-      timer = setTimeout(() => {
-        setTimedOut(true);
-      }, 10000); // 10 second safety net (was 5s, too aggressive for Netlify)
+  const hasPersistedSessionSnapshot = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem(SUPABASE_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return !!(parsed?.access_token || parsed?.currentSession?.access_token || parsed?.session?.access_token);
+    } catch {
+      return false;
     }
-    return () => clearTimeout(timer);
-  }, [isLoading]);
+  }, [status]);
 
-  // When timeout fires but user isn't authenticated yet, do one final session check
-  // This prevents the loop where valid sessions are discarded on slow networks
   React.useEffect(() => {
-    if (timedOut && !isAuthenticated && !sessionVerified) {
-      const verifySession = async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            console.warn('ProtectedRoute: Timeout fired but valid session exists. Waiting for AuthContext...');
-            // Session exists — give AuthContext more time instead of redirecting
-            setTimedOut(false);
-            setTimeout(() => setTimedOut(true), 5000); // Give 5 more seconds
-          }
-        } catch (err) {
-          console.error('Session verification failed:', err);
-        } finally {
-          setSessionVerified(true);
-        }
-      };
-      verifySession();
-    }
-  }, [timedOut, isAuthenticated, sessionVerified]);
+    let active = true;
 
-  if (isLoading && !timedOut) {
+    if (status === 'unauthenticated' && !user && hasPersistedSessionSnapshot && !persistedSessionChecked) {
+      setCheckingPersistedSession(true);
+      supabase.auth.getSession()
+        .catch(() => null)
+        .finally(() => {
+          if (!active) return;
+          setCheckingPersistedSession(false);
+          setPersistedSessionChecked(true);
+        });
+      return () => { active = false; };
+    }
+
+    if (status !== 'unauthenticated') {
+      setPersistedSessionChecked(false);
+      setCheckingPersistedSession(false);
+    }
+
+    return () => { active = false; };
+  }, [status, user, hasPersistedSessionSnapshot, persistedSessionChecked]);
+
+  if (status === 'loading' || checkingPersistedSession) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
@@ -133,8 +133,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     );
   }
 
-  // Only redirect to login if truly not authenticated
-  if (!isAuthenticated) {
+  if (status !== 'authenticated' || !user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -440,3 +439,4 @@ function App() {
 }
 
 export default App;
+
