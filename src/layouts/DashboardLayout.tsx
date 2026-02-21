@@ -20,34 +20,46 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // DPA 2012 Consent state - EMERGENCY BYPASS: set dpaChecked to true
+  // DPA 2012 consent gate for admin/staff/superadmin roles.
   const [showDPAConsent, setShowDPAConsent] = useState(false);
-  const [dpaChecked, setDpaChecked] = useState(true);
+  const [dpaChecked, setDpaChecked] = useState(false);
 
   useEffect(() => {
     const checkDPA = async () => {
-      if (user && !dpaChecked) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('dpa_consented_at, last_login')
-            .eq('id', user.id)
-            .single();
+      if (!user) {
+        setDpaChecked(true);
+        return;
+      }
 
-          if (error) {
-            console.warn("DPA Check Column Missing or Schema Error. Bypassing modal.");
-          } else if (!data?.dpa_consented_at || !data?.last_login) {
-            setShowDPAConsent(true);
-          }
-        } catch (err) {
-          console.error("Critical DPA check failure:", err);
-        } finally {
-          setDpaChecked(true);
+      const role = (user.role || '').toLowerCase();
+      const requiresDPA = ['admin', 'registrar', 'staff', 'superadmin'].includes(role);
+
+      if (!requiresDPA) {
+        setDpaChecked(true);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('dpa_consented_at')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.warn('DPA check failed, allowing dashboard access:', error.message);
+        } else if (!data?.dpa_consented_at) {
+          setShowDPAConsent(true);
         }
+      } catch (err) {
+        console.error('Critical DPA check failure:', err);
+      } finally {
+        setDpaChecked(true);
       }
     };
+
     checkDPA();
-  }, [user, dpaChecked]);
+  }, [user?.id, user?.role]);
 
   const getNotifIcon = (type: string) => {
     switch (type) {
@@ -182,7 +194,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 
 
-  if (!dpaChecked) {
+  if (!dpaChecked && user) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />

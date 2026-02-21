@@ -116,6 +116,7 @@ const Alumni2FA: React.FC = () => {
         if (storedUserId) {
           localStorage.setItem(`otp_verified_${storedUserId}`, Date.now().toString());
         }
+        sessionStorage.setItem('show_dpa_after_otp', 'true');
 
         // Clear OTP data from session
         sessionStorage.removeItem('otp_code');

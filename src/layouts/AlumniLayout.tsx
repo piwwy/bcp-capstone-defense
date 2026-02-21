@@ -15,23 +15,43 @@ const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
   const [showDPAConsent, setShowDPAConsent] = useState(false);
-  const [dpaChecked, setDpaChecked] = useState(true);
+  const [dpaChecked, setDpaChecked] = useState(false);
 
   useEffect(() => {
-    if (user && !dpaChecked) {
-      supabase
-        .from('profiles')
-        .select('dpa_consented_at, last_login')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (!data?.dpa_consented_at || !data?.last_login) {
-            setShowDPAConsent(true);
-          }
-          setDpaChecked(true);
-        });
-    }
-  }, [user, dpaChecked]);
+    const checkDPA = async () => {
+      if (!user) {
+        setDpaChecked(true);
+        return;
+      }
+
+      const shouldShowAfterOtp = sessionStorage.getItem('show_dpa_after_otp') === 'true';
+
+      if (shouldShowAfterOtp) {
+        sessionStorage.removeItem('show_dpa_after_otp');
+        setShowDPAConsent(true);
+        setDpaChecked(true);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('dpa_consented_at')
+          .eq('id', user.id)
+          .single();
+
+        if (!data?.dpa_consented_at) {
+          setShowDPAConsent(true);
+        }
+      } catch (err) {
+        console.error('DPA check failed:', err);
+      } finally {
+        setDpaChecked(true);
+      }
+    };
+
+    checkDPA();
+  }, [user?.id]);
 
 
 

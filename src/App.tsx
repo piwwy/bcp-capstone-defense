@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import ResetPassword from './pages/ResetPassword';
@@ -172,36 +172,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   return <>{children}</>;
 };
 
-const AuthDebugPanel: React.FC = () => {
-  const { user, status, isLoading, isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  let hasPersistedSnapshot = false;
-  try {
-    const raw = localStorage.getItem(SUPABASE_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      hasPersistedSnapshot = !!(parsed?.access_token || parsed?.currentSession?.access_token || parsed?.session?.access_token);
-    }
-  } catch {}
-
-  return (
-    <div className="fixed bottom-3 right-3 z-[99999] bg-black/85 text-green-300 text-[10px] font-mono p-3 rounded-lg border border-green-500/40 max-w-[360px] break-words">
-      <div>path: {location.pathname}</div>
-      <div>status: {status}</div>
-      <div>isLoading: {String(isLoading)}</div>
-      <div>isAuthenticated: {String(isAuthenticated)}</div>
-      <div>user: {user?.email || 'null'}</div>
-      <div>role: {user?.role || 'null'}</div>
-      <div>hasStorageSession: {String(hasPersistedSnapshot)}</div>
-    </div>
-  );
-};
-
 function AppRoutes() {
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <AuthDebugPanel />
       <Routes>
         {/* PUBLIC ROUTES */}
         <Route path="/" element={<LandingPage />} />
