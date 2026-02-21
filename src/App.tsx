@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import ResetPassword from './pages/ResetPassword';
@@ -85,6 +85,12 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
+const normalizeRole = (role?: string) => {
+  const value = (role || '').toLowerCase().trim();
+  if (value === 'super_admin') return 'superadmin';
+  return value;
+};
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { status, user } = useAuth();
   const [checkingPersistedSession, setCheckingPersistedSession] = React.useState(false);
@@ -137,24 +143,65 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" replace />;
   }
 
+  const normalizedRole = normalizeRole(user.role);
+  const normalizedAllowedRoles = (allowedRoles || []).map(normalizeRole);
+
+  // If authenticated but profile role is still resolving, keep waiting instead of redirecting.
+  if (!normalizedRole) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+        <p className="text-slate-400 text-sm animate-pulse">Loading role permissions...</p>
+      </div>
+    );
+  }
+
   // Security Gate: Check Role
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !normalizedAllowedRoles.includes(normalizedRole)) {
     // Redirect sa tamang dashboard base sa role ng user
-    switch (user.role) {
+    switch (normalizedRole) {
       case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
       case 'admin': return <Navigate to="/admin/dashboard" replace />;
+      case 'registrar': return <Navigate to="/admin/dashboard" replace />;
       case 'staff': return <Navigate to="/staff/dashboard" replace />;
       case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
-      default: return <Navigate to="/" replace />;
+      default: return <Navigate to="/login" replace />;
     }
   }
 
   return <>{children}</>;
 };
 
+const AuthDebugPanel: React.FC = () => {
+  const { user, status, isLoading, isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  let hasPersistedSnapshot = false;
+  try {
+    const raw = localStorage.getItem(SUPABASE_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      hasPersistedSnapshot = !!(parsed?.access_token || parsed?.currentSession?.access_token || parsed?.session?.access_token);
+    }
+  } catch {}
+
+  return (
+    <div className="fixed bottom-3 right-3 z-[99999] bg-black/85 text-green-300 text-[10px] font-mono p-3 rounded-lg border border-green-500/40 max-w-[360px] break-words">
+      <div>path: {location.pathname}</div>
+      <div>status: {status}</div>
+      <div>isLoading: {String(isLoading)}</div>
+      <div>isAuthenticated: {String(isAuthenticated)}</div>
+      <div>user: {user?.email || 'null'}</div>
+      <div>role: {user?.role || 'null'}</div>
+      <div>hasStorageSession: {String(hasPersistedSnapshot)}</div>
+    </div>
+  );
+};
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageSkeleton />}>
+      <AuthDebugPanel />
       <Routes>
         {/* PUBLIC ROUTES */}
         <Route path="/" element={<LandingPage />} />

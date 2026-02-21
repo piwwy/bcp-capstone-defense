@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabaseClient';
+import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
 import { Eye, EyeOff, Loader2, LogIn, ArrowLeft } from 'lucide-react';
 import EmailService from '../services/emailService';
 import { useToast } from '../context/ToastContext';
@@ -24,6 +24,18 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Clear stale auth/session state before new login attempt.
+      try {
+        await supabase.auth.signOut({ scope: 'local' } as any);
+      } catch {}
+      localStorage.removeItem(SUPABASE_STORAGE_KEY);
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('is_switched');
+      sessionStorage.removeItem('otp_code');
+      sessionStorage.removeItem('otp_expiry');
+      sessionStorage.removeItem('otp_email');
+      sessionStorage.removeItem('otp_user_id');
+
       const MAX_AUTH_ATTEMPTS = 3;
       let authData: any = null;
       let authError: any = null;

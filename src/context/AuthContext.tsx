@@ -49,6 +49,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Safety net: never allow infinite loading state.
+  useEffect(() => {
+    if (status !== 'loading') return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (userRef.current) {
+        setStatus('authenticated');
+      } else {
+        setStatus('unauthenticated');
+      }
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [status]);
+
   const fetchProfile = async (userId: string, email: string): Promise<User | null> => {
     try {
       const { data: profileData, error: profileError } = await supabase
