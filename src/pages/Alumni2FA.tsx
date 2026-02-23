@@ -39,15 +39,26 @@ const Alumni2FA: React.FC = () => {
           sessionStorage.setItem('otp_email', session.user.email || '');
           sessionStorage.setItem('otp_user_id', session.user.id);
 
-          // Try to send OTP email
+          // Try to send OTP email only for alumni accounts
           if (session.user.email) {
-            const { success } = await EmailService.sendOTPEmail(
-              session.user.email,
-              'Alumni',
-              newOtp
-            );
-            if (!success) {
-              setError('Could not send verification code. Please click "Resend Code" below.');
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+              if (profile?.role === 'alumni') {
+                const { success } = await EmailService.sendOTPEmail(
+                  session.user.email,
+                  'Alumni',
+                  newOtp
+                );
+                if (!success) {
+                  setError('Could not send verification code. Please click "Resend Code" below.');
+                }
+              }
+            } catch {
+              /* no-op */
             }
           }
         } else {
@@ -167,14 +178,38 @@ const Alumni2FA: React.FC = () => {
     sessionStorage.setItem('otp_code', newOtp);
     sessionStorage.setItem('otp_expiry', newExpiry.toString());
 
-    // Send new OTP via email
-    const { success, error: emailError } = await EmailService.sendOTPEmail(storedEmail, 'Alumni', newOtp);
-
-    if (!success) {
-      setError(`Failed to resend code: ${emailError || 'Unknown error'}`);
-    } else {
-      setTimer(60);
-      setCode(['', '', '', '', '', '']);
+    // Send new OTP via email only if user is alumni
+    try {
+      let role: string | null = null;
+      if (storedUserId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', storedUserId)
+          .single();
+        role = profile?.role || null;
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          role = profile?.role || null;
+        }
+      }
+      if (role === 'alumni') {
+        const { success, error: emailError } = await EmailService.sendOTPEmail(storedEmail, 'Alumni', newOtp);
+        if (!success) {
+          setError(`Failed to resend code: ${emailError || 'Unknown error'}`);
+        } else {
+          setTimer(60);
+          setCode(['', '', '', '', '', '']);
+        }
+      }
+    } catch {
+      /* no-op */
     }
 
     setResending(false);
