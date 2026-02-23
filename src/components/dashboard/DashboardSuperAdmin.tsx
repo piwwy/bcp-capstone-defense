@@ -1,36 +1,47 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
   Users, Shield, Activity, ArrowRight, Calendar, Loader2,
-  Crown, Database, BarChart3, CheckCircle, AlertTriangle,
-  Repeat, X, Lock
+  Crown, Database, BarChart3, AlertTriangle, Briefcase, Heart, Newspaper,
+  Repeat, X, Lock, Clock, History
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
+
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
 
 interface SystemStats {
   totalUsers: number;
   totalAlumni: number;
   totalAdmins: number;
-  unclaimedAccounts: number;
   verifiedAlumni: number;
   rejectedUsers: number;
   disabledUsers: number;
+  activeAlumni: number;
   totalEvents: number;
   totalJobs: number;
   totalCampaigns: number;
+  totalNews: number;
 }
 
 const DashboardSuperAdmin = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<SystemStats>({
-    totalUsers: 0, totalAlumni: 0, totalAdmins: 0, unclaimedAccounts: 0,
-    verifiedAlumni: 0, rejectedUsers: 0, disabledUsers: 0,
-    totalEvents: 0, totalJobs: 0, totalCampaigns: 0,
+    totalUsers: 0, totalAlumni: 0, totalAdmins: 0,
+    verifiedAlumni: 0, rejectedUsers: 0, disabledUsers: 0, activeAlumni: 0,
+    totalEvents: 0, totalJobs: 0, totalCampaigns: 0, totalNews: 0,
   });
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [employmentStats, setEmploymentStats] = useState({
+    employed: 0, selfEmployed: 0, unemployed: 0, student: 0
+  });
 
   useEffect(() => {
     if (user) {
@@ -59,7 +70,7 @@ const DashboardSuperAdmin = () => {
         { count: totalUsers },
         { count: totalAlumni },
         { count: totalAdmins },
-        { count: unclaimedAccounts },
+        { count: activeAlumni },
         { count: verifiedAlumni },
         { count: rejectedUsers },
         { count: disabledUsers },
@@ -67,24 +78,44 @@ const DashboardSuperAdmin = () => {
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).in('role', ['admin', 'superadmin']),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').not('status', 'in', '("archived","rejected","disabled")'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'disabled'),
       ]);
 
       // Optional table counts (may not exist, so catch errors)
-      let totalEvents = 0, totalJobs = 0, totalCampaigns = 0;
+      let totalEvents = 0, totalJobs = 0, totalCampaigns = 0, totalNews = 0;
       try { const r = await supabase.from('alumni_events').select('*', { count: 'exact', head: true }); totalEvents = r.count || 0; } catch { }
       try { const r = await supabase.from('jobs').select('*', { count: 'exact', head: true }); totalJobs = r.count || 0; } catch { }
       try { const r = await supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }); totalCampaigns = r.count || 0; } catch { }
+      try { const r = await supabase.from('news_articles').select('*', { count: 'exact', head: true }); totalNews = r.count || 0; } catch { }
 
       setStats({
         totalUsers: totalUsers || 0, totalAlumni: totalAlumni || 0, totalAdmins: totalAdmins || 0,
-        unclaimedAccounts: unclaimedAccounts || 0, verifiedAlumni: verifiedAlumni || 0,
+        activeAlumni: activeAlumni || 0, verifiedAlumni: verifiedAlumni || 0,
         rejectedUsers: rejectedUsers || 0, disabledUsers: disabledUsers || 0,
-        totalEvents, totalJobs, totalCampaigns,
+        totalEvents, totalJobs, totalCampaigns, totalNews,
       });
+
+      // Employment stats
+      try {
+        const [
+          { count: employed },
+          { count: selfEmployed },
+          { count: unemployed },
+          { count: student },
+        ] = await Promise.all([
+          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
+          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'self-employed'),
+          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
+          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
+        ]);
+        setEmploymentStats({
+          employed: employed || 0, selfEmployed: selfEmployed || 0,
+          unemployed: unemployed || 0, student: student || 0,
+        });
+      } catch { }
 
       // Recent users (all roles)
       const { data: recents } = await supabase
@@ -102,6 +133,27 @@ const DashboardSuperAdmin = () => {
         .order('created_at', { ascending: false })
         .limit(5);
       setAdminUsers(admins || []);
+
+      // Audit logs
+      const { data: logs, error: logError } = await supabase
+        .from('audit_logs')
+        .select('id, user_id, action, details, created_at')
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (!logError && logs) {
+        const userIds = [...new Set(logs.map(l => l.user_id))].filter(Boolean);
+        if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+          const profMap = new Map((profs || []).map(p => [p.id, p]));
+          setRecentLogs(logs.map(l => ({ ...l, profiles: l.user_id ? profMap.get(l.user_id) : undefined })));
+        } else {
+          setRecentLogs(logs);
+        }
+      }
 
     } catch (err) {
       console.error('SuperAdmin dashboard error:', err);
@@ -128,7 +180,6 @@ const DashboardSuperAdmin = () => {
     }
     setSwitchLoading(true);
     try {
-      // Verify password by re-authenticating
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: user?.email || '',
         password: switchPassword,
@@ -167,6 +218,36 @@ const DashboardSuperAdmin = () => {
     }
   };
 
+  const getLogActionStyle = (action: string) => {
+    if (action.includes('APPROVE') || action.includes('CREATE')) return 'text-emerald-600 bg-emerald-50';
+    if (action.includes('REJECT') || action.includes('DELETE')) return 'text-rose-600 bg-rose-50';
+    if (action.includes('UPDATE')) return 'text-amber-600 bg-amber-50';
+    return 'text-blue-600 bg-blue-50';
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diff = now.getTime() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Employment bar chart data
+  const employmentChartData = [
+    { name: 'Employed', value: employmentStats.employed },
+    { name: 'Self-Employed', value: employmentStats.selfEmployed },
+    { name: 'Unemployed', value: employmentStats.unemployed },
+    { name: 'Student', value: employmentStats.student },
+  ];
+
+  // Account status for analytics overview
+  const unclaimed = stats.totalAlumni - stats.verifiedAlumni - stats.rejectedUsers;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -200,6 +281,7 @@ const DashboardSuperAdmin = () => {
               Full system oversight — manage users, roles, security, and all platform operations with elevated privileges.
             </p>
 
+            {/* Quick Stats Row — removed "verified" */}
             <div className="flex items-center gap-6 mt-8">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
@@ -221,11 +303,11 @@ const DashboardSuperAdmin = () => {
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                  <Activity className="w-6 h-6 text-green-400" />
+                  <Database className="w-6 h-6 text-emerald-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-black text-white">{stats.verifiedAlumni}</p>
-                  <p className="text-xs text-purple-200 font-bold uppercase tracking-wider">Verified</p>
+                  <p className="text-2xl font-black text-white">{stats.totalAlumni}</p>
+                  <p className="text-xs text-purple-200 font-bold uppercase tracking-wider">Alumni Registry</p>
                 </div>
               </div>
             </div>
@@ -250,86 +332,144 @@ const DashboardSuperAdmin = () => {
         </div>
       </div>
 
-      {/* ====== STATS GRID ====== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* ====== STATS GRID — Module Cards ====== */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
 
-        {/* Total Users */}
-        <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-purple-600 to-indigo-800 text-white">
+        <Link to="/superadmin/records" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-purple-600 to-indigo-800 text-white">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
             <Users className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
           </div>
-          <div className="p-6 relative z-10">
-            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit mb-4"><Users className="w-6 h-6" /></div>
-            <h3 className="text-purple-100 text-sm font-medium uppercase tracking-wider">Total Users</h3>
-            <h1 className="text-5xl font-extrabold mt-1">{stats.totalUsers}</h1>
-            <p className="text-xs text-purple-200 mt-2">{stats.totalAlumni} alumni &bull; {stats.totalAdmins} admins</p>
-          </div>
-        </div>
-
-        {/* Unclaimed Accounts */}
-        <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-amber-600 to-orange-700 text-white">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <Database className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
-          </div>
-          <div className="p-6 relative z-10">
-            <div className="flex justify-between items-start">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm"><Database className="w-6 h-6" /></div>
-              {stats.unclaimedAccounts > 0 && <span className="bg-white text-amber-600 text-xs font-bold px-2 py-1 rounded-full">UNCLAIMED</span>}
-            </div>
-            <h3 className="text-amber-100 text-sm font-medium uppercase tracking-wider mt-4">Master List</h3>
-            <h1 className="text-5xl font-extrabold mt-1">{stats.unclaimedAccounts}</h1>
-            <p className="text-xs text-amber-200 mt-2">Unclaimed accounts</p>
-          </div>
-        </div>
-
-        {/* Verified */}
-        <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <CheckCircle className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
-          </div>
-          <div className="p-6 relative z-10">
-            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit mb-4"><CheckCircle className="w-6 h-6" /></div>
-            <h3 className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Verified Alumni</h3>
-            <h1 className="text-5xl font-extrabold mt-1">{stats.verifiedAlumni}</h1>
-            <p className="text-xs text-emerald-200 mt-2">Active members</p>
-          </div>
-        </div>
-
-        {/* Issues */}
-        <div className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-red-600 to-orange-700 text-white">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <AlertTriangle className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
-          </div>
-          <div className="p-6 relative z-10">
-            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit mb-4"><AlertTriangle className="w-6 h-6" /></div>
-            <h3 className="text-orange-100 text-sm font-medium uppercase tracking-wider">Rejected / Disabled</h3>
-            <h1 className="text-5xl font-extrabold mt-1">{stats.rejectedUsers + stats.disabledUsers}</h1>
-            <p className="text-xs text-orange-200 mt-2">{stats.rejectedUsers} rejected &bull; {stats.disabledUsers} disabled</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ====== SYSTEM MODULES OVERVIEW ====== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: 'Events Created', value: stats.totalEvents, icon: Calendar, color: 'text-blue-600 bg-blue-50 border-blue-100' },
-          { label: 'Job Postings', value: stats.totalJobs, icon: BarChart3, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-          { label: 'Donation Campaigns', value: stats.totalCampaigns, icon: Database, color: 'text-purple-600 bg-purple-50 border-purple-100' },
-        ].map((mod, i) => (
-          <div key={i} className={`flex items-center gap-4 p-4 rounded-xl border ${mod.color} bg-white shadow-sm`}>
-            <div className={`p-3 rounded-xl ${mod.color}`}><mod.icon className="w-5 h-5" /></div>
-            <div>
-              <p className="text-2xl font-extrabold text-gray-900">{mod.value}</p>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{mod.label}</p>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Users className="w-6 h-6" /></div>
+            <div className="mt-5">
+              <h3 className="text-purple-100 text-sm font-medium uppercase tracking-wider">Total Alumni</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{stats.totalAlumni}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-purple-100 font-medium group-hover:gap-3 transition-all">
+                View Records <ArrowRight className="w-4 h-4" />
+              </div>
             </div>
           </div>
-        ))}
+        </Link>
+
+        <Link to="/superadmin/events" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Calendar className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Calendar className="w-6 h-6" /></div>
+            <div className="mt-5">
+              <h3 className="text-blue-100 text-sm font-medium uppercase tracking-wider">Events</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{stats.totalEvents}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-blue-100 font-medium group-hover:gap-3 transition-all">
+                View Events <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/superadmin/jobs" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Briefcase className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Briefcase className="w-6 h-6" /></div>
+            <div className="mt-5">
+              <h3 className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Job Postings</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{stats.totalJobs}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-emerald-100 font-medium group-hover:gap-3 transition-all">
+                View Jobs <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/superadmin/donations" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-pink-600 to-rose-700 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Heart className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Heart className="w-6 h-6" /></div>
+            <div className="mt-5">
+              <h3 className="text-pink-100 text-sm font-medium uppercase tracking-wider">Campaigns</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{stats.totalCampaigns}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-pink-100 font-medium group-hover:gap-3 transition-all">
+                View Campaigns <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/superadmin/news" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Newspaper className="w-32 h-32 transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Newspaper className="w-6 h-6" /></div>
+            <div className="mt-5">
+              <h3 className="text-amber-100 text-sm font-medium uppercase tracking-wider">News Articles</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{stats.totalNews}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-amber-100 font-medium group-hover:gap-3 transition-all">
+                View News <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
 
-      {/* ====== TWO COLUMN: RECENT USERS + ADMIN ACCOUNTS ====== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ====== ANALYTICS + EMPLOYMENT ====== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Recent Users (All Roles) */}
+        {/* Analytics Overview with Employment Bar Graph */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-purple-600" /> Analytics Overview</h3>
+            <Link to="/superadmin/analytics" className="text-xs text-purple-600 hover:underline font-bold">View Full Analytics</Link>
+          </div>
+
+          {/* Employment Status — Bar Graph */}
+          <div className="mb-6">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Alumni Employment Status</h4>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={employmentChartData} layout="vertical" barCategoryGap="20%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                    cursor={{ fill: 'rgba(0,0,0,0.03)' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={28}>
+                    {employmentChartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Account Status Breakdown — kept as requested */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Account Status</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                <p className="text-2xl font-extrabold text-green-700">{stats.verifiedAlumni}</p>
+                <p className="text-xs font-bold text-green-600 mt-1">Verified</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                <p className="text-2xl font-extrabold text-amber-700">{unclaimed > 0 ? unclaimed : 0}</p>
+                <p className="text-xs font-bold text-amber-600 mt-1">Unclaimed</p>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+                <p className="text-2xl font-extrabold text-red-700">{stats.rejectedUsers + stats.disabledUsers}</p>
+                <p className="text-xs font-bold text-red-600 mt-1">Inactive</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Users */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-gray-800 flex items-center gap-2">
@@ -364,6 +504,10 @@ const DashboardSuperAdmin = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ====== ADMIN ACCOUNTS + AUDIT LOGS ====== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Admin Accounts */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -403,6 +547,56 @@ const DashboardSuperAdmin = () => {
               <Repeat className="w-4 h-4" /> Switch to Admin Dashboard
               <ArrowRight className="w-4 h-4 ml-auto" />
             </button>
+          </div>
+        </div>
+
+        {/* System Activity */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-slate-100 rounded-2xl text-slate-600">
+                <History className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-black text-gray-900 leading-tight">System Activity</h3>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Audit Trail</p>
+              </div>
+            </div>
+            <Link to="/superadmin/audit-trail" className="px-4 py-2 bg-purple-50 text-purple-600 rounded-xl text-xs font-black uppercase hover:bg-purple-100 transition-all flex items-center gap-2">
+              View Full Trail <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {recentLogs.length === 0 ? (
+                <div className="text-center py-10">
+                  <Activity className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400 font-bold">No activity recorded yet.</p>
+                </div>
+              ) : (
+                recentLogs.map((log) => (
+                  <div key={log.id} className="flex items-start gap-3 group">
+                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${log.action?.includes('REJECT') ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-bold text-gray-900">
+                          {log.profiles?.first_name} {log.profiles?.last_name || 'System'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${getLogActionStyle(log.action)}`}>
+                          {log.action?.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 line-clamp-1 italic">
+                        {log.details?.message || log.action}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-black text-gray-400 whitespace-nowrap">
+                      {formatTimeAgo(log.created_at)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

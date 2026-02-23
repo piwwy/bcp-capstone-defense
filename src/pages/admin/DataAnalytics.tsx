@@ -4,7 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import {
     BarChart3, Users, GraduationCap, TrendingUp, Loader2, Calendar,
-    Briefcase, Heart, DollarSign, Award, PieChart as PieChartIcon,
+    Briefcase, Heart, DollarSign, Award, Grid3X3,
     ArrowUpRight, RefreshCw, Eye, EyeOff, ShieldCheck, Lock as LockIcon
 } from 'lucide-react';
 import {
@@ -71,30 +71,26 @@ const DataAnalytics = () => {
         setLoading(false);
     };
 
-    const verifiedAlumni = useMemo(() =>
-        profiles.filter(p => p.status === 'verified'), [profiles]);
+    const activeAlumni = useMemo(() =>
+        profiles.filter(p => p.status !== 'archived' && p.status !== 'rejected'), [profiles]);
 
-    const verificationTrend = useMemo(() => {
-        const months: Record<string, { verified: number; total: number }> = {};
+    const growthTrend = useMemo(() => {
+        const months: Record<string, { count: number }> = {};
         const now = new Date();
         for (let i = 11; i >= 0; i--) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            months[key] = { verified: 0, total: 0 };
+            months[key] = { count: 0 };
         }
-        profiles.forEach(p => {
+        activeAlumni.forEach(p => {
             const date = new Date(p.created_at);
             const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
             if (months[key]) {
-                months[key].total++;
-                if (p.status === 'verified') months[key].verified++;
+                months[key].count++;
             }
         });
         return Object.entries(months).map(([name, data]) => ({ name, ...data }));
-    }, [profiles]);
-
-    const activeAlumni = useMemo(() =>
-        profiles.filter(p => p.status !== 'archived'), [profiles]);
+    }, [activeAlumni]);
 
     const donationTrendData = useMemo(() => {
         const months: Record<string, number> = {};
@@ -114,7 +110,7 @@ const DataAnalytics = () => {
 
     const batchDistribution = useMemo(() => {
         const batches: Record<string, number> = {};
-        verifiedAlumni.forEach(p => {
+        activeAlumni.forEach(p => {
             const batch = p.batch_year || 'Unknown';
             batches[batch] = (batches[batch] || 0) + 1;
         });
@@ -122,11 +118,11 @@ const DataAnalytics = () => {
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => a.name.localeCompare(b.name))
             .slice(-10);
-    }, [verifiedAlumni]);
+    }, [activeAlumni]);
 
     const courseDistribution = useMemo(() => {
         const courses: Record<string, number> = {};
-        verifiedAlumni.forEach(p => {
+        activeAlumni.forEach(p => {
             const course = p.course || 'Unknown';
             courses[course] = (courses[course] || 0) + 1;
         });
@@ -134,7 +130,7 @@ const DataAnalytics = () => {
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 8);
-    }, [verifiedAlumni]);
+    }, [activeAlumni]);
 
     const employmentDistribution = useMemo(() => {
         const statuses: Record<string, number> = {
@@ -153,17 +149,6 @@ const DataAnalytics = () => {
         });
         return Object.entries(statuses).map(([name, value]) => ({ name, value }));
     }, [activeAlumni]);
-
-    const accountStatus = useMemo(() => {
-        const verified = profiles.filter(p => p.status === 'verified').length;
-        const pending = profiles.filter(p => p.status === 'pending_approval').length;
-        const rejected = profiles.filter(p => p.status === 'rejected').length;
-        return [
-            { name: 'Verified', value: verified },
-            { name: 'Pending', value: pending },
-            { name: 'Rejected', value: rejected }
-        ];
-    }, [profiles]);
 
     const employmentRate = useMemo(() => {
         const employed = activeAlumni.filter(p =>
@@ -222,7 +207,7 @@ const DataAnalytics = () => {
                 {/* Key Metrics */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {[
-                        { icon: Users, color: 'blue', label: 'Verified Alumni', value: verifiedAlumni.length, trend: 'Active' },
+                        { icon: Users, color: 'blue', label: 'Active Alumni', value: activeAlumni.length, trend: 'Database' },
                         { icon: TrendingUp, color: 'emerald', label: 'Employment Rate', value: `${employmentRate}%`, trend: null },
                         { icon: GraduationCap, color: 'purple', label: 'Courses', value: courseDistribution.length, trend: null },
                         { icon: Calendar, color: 'amber', label: 'Events', value: eventStats.total, trend: null },
@@ -250,23 +235,23 @@ const DataAnalytics = () => {
                     })}
                 </div>
 
-                {/* Verification Trend Chart */}
+                {/* Growth Trend Chart */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 line-animation">
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h3 className="font-black text-slate-900 flex items-center gap-2">
                                     <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                                    Account Verification Activity
+                                    Account Database Activity
                                 </h3>
-                                <p className="text-xs text-slate-400 mt-1 font-medium">Alumni claiming and verifying admin-provided accounts</p>
+                                <p className="text-xs text-slate-400 mt-1 font-medium">Monthly growth of alumni database records</p>
                             </div>
                         </div>
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                                <AreaChart data={verificationTrend}>
+                                <AreaChart data={growthTrend}>
                                     <defs>
-                                        <linearGradient id="colorVerified" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
                                             <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                                         </linearGradient>
@@ -278,7 +263,7 @@ const DataAnalytics = () => {
                                         contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
                                         itemStyle={{ color: '#10B981' }}
                                     />
-                                    <Area type="monotone" dataKey="verified" stroke="#10B981" strokeWidth={3} fill="url(#colorVerified)" />
+                                    <Area type="monotone" dataKey="count" stroke="#10B981" strokeWidth={3} fill="url(#colorCount)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -333,7 +318,7 @@ const DataAnalytics = () => {
                             <GraduationCap className="w-5 h-5 text-purple-600" />
                             Alumni by Batch Year
                         </h3>
-                        <p className="text-xs text-slate-400 mb-4 font-medium">Last 10 batch years</p>
+                        <p className="text-xs text-slate-400 mb-4 font-medium">Last 10 batch years recorded</p>
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <BarChart data={batchDistribution}>
@@ -382,7 +367,7 @@ const DataAnalytics = () => {
                             <Briefcase className="w-5 h-5 text-emerald-600" />
                             Employment Status
                         </h3>
-                        <p className="text-xs text-slate-400 mb-4 font-medium">Career outcomes of verified alumni</p>
+                        <p className="text-xs text-slate-400 mb-4 font-medium">Career outcomes of all active alumni</p>
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <BarChart data={employmentDistribution} layout="vertical">
@@ -396,57 +381,59 @@ const DataAnalytics = () => {
                         </div>
                     </div>
 
-                    {/* Account Status */}
+                    {/* Quick Stats Card */}
                     <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
                         <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
-                            <PieChartIcon className="w-5 h-5 text-amber-600" />
-                            Account Status
+                            <Grid3X3 className="w-5 h-5 text-indigo-600" />
+                            Database Summary
                         </h3>
-                        <p className="text-xs text-slate-400 mb-4 font-medium">Verification status breakdown</p>
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                                <PieChart>
-                                    <Pie
-                                        data={accountStatus}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        label
-                                    >
-                                        <Cell fill="#10B981" />
-                                        <Cell fill="#F59E0B" />
-                                        <Cell fill="#EF4444" />
-                                    </Pie>
-                                    <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }} />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <p className="text-xs text-slate-400 mb-6 font-medium">Key performance indicators</p>
+
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Program</p>
+                                    <p className="text-lg font-black text-slate-900">{courseDistribution[0]?.name || 'N/A'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-2xl font-black text-blue-600">{courseDistribution[0]?.value || 0}</p>
+                                    <p className="text-[10px] font-bold text-slate-400">Total Alumni</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Largest Batch</p>
+                                    <p className="text-lg font-black text-slate-900">Batch {batchDistribution[batchDistribution.length - 1]?.name || 'N/A'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-2xl font-black text-indigo-600">{batchDistribution[batchDistribution.length - 1]?.value || 0}</p>
+                                    <p className="text-[10px] font-bold text-slate-400">Total Alumni</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Quick Summary Cards */}
+                {/* Quick Summary Cards (Bottom) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                        <h4 className="text-blue-100 text-[10px] font-black uppercase tracking-widest mb-3">Most Common Course</h4>
-                        <p className="text-2xl font-black">{courseDistribution[0]?.name || 'N/A'}</p>
-                        <p className="text-blue-200 text-sm mt-1 font-bold">{courseDistribution[0]?.value || 0} alumni enrolled</p>
+                        <h4 className="text-blue-100 text-[10px] font-black uppercase tracking-widest mb-3">Total Registry</h4>
+                        <p className="text-2xl font-black">{activeAlumni.length}</p>
+                        <p className="text-blue-200 text-sm mt-1 font-bold">Active alumni in system</p>
                     </div>
                     <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 rounded-[2rem] p-6 text-white overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                        <h4 className="text-emerald-100 text-[10px] font-black uppercase tracking-widest mb-3">Largest Batch</h4>
-                        <p className="text-2xl font-black">Batch {batchDistribution[batchDistribution.length - 1]?.name || 'N/A'}</p>
-                        <p className="text-emerald-200 text-sm mt-1 font-bold">{batchDistribution[batchDistribution.length - 1]?.value || 0} alumni</p>
+                        <h4 className="text-emerald-100 text-[10px] font-black uppercase tracking-widest mb-3">Participation</h4>
+                        <p className="text-2xl font-black">{eventStats.attendees}</p>
+                        <p className="text-emerald-200 text-sm mt-1 font-bold">Total event attendees</p>
                     </div>
                     <div className="relative bg-gradient-to-br from-purple-600 to-pink-700 rounded-[2rem] p-6 text-white overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                        <h4 className="text-purple-100 text-[10px] font-black uppercase tracking-widest mb-3">Event Participation</h4>
-                        <p className="text-2xl font-black">{eventStats.attendees}</p>
-                        <p className="text-purple-200 text-sm mt-1 font-bold">Across {eventStats.total} events</p>
+                        <h4 className="text-purple-100 text-[10px] font-black uppercase tracking-widest mb-3">Events Tracked</h4>
+                        <p className="text-2xl font-black">{eventStats.total}</p>
+                        <p className="text-purple-200 text-sm mt-1 font-bold">Planned reunions & jobs</p>
                     </div>
                 </div>
             </div>

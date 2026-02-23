@@ -3,10 +3,14 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import {
-    Users, CheckCircle,
-    ArrowRight, Activity, Loader2,
-    BarChart3, Sparkles, TrendingUp, Shield
+    Users, ArrowRight, Loader2, Calendar,
+    BarChart3, Sparkles, TrendingUp, Shield, Briefcase, Heart, Newspaper
 } from 'lucide-react';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
+
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
 
 const StaffDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -115,8 +119,13 @@ const StaffDashboard: React.FC = () => {
         }
     };
 
-    const totalEmployment = employmentStats.employed + employmentStats.selfEmployed + employmentStats.unemployed + employmentStats.student;
-    const empPercent = (val: number) => totalEmployment > 0 ? Math.round((val / totalEmployment) * 100) : 0;
+    // Employment bar chart data
+    const employmentChartData = [
+        { name: 'Employed', value: employmentStats.employed },
+        { name: 'Self-Employed', value: employmentStats.selfEmployed },
+        { name: 'Unemployed', value: employmentStats.unemployed },
+        { name: 'Student', value: employmentStats.student },
+    ];
 
     if (loading) {
         return (
@@ -150,6 +159,7 @@ const StaffDashboard: React.FC = () => {
                             Manage alumni records, coordinate events, and maintain platform content with efficiency and precision.
                         </p>
 
+                        {/* Quick Stats Row — removed "verified" */}
                         <div className="flex items-center gap-6 mt-8">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
@@ -158,15 +168,6 @@ const StaffDashboard: React.FC = () => {
                                 <div>
                                     <p className="text-2xl font-black text-white">{stats.total}</p>
                                     <p className="text-xs text-emerald-200 font-bold uppercase tracking-wider">Total Alumni</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                                    <Activity className="w-6 h-6 text-green-400" />
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-black text-white">{stats.verified}</p>
-                                    <p className="text-xs text-emerald-200 font-bold uppercase tracking-wider">Verified</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -194,66 +195,142 @@ const StaffDashboard: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Stats Grid — Module Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+
                 <Link to="/staff/records" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-emerald-600 to-emerald-800 text-white">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                         <Users className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
                     </div>
                     <div className="p-6 relative z-10 h-full flex flex-col justify-between">
                         <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Users className="w-6 h-6 text-white" /></div>
-                        <div className="mt-6">
-                            <h3 className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Alumni Directory</h3>
-                            <h1 className="text-5xl font-extrabold mt-1">{stats.total}</h1>
-                            <div className="mt-4 flex items-center gap-2 text-sm text-emerald-100 font-medium group-hover:gap-3 transition-all">
+                        <div className="mt-5">
+                            <h3 className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Total Alumni</h3>
+                            <h1 className="text-4xl font-extrabold mt-1">{stats.total}</h1>
+                            <div className="mt-3 flex items-center gap-2 text-sm text-emerald-100 font-medium group-hover:gap-3 transition-all">
                                 Access Records <ArrowRight className="w-4 h-4" />
                             </div>
                         </div>
                     </div>
                 </Link>
 
-                <Link to="/staff/records" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-green-600 to-teal-700 text-white">
+                <Link to="/staff/events/calendar" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-blue-600 to-blue-800 text-white">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                        <CheckCircle className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+                        <Calendar className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
                     </div>
                     <div className="p-6 relative z-10 h-full flex flex-col justify-between">
-                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><CheckCircle className="w-6 h-6 text-white" /></div>
-                        <div className="mt-6">
-                            <h3 className="text-green-100 text-sm font-medium uppercase tracking-wider">Verified Alumni</h3>
-                            <h1 className="text-5xl font-extrabold mt-1">{stats.verified}</h1>
-                            <div className="mt-4 flex items-center gap-2 text-sm text-green-100 font-medium group-hover:gap-3 transition-all">
-                                View Profiles <ArrowRight className="w-4 h-4" />
+                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Calendar className="w-6 h-6 text-white" /></div>
+                        <div className="mt-5">
+                            <h3 className="text-blue-100 text-sm font-medium uppercase tracking-wider">Events</h3>
+                            <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.events}</h1>
+                            <div className="mt-3 flex items-center gap-2 text-sm text-blue-100 font-medium group-hover:gap-3 transition-all">
+                                View Events <ArrowRight className="w-4 h-4" />
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+
+                <Link to="/staff/jobs/board" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-teal-600 to-teal-700 text-white">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <Briefcase className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+                    </div>
+                    <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Briefcase className="w-6 h-6 text-white" /></div>
+                        <div className="mt-5">
+                            <h3 className="text-teal-100 text-sm font-medium uppercase tracking-wider">Job Postings</h3>
+                            <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.jobs}</h1>
+                            <div className="mt-3 flex items-center gap-2 text-sm text-teal-100 font-medium group-hover:gap-3 transition-all">
+                                View Jobs <ArrowRight className="w-4 h-4" />
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+
+                <Link to="/staff/collections" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-pink-600 to-rose-700 text-white">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <Heart className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+                    </div>
+                    <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Heart className="w-6 h-6 text-white" /></div>
+                        <div className="mt-5">
+                            <h3 className="text-pink-100 text-sm font-medium uppercase tracking-wider">Campaigns</h3>
+                            <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.campaigns}</h1>
+                            <div className="mt-3 flex items-center gap-2 text-sm text-pink-100 font-medium group-hover:gap-3 transition-all">
+                                View Campaigns <ArrowRight className="w-4 h-4" />
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+
+                <Link to="/staff/news/manage" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                        <Newspaper className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+                    </div>
+                    <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Newspaper className="w-6 h-6 text-white" /></div>
+                        <div className="mt-5">
+                            <h3 className="text-amber-100 text-sm font-medium uppercase tracking-wider">News Articles</h3>
+                            <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.news}</h1>
+                            <div className="mt-3 flex items-center gap-2 text-sm text-amber-100 font-medium group-hover:gap-3 transition-all">
+                                View News <ArrowRight className="w-4 h-4" />
                             </div>
                         </div>
                     </div>
                 </Link>
             </div>
 
+            {/* Analytics + Recent Alumni */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Analytics Overview */}
                 <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600" /> Alumni Insights</h3>
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600" /> Analytics Overview</h3>
                     </div>
 
-                    <div className="space-y-4">
-                        {[
-                            { label: 'Employed', value: employmentStats.employed, pct: empPercent(employmentStats.employed), color: 'bg-emerald-500' },
-                            { label: 'Self-Employed', value: employmentStats.selfEmployed, pct: empPercent(employmentStats.selfEmployed), color: 'bg-green-500' },
-                            { label: 'Unemployed', value: employmentStats.unemployed, pct: empPercent(employmentStats.unemployed), color: 'bg-orange-500' },
-                            { label: 'Student', value: employmentStats.student, pct: empPercent(employmentStats.student), color: 'bg-teal-500' },
-                        ].map((item, i) => (
-                            <div key={i}>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-medium text-gray-700">{item.label}</span>
-                                    <span className="font-bold text-gray-900">{item.value} <span className="text-gray-400 font-normal">({item.pct}%)</span></span>
-                                </div>
-                                <div className="w-full bg-gray-100 rounded-full h-2">
-                                    <div className={`${item.color} h-2 rounded-full transition-all duration-700`} style={{ width: `${item.pct}%` }}></div>
-                                </div>
+                    {/* Employment Status — Bar Graph */}
+                    <div className="mb-6">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Alumni Employment Status</h4>
+                        <div className="h-56">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={employmentChartData} layout="vertical" barCategoryGap="20%">
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                                    <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                    <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                                        cursor={{ fill: 'rgba(0,0,0,0.03)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={28}>
+                                        {employmentChartData.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Account Status Breakdown — kept as requested */}
+                    <div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Account Status</h4>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-extrabold text-green-700">{stats.verified}</p>
+                                <p className="text-xs font-bold text-green-600 mt-1">Verified</p>
                             </div>
-                        ))}
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-extrabold text-amber-700">{stats.unclaimed}</p>
+                                <p className="text-xs font-bold text-amber-600 mt-1">Unclaimed</p>
+                            </div>
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-extrabold text-red-700">{stats.rejected}</p>
+                                <p className="text-xs font-bold text-red-600 mt-1">Inactive</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
+                {/* Recent Alumni */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-gray-800">New Alumni</h3>
@@ -261,22 +338,26 @@ const StaffDashboard: React.FC = () => {
                     </div>
 
                     <div className="space-y-3">
-                        {recentUsers.map((u) => (
-                            <div key={u.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-colors">
-                                <img
-                                    src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.first_name}+${u.last_name}`}
-                                    className="w-8 h-8 rounded-full border border-gray-200"
-                                    alt="avatar"
-                                />
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-900 text-xs truncate">{u.first_name} {u.last_name}</h4>
-                                    <p className="text-[10px] text-gray-500">{new Date(u.created_at).toLocaleDateString()}</p>
+                        {recentUsers.length === 0 ? (
+                            <p className="text-gray-400 text-sm text-center py-4">No alumni records yet.</p>
+                        ) : (
+                            recentUsers.map((u) => (
+                                <div key={u.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-colors">
+                                    <img
+                                        src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.first_name}+${u.last_name}`}
+                                        className="w-8 h-8 rounded-full border border-gray-200"
+                                        alt="avatar"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-gray-900 text-xs truncate">{u.first_name} {u.last_name}</h4>
+                                        <p className="text-[10px] text-gray-500">{new Date(u.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${getStatusColor(u.status)}`}>
+                                        {u.status === 'pending_approval' ? 'PENDING' : u.status}
+                                    </span>
                                 </div>
-                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${getStatusColor(u.status)}`}>
-                                    {u.status}
-                                </span>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

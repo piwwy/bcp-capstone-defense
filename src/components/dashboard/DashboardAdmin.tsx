@@ -3,11 +3,15 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Users, Clock, CheckCircle, AlertTriangle,
-  ArrowRight, Activity, Calendar, Loader2,
+  Users, Clock, ArrowRight, Activity, Calendar, Loader2,
   Briefcase, Heart, Newspaper, BarChart3, Sparkles, TrendingUp, Shield,
   History
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
+
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
 
 const DashboardAdmin: React.FC = () => {
   const { user } = useAuth();
@@ -164,8 +168,13 @@ const DashboardAdmin: React.FC = () => {
     return date.toLocaleDateString();
   };
 
-  const totalEmployment = employmentStats.employed + employmentStats.selfEmployed + employmentStats.unemployed + employmentStats.student;
-  const empPercent = (val: number) => totalEmployment > 0 ? Math.round((val / totalEmployment) * 100) : 0;
+  // Employment bar chart data
+  const employmentChartData = [
+    { name: 'Employed', value: employmentStats.employed },
+    { name: 'Self-Employed', value: employmentStats.selfEmployed },
+    { name: 'Unemployed', value: employmentStats.unemployed },
+    { name: 'Student', value: employmentStats.student },
+  ];
 
   if (loading) {
     return (
@@ -201,7 +210,7 @@ const DashboardAdmin: React.FC = () => {
               Monitor system performance, manage alumni records, and oversee all platform activities from your central dashboard.
             </p>
 
-            {/* Quick Stats Row */}
+            {/* Quick Stats Row — removed "verified" count */}
             <div className="flex items-center gap-6 mt-8">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
@@ -210,15 +219,6 @@ const DashboardAdmin: React.FC = () => {
                 <div>
                   <p className="text-2xl font-black text-white">{stats.total}</p>
                   <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Total Alumni</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                  <Activity className="w-6 h-6 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-black text-white">{stats.verified}</p>
-                  <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Verified</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -251,99 +251,88 @@ const DashboardAdmin: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-        <Link to="/admin/upload" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <Clock className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
-          </div>
-          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm"><Clock className="w-6 h-6 text-white" /></div>
-              {stats.unclaimed > 0 && <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full">UNCLAIMED</span>}
-            </div>
-            <div className="mt-6">
-              <h3 className="text-blue-100 text-sm font-medium uppercase tracking-wider">Master List</h3>
-              <h1 className="text-5xl font-extrabold mt-1">{stats.unclaimed}</h1>
-              <div className="mt-4 flex items-center gap-2 text-sm text-blue-100 font-medium group-hover:gap-3 transition-all">
-                Unclaimed Accounts <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        </Link>
+      {/* Stats Grid — Module Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
 
         <Link to="/admin/records" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
             <Users className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
           </div>
           <div className="p-6 relative z-10 h-full flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm"><Users className="w-6 h-6 text-white" /></div>
-            </div>
-            <div className="mt-6">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Users className="w-6 h-6 text-white" /></div>
+            <div className="mt-5">
               <h3 className="text-indigo-100 text-sm font-medium uppercase tracking-wider">Total Alumni</h3>
-              <h1 className="text-5xl font-extrabold mt-1">{stats.total}</h1>
-              <div className="mt-4 flex items-center gap-2 text-sm text-indigo-100 font-medium group-hover:gap-3 transition-all">
-                View Directory <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        <Link to="/admin/records" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <CheckCircle className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
-          </div>
-          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm"><CheckCircle className="w-6 h-6 text-white" /></div>
-            </div>
-            <div className="mt-6">
-              <h3 className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Verified</h3>
-              <h1 className="text-5xl font-extrabold mt-1">{stats.verified}</h1>
-              <div className="mt-4 flex items-center gap-2 text-sm text-emerald-100 font-medium group-hover:gap-3 transition-all">
+              <h1 className="text-4xl font-extrabold mt-1">{stats.total}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-indigo-100 font-medium group-hover:gap-3 transition-all">
                 View Records <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </div>
         </Link>
 
-        <Link to="/admin/users" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-red-600 to-orange-700 text-white">
+        <Link to="/admin/events/calendar" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-blue-600 to-blue-800 text-white">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-            <AlertTriangle className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+            <Calendar className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
           </div>
           <div className="p-6 relative z-10 h-full flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm"><AlertTriangle className="w-6 h-6 text-white" /></div>
-            </div>
-            <div className="mt-6">
-              <h3 className="text-orange-100 text-sm font-medium uppercase tracking-wider">Inactive/Issues</h3>
-              <h1 className="text-5xl font-extrabold mt-1">{stats.rejected}</h1>
-              <div className="mt-4 flex items-center gap-2 text-sm text-orange-100 font-medium group-hover:gap-3 transition-all">
-                Manage Users <ArrowRight className="w-4 h-4" />
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Calendar className="w-6 h-6 text-white" /></div>
+            <div className="mt-5">
+              <h3 className="text-blue-100 text-sm font-medium uppercase tracking-wider">Events</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.events}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-blue-100 font-medium group-hover:gap-3 transition-all">
+                View Events <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </div>
         </Link>
-      </div>
 
-      {/* Module Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Events', value: moduleCounts.events, icon: Calendar, color: 'text-blue-600 bg-blue-50 border-blue-100', link: '/admin/events/calendar' },
-          { label: 'Job Postings', value: moduleCounts.jobs, icon: Briefcase, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', link: '/admin/jobs/board' },
-          { label: 'Campaigns', value: moduleCounts.campaigns, icon: Heart, color: 'text-pink-600 bg-pink-50 border-pink-100', link: '/admin/donations' },
-          { label: 'News Articles', value: moduleCounts.news, icon: Newspaper, color: 'text-purple-600 bg-purple-50 border-purple-100', link: '/admin/news/manage' },
-        ].map((mod, i) => (
-          <Link key={i} to={mod.link} className={`flex items-center gap-3 p-4 rounded-xl border bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all`}>
-            <div className={`p-3 rounded-xl ${mod.color}`}><mod.icon className="w-5 h-5" /></div>
-            <div>
-              <p className="text-2xl font-extrabold text-gray-900">{mod.value}</p>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{mod.label}</p>
+        <Link to="/admin/jobs/board" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Briefcase className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Briefcase className="w-6 h-6 text-white" /></div>
+            <div className="mt-5">
+              <h3 className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Job Postings</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.jobs}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-emerald-100 font-medium group-hover:gap-3 transition-all">
+                View Jobs <ArrowRight className="w-4 h-4" />
+              </div>
             </div>
-          </Link>
-        ))}
+          </div>
+        </Link>
+
+        <Link to="/admin/donations" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-pink-600 to-rose-700 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Heart className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Heart className="w-6 h-6 text-white" /></div>
+            <div className="mt-5">
+              <h3 className="text-pink-100 text-sm font-medium uppercase tracking-wider">Campaigns</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.campaigns}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-pink-100 font-medium group-hover:gap-3 transition-all">
+                View Campaigns <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/admin/news/manage" className="relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Newspaper className="w-32 h-32 text-white transform rotate-12 translate-x-8 -translate-y-8" />
+          </div>
+          <div className="p-6 relative z-10 h-full flex flex-col justify-between">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm w-fit"><Newspaper className="w-6 h-6 text-white" /></div>
+            <div className="mt-5">
+              <h3 className="text-amber-100 text-sm font-medium uppercase tracking-wider">News Articles</h3>
+              <h1 className="text-4xl font-extrabold mt-1">{moduleCounts.news}</h1>
+              <div className="mt-3 flex items-center gap-2 text-sm text-amber-100 font-medium group-hover:gap-3 transition-all">
+                View News <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* Analytics + Recent Registrations */}
@@ -356,30 +345,30 @@ const DashboardAdmin: React.FC = () => {
             <Link to="/admin/tracking/analytics" className="text-xs text-blue-600 hover:underline font-bold">View Full Analytics</Link>
           </div>
 
-          {/* Employment Status Breakdown */}
+          {/* Employment Status — Bar Graph */}
           <div className="mb-6">
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Alumni Employment Status</h4>
-            <div className="space-y-3">
-              {[
-                { label: 'Employed', value: employmentStats.employed, pct: empPercent(employmentStats.employed), color: 'bg-green-500' },
-                { label: 'Self-Employed', value: employmentStats.selfEmployed, pct: empPercent(employmentStats.selfEmployed), color: 'bg-blue-500' },
-                { label: 'Unemployed', value: employmentStats.unemployed, pct: empPercent(employmentStats.unemployed), color: 'bg-orange-500' },
-                { label: 'Student', value: employmentStats.student, pct: empPercent(employmentStats.student), color: 'bg-purple-500' },
-              ].map((item, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-gray-700">{item.label}</span>
-                    <span className="font-bold text-gray-900">{item.value} <span className="text-gray-400 font-normal">({item.pct}%)</span></span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2.5">
-                    <div className={`${item.color} h-2.5 rounded-full transition-all duration-700`} style={{ width: `${item.pct}%` }}></div>
-                  </div>
-                </div>
-              ))}
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={employmentChartData} layout="vertical" barCategoryGap="20%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                    cursor={{ fill: 'rgba(0,0,0,0.03)' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={28}>
+                    {employmentChartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Account Status Breakdown */}
+          {/* Account Status Breakdown - kept as requested */}
           <div>
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Account Status</h4>
             <div className="grid grid-cols-3 gap-3">

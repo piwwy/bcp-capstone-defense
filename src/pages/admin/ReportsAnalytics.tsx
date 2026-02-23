@@ -10,7 +10,7 @@ import {
   Heart, DollarSign, Award, ArrowUpRight, Activity
 } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import jsPDF from 'jspdf';
@@ -165,24 +165,23 @@ const ReportsAnalytics = () => {
     ['All', ...new Set(profiles.map(p => p.course).filter(Boolean))].sort(), [profiles]);
 
   // ==================== ANALYTICS TAB DATA ====================
-  const verificationTrend = useMemo(() => {
-    const months: Record<string, { verified: number; total: number }> = {};
+  const growthTrend = useMemo(() => {
+    const months: Record<string, { count: number }> = {};
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      months[key] = { verified: 0, total: 0 };
+      months[key] = { count: 0 };
     }
-    profiles.forEach(p => {
+    activeAlumni.forEach(p => {
       const date = new Date(p.created_at);
       const key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       if (months[key]) {
-        months[key].total++;
-        if (p.status === 'verified') months[key].verified++;
+        months[key].count++;
       }
     });
     return Object.entries(months).map(([name, data]) => ({ name, ...data }));
-  }, [profiles]);
+  }, [activeAlumni]);
 
   const donationTrendData = useMemo(() => {
     const months: Record<string, number> = {};
@@ -246,16 +245,7 @@ const ReportsAnalytics = () => {
     return Object.entries(statuses).map(([name, value]) => ({ name, value }));
   }, [activeAlumni]);
 
-  const accountStatus = useMemo(() => {
-    const verified = profiles.filter(p => p.status === 'verified').length;
-    const pending = profiles.filter(p => p.status === 'pending_approval' || p.status === 'master_list').length;
-    const rejected = profiles.filter(p => p.status === 'rejected').length;
-    return [
-      { name: 'Verified', value: verified },
-      { name: 'Unclaimed', value: pending },
-      { name: 'Rejected', value: rejected }
-    ];
-  }, [profiles]);
+  // Removed legacy verification stats to prevent confusion with new 'Provided Account' workflow
 
   const employmentRate = useMemo(() => {
     const employed = activeAlumni.filter(p =>
@@ -307,10 +297,10 @@ const ReportsAnalytics = () => {
       .map(([name, value]) => ({ name, value }));
   }, [filteredProfiles]);
 
-  const reportVerificationTrend = useMemo(() => {
+  const reportGrowthTrend = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredProfiles.forEach(p => {
-      if (p.created_at && p.status === 'verified') {
+      if (p.created_at) {
         const month = p.created_at.slice(0, 7);
         counts[month] = (counts[month] || 0) + 1;
       }
@@ -329,12 +319,10 @@ const ReportsAnalytics = () => {
       p.employment_status?.toLowerCase().includes('employed') &&
       !p.employment_status?.toLowerCase().includes('unemployed')
     ).length;
-    const verified = filteredProfiles.filter(p => p.status === 'verified').length;
     return {
       total: filteredProfiles.length,
       employed,
       employmentRate: filteredProfiles.length > 0 ? ((employed / filteredProfiles.length) * 100).toFixed(1) : '0',
-      verified
     };
   }, [filteredProfiles]);
 
@@ -486,7 +474,6 @@ const ReportsAnalytics = () => {
         total_alumni: reportStats.total,
         employed_alumni: reportStats.employed,
         employment_rate: `${reportStats.employmentRate}%`,
-        verified_accounts: reportStats.verified,
         donation_total: donationStats.total,
         donation_count: donationStats.count,
         jobs: {
@@ -538,7 +525,6 @@ const ReportsAnalytics = () => {
         ['Total Alumni', reportStats.total.toString()],
         ['Employed Alumni', reportStats.employed.toString()],
         ['Employment Rate', `${reportStats.employmentRate}%`],
-        ['Verified Accounts', reportStats.verified.toString()],
         ['Total Donations', `₱${donationStats.total.toLocaleString()}`],
         ['Donation Count', donationStats.count.toString()]
       ];
@@ -682,7 +668,7 @@ const ReportsAnalytics = () => {
             {/* Key Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { icon: Users, color: 'blue', label: 'Verified Alumni', value: verifiedAlumni.length, trend: 'Active' },
+                { icon: Users, color: 'blue', label: 'Active Alumni', value: activeAlumni.length, trend: 'Database' },
                 { icon: TrendingUp, color: 'emerald', label: 'Employment Rate', value: `${employmentRate}%`, trend: null },
                 { icon: GraduationCap, color: 'purple', label: 'Courses', value: courseDistribution.length, trend: null },
                 { icon: Calendar, color: 'amber', label: 'Events', value: eventStats.total, trend: null },
@@ -710,23 +696,23 @@ const ReportsAnalytics = () => {
               })}
             </div>
 
-            {/* Verification Trend Chart */}
+            {/* Growth Trend Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 line-animation">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="font-black text-slate-900 flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                      Account Verification Activity
+                      Database Growth Activity
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 font-medium">Alumni claiming and verifying admin-provided accounts</p>
+                    <p className="text-xs text-slate-400 mt-1 font-medium">Monthly growth of alumni records in the system</p>
                   </div>
                 </div>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                    <AreaChart data={verificationTrend}>
+                    <AreaChart data={growthTrend}>
                       <defs>
-                        <linearGradient id="colorVerified" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
                           <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                         </linearGradient>
@@ -738,7 +724,7 @@ const ReportsAnalytics = () => {
                         contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
                         itemStyle={{ color: '#10B981' }}
                       />
-                      <Area type="monotone" dataKey="verified" stroke="#10B981" strokeWidth={3} fill="url(#colorVerified)" />
+                      <Area type="monotone" dataKey="count" stroke="#10B981" strokeWidth={3} fill="url(#colorCount)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -856,34 +842,22 @@ const ReportsAnalytics = () => {
                 </div>
               </div>
 
-              {/* Account Status */}
+              {/* Account Growth Insight */}
               <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
                 <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
-                  <PieChartIcon className="w-5 h-5 text-amber-600" />
-                  Account Status
+                  <Activity className="w-5 h-5 text-indigo-600" />
+                  Database Summary
                 </h3>
-                <p className="text-xs text-slate-400 mb-4 font-medium">Verification status breakdown</p>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                    <PieChart>
-                      <Pie
-                        data={accountStatus}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label
-                      >
-                        <Cell fill="#10B981" />
-                        <Cell fill="#F59E0B" />
-                        <Cell fill="#EF4444" />
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <p className="text-xs text-slate-400 mb-4 font-medium">System record highlights</p>
+                <div className="flex flex-col gap-4 mt-8">
+                  <div className="p-4 bg-slate-50 rounded-2xl">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Active Records</p>
+                    <p className="text-2xl font-black text-slate-900">{activeAlumni.length}</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Employment Tracking</p>
+                    <p className="text-2xl font-black text-emerald-600">{employmentRate}%</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1131,11 +1105,11 @@ const ReportsAnalytics = () => {
                 {/* Registration Trend */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                   <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Verification Trend
+                    <Activity className="w-4 h-4 text-emerald-600" /> Record Entry Trend
                   </h3>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={reportVerificationTrend}>
+                      <AreaChart data={reportGrowthTrend}>
                         <defs>
                           <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
