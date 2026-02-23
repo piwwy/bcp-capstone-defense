@@ -58,7 +58,9 @@ export const SessionTimeoutProvider: React.FC<{ children: ReactNode }> = ({ chil
             // Time's up → logout
             clearAllTimers();
             setShowWarning(false);
-            logout().then(() => navigate('/login', { replace: true }));
+            logout();
+            // Using hard redirect to ensure session is cleared and UI resets
+            window.location.href = '/login';
             return 0;
           }
           return prev - 1;

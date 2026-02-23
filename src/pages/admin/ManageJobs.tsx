@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 import EmailService from '../../services/emailService';
+import { syncHiredAlumni } from '../../services/careerSync';
+
 
 const ManageJobs = () => {
   const { showToast } = useToast();
@@ -119,6 +121,19 @@ const ManageJobs = () => {
         ...buildFieldDiff({ status: oldStatus }, { status: newStatus }, ['status'])
       });
 
+      // 3. IF HIRED: Sync to Alumni Profile and Career Logs/Timeline
+      if (newStatus === 'hired') {
+        const job = jobs.find(j => j.id === editingId);
+        if (job) {
+          await syncHiredAlumni(applicantId, jobTitle, job.company, job);
+          showToast({
+            title: 'Career Synced',
+            message: 'Alumni profile and timeline updated automatically.',
+            type: 'info'
+          });
+        }
+      }
+
       showToast({ title: 'Status Updated', message: `Applicant is now ${newStatus}`, type: 'success' });
       // Refresh applicants list
       if (editingId) openApplicantsList(editingId, activeJobTitle);
@@ -131,9 +146,9 @@ const ManageJobs = () => {
     setFormData({ ...formData, target_courses: formData.target_courses.filter(d => d !== deptToRemove) });
   };
 
-  useEffect(() => { 
-    fetchJobs(); 
-    fetchBannerStats(); 
+  useEffect(() => {
+    fetchJobs();
+    fetchBannerStats();
   }, []);
 
   const fetchJobs = async () => {
@@ -421,7 +436,7 @@ const ManageJobs = () => {
               <div className="bg-white/10 border border-white/20 rounded-2xl p-4 backdrop-blur-sm">
                 <p className="text-[10px] font-black text-blue-100/90 uppercase tracking-widest">Top Hiring Partners</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {(topPartners.length > 0 ? topPartners : ['Google PH', 'ICP', 'Val…']).slice(0,3).map((p, i) => (
+                  {(topPartners.length > 0 ? topPartners : ['Google PH', 'ICP', 'Val…']).slice(0, 3).map((p, i) => (
                     <span key={i} className="px-2 py-1 rounded-lg bg-white/20 text-[10px] font-black">{p}</span>
                   ))}
                 </div>

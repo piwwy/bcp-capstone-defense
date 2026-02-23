@@ -31,7 +31,7 @@ const SuperAdminSidebar: React.FC = () => {
     { name: "Dashboard", icon: LayoutDashboard, path: "/superadmin/dashboard" },
     {
       name: "Alumni & Records", icon: Users, subItems: [
-        { name: "Manage Users", path: "/superadmin/users", icon: Users },
+        { name: "Account Management", path: "/superadmin/users", icon: Users },
         { name: "Alumni Records", path: "/superadmin/records", icon: Database },
         { name: "Master List", path: "/superadmin/upload", icon: UploadCloud },
         { name: "Alumni Resources", path: "/superadmin/resources", icon: FileText },

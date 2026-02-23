@@ -8,7 +8,7 @@ import {
   Search, Loader2, Database, Users, GraduationCap, Calendar,
   ChevronDown, ChevronRight, ArrowUpDown, Hash, BookOpen,
   Phone, Mail, UserCheck, Clock, FileText, Grid3X3,
-  Edit2, X, Save
+  Edit2, X, Save, Plus, UserPlus
 } from 'lucide-react';
 
 interface Alumni {
@@ -72,6 +72,19 @@ const AllAlumniRecords: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<Alumni | null>(null);
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', batch_year: '', course: '' });
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addingRecord, setAddingRecord] = useState(false);
+  const [addForm, setAddForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    student_id: '',
+    course: COURSES[0].value,
+    batch_year: new Date().getFullYear().toString(),
+    status: 'master_list'
+  });
+
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -237,6 +250,45 @@ const AllAlumniRecords: React.FC = () => {
     }
   };
 
+  const handleAddRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddingRecord(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .insert([{
+          ...addForm,
+          role: 'alumni',
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
+
+      await logAudit(AUDIT_ACTIONS.RECORD_CREATED, {
+        module: 'Alumni Records',
+        message: `Manually registered alumni: ${addForm.first_name} ${addForm.last_name}`,
+        data: addForm
+      });
+
+      showToast({ type: 'success', title: 'Record Added', message: 'Alumnus record created successfully.' });
+      setShowAddModal(false);
+      setAddForm({
+        first_name: '',
+        last_name: '',
+        email: '',
+        student_id: '',
+        course: COURSES[0].value,
+        batch_year: new Date().getFullYear().toString(),
+        status: 'master_list'
+      });
+      fetchRecords();
+    } catch (err: any) {
+      showToast({ type: 'error', title: 'Add Failed', message: err.message || 'Unable to add record.' });
+    } finally {
+      setAddingRecord(false);
+    }
+  };
+
   return (
     <AdminPageLayout title="All Alumni Records" subtitle="Organized by Course, Batch Year & Section" icon={Database}>
 
@@ -253,14 +305,22 @@ const AllAlumniRecords: React.FC = () => {
             <h2 className="text-3xl font-black text-white tracking-tighter">Alumni Records</h2>
             <p className="text-blue-100 text-sm font-medium mt-1">Complete database organized by course, batch & section</p>
           </div>
-          <div className="hidden md:flex items-center gap-4">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{stats.total}</p>
-              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Records</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{stats.verified}</p>
-              <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Verified</p>
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-white text-blue-700 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-50 shadow-xl transition-all h-fit"
+            >
+              <UserPlus className="w-5 h-5" /> Add Individual
+            </button>
+            <div className="hidden md:flex items-center gap-4">
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+                <p className="text-2xl font-black text-white">{stats.total}</p>
+                <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Records</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
+                <p className="text-2xl font-black text-white">{stats.verified}</p>
+                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Verified</p>
+              </div>
             </div>
           </div>
         </div>
@@ -443,6 +503,81 @@ const AllAlumniRecords: React.FC = () => {
               <button disabled={currentPage === 0} onClick={() => setCurrentPage((prev) => prev - 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 disabled:opacity-50">Previous</button>
               <button disabled={(currentPage + 1) * itemsPerPage >= filteredRecords.length} onClick={() => setCurrentPage((prev) => prev + 1)} className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold disabled:opacity-50">Next</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for adding record */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Register Alumni</h3>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Manual Entry (Individual Record)</p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white rounded-full transition-all shadow-sm"><X className="w-5 h-5 text-slate-400" /></button>
+            </div>
+            <form onSubmit={handleAddRecord} className="p-8 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">First Name</label>
+                  <input required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all border border-slate-100" value={addForm.first_name} onChange={e => setAddForm({ ...addForm, first_name: e.target.value })} placeholder="Ex. Juan" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Last Name</label>
+                  <input required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all border border-slate-100" value={addForm.last_name} onChange={e => setAddForm({ ...addForm, last_name: e.target.value })} placeholder="Ex. Cruz" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input required type="email" className="w-full pl-11 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100" value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} placeholder="juan.cruz@gmail.com" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Student ID</label>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input required className="w-full pl-11 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100" value={addForm.student_id} onChange={e => setAddForm({ ...addForm, student_id: e.target.value })} placeholder="202X-XXXX" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Batch Year</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input required className="w-full pl-11 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100" value={addForm.batch_year} onChange={e => setAddForm({ ...addForm, batch_year: e.target.value })} placeholder="2024" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Academic Course</label>
+                  <select className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100 appearance-none" value={addForm.course} onChange={e => setAddForm({ ...addForm, course: e.target.value })}>
+                    {COURSES.map(c => <option key={c.value} value={c.value}>{c.value}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Status</label>
+                  <select className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100 appearance-none" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>
+                    <option value="verified">Verified</option>
+                    <option value="master_list">Master List</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-6">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase text-xs tracking-widest">Cancel</button>
+                <button type="submit" disabled={addingRecord} className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all uppercase text-xs tracking-widest flex items-center justify-center gap-2">
+                  {addingRecord ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> Save Record</>}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
