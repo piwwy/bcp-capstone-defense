@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
+import EmailService from '../../services/emailService';
 import AdminPageLayout from './AdminPageLayout';
+import AdminResourceCard from './AdminResourceCard';
 import {
   Search, Loader2, Database, Users, GraduationCap, Calendar,
   ChevronDown, ChevronRight, ArrowUpDown, Hash, BookOpen,
-  Phone, Mail, UserCheck, Clock, FileText, Grid3X3,
-  Edit2, X, Save, Plus, UserPlus
+  Phone, Mail, Grid3X3, CalendarDays,
+  Edit2, X, Save, Plus, UserPlus, Shield, User, Send, CheckCircle
 } from 'lucide-react';
 
 interface Alumni {
@@ -27,20 +30,19 @@ interface Alumni {
 }
 
 const COURSES = [
-  { value: 'BSIT', label: 'BS Information Technology' },
-  { value: 'BSCS', label: 'BS Computer Science' },
-  { value: 'BSBA', label: 'BS Business Administration' },
-  { value: 'BSHM', label: 'BS Hospitality Management' },
-  { value: 'BSTM', label: 'BS Tourism Management' },
-  { value: 'BSOA', label: 'BS Office Administration' },
-  { value: 'BSCrim', label: 'BS Criminology' },
-  { value: 'BSEd', label: 'BS Education' },
-  { value: 'BSPsych', label: 'BS Psychology' },
-  { value: 'BSA', label: 'BS Accountancy' },
-  { value: 'BSEntrep', label: 'BS Entrepreneurship' },
-  { value: 'BSRealEstate', label: 'BS Real Estate Management' },
-  { value: 'BSCustoms', label: 'BS Customs Administration' },
+  'BSIT', 'BSCS', 'BSCpE', 'BSBA', 'BSA', 'BSED', 'BEED',
+  'BSCRIM', 'BSHM', 'BSTM', 'BSN', 'BSME', 'BSEE', 'BSCE',
+  'AB-POLSCI', 'AB-COMM', 'BSENTREP'
 ];
+
+const generatePassword = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const specials = '!@#$%';
+  let pass = '';
+  for (let i = 0; i < 8; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  pass += specials.charAt(Math.floor(Math.random() * specials.length));
+  return pass;
+};
 
 const parseSection = (answer?: string): string => {
   if (!answer) return '';
@@ -61,7 +63,6 @@ const AllAlumniRecords: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<Alumni[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
   const [filterCourse, setFilterCourse] = useState('All');
   const [filterBatchYear, setFilterBatchYear] = useState('All');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
@@ -73,16 +74,19 @@ const AllAlumniRecords: React.FC = () => {
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', batch_year: '', course: '' });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Create Alumni Logic (Based on SuperAdmin CreateUserModal)
   const [showAddModal, setShowAddModal] = useState(false);
   const [addingRecord, setAddingRecord] = useState(false);
+  const [created, setCreated] = useState(false);
   const [addForm, setAddForm] = useState({
     first_name: '',
     last_name: '',
     email: '',
     student_id: '',
-    course: COURSES[0].value,
+    course: COURSES[0],
     batch_year: new Date().getFullYear().toString(),
-    status: 'master_list'
+    role: 'alumni' as const,
+    password: generatePassword(), // Auto-generated but hidden from UI per request
   });
 
   const itemsPerPage = 12;
@@ -93,7 +97,7 @@ const AllAlumniRecords: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [searchTerm, filterStatus, filterCourse, filterBatchYear, sortOrder, layoutMode]);
+  }, [searchTerm, filterCourse, filterBatchYear, sortOrder, layoutMode]);
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -121,14 +125,12 @@ const AllAlumniRecords: React.FC = () => {
 
   const activeCourses = useMemo(() => {
     const courseSet = new Set(records.map((r) => r.course).filter(Boolean));
-    return COURSES.filter((c) => courseSet.has(c.value));
+    return COURSES.filter((c) => courseSet.has(c));
   }, [records]);
 
   const stats = useMemo(() => {
-    const verified = records.filter((r) => r.status === 'verified').length;
-    const pending = records.filter((r) => r.status === 'pending_approval').length;
-    const masterList = records.filter((r) => r.status === 'master_list').length;
-    return { total: records.length, verified, pending, masterList };
+    // Total is all records that are alumni and not rejected (fetched by query)
+    return { total: records.length };
   }, [records]);
 
   const courseCountMap = useMemo(() => {
@@ -148,13 +150,12 @@ const AllAlumniRecords: React.FC = () => {
         record.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         parseSection(record.verification_answer).toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = filterStatus === 'All' || record.status === filterStatus;
       const matchesCourse = filterCourse === 'All' || record.course === filterCourse;
       const matchesBatch = filterBatchYear === 'All' || record.batch_year === filterBatchYear;
 
-      return matchesSearch && matchesStatus && matchesCourse && matchesBatch;
+      return matchesSearch && matchesCourse && matchesBatch;
     });
-  }, [records, searchTerm, filterStatus, filterCourse, filterBatchYear]);
+  }, [records, searchTerm, filterCourse, filterBatchYear]);
 
   const paginatedRecords = useMemo(() => {
     const start = currentPage * itemsPerPage;
@@ -250,43 +251,101 @@ const AllAlumniRecords: React.FC = () => {
     }
   };
 
-  const handleAddRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddAlumni = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!addForm.first_name || !addForm.last_name || !addForm.email) {
+      showToast({ type: 'warning', title: 'Missing Fields', message: 'Please fill in required fields.' });
+      return;
+    }
+
     setAddingRecord(true);
     try {
-      const { error } = await supabase
+      // Use the logic from CreateUserModal but simplified for Admin
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } });
+
+      const { data: authData, error: signUpError } = await tempClient.auth.signUp({
+        email: addForm.email,
+        password: addForm.password,
+        options: {
+          data: {
+            full_name: `${addForm.first_name} ${addForm.last_name}`,
+            first_name: addForm.first_name,
+            last_name: addForm.last_name,
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      if (!authData.user) throw new Error('Auth creation failed');
+
+      const { error: profileError } = await supabase
         .from('profiles')
-        .insert([{
-          ...addForm,
+        .upsert({
+          id: authData.user.id,
+          email: addForm.email,
+          first_name: addForm.first_name,
+          last_name: addForm.last_name,
+          student_id: addForm.student_id || null,
+          course: addForm.course,
+          batch_year: addForm.batch_year,
           role: 'alumni',
+          status: 'verified',
+          auth_provider: 'email',
+          avatar_url: `https://ui-avatars.com/api/?name=${addForm.first_name}+${addForm.last_name}&background=random`,
           created_at: new Date().toISOString()
-        }]);
+        });
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      await logAudit(AUDIT_ACTIONS.RECORD_CREATED, {
+      await logAudit(AUDIT_ACTIONS.USER_CREATED, {
         module: 'Alumni Records',
         message: `Manually registered alumni: ${addForm.first_name} ${addForm.last_name}`,
         data: addForm
       });
 
-      showToast({ type: 'success', title: 'Record Added', message: 'Alumnus record created successfully.' });
-      setShowAddModal(false);
-      setAddForm({
-        first_name: '',
-        last_name: '',
-        email: '',
-        student_id: '',
-        course: COURSES[0].value,
-        batch_year: new Date().getFullYear().toString(),
-        status: 'master_list'
-      });
-      fetchRecords();
+      // Auto-send credentials email
+      try {
+        await EmailService.sendAccountReadyEmail(addForm.email, addForm.first_name, addForm.password);
+        showToast({ type: 'success', title: 'Email Sent', message: `Credentials sent to ${addForm.email}` });
+      } catch (emailErr) {
+        console.error('Email sending failed:', emailErr);
+      }
+
+      setCreated(true);
     } catch (err: any) {
-      showToast({ type: 'error', title: 'Add Failed', message: err.message || 'Unable to add record.' });
+      showToast({ type: 'error', title: 'Registration Failed', message: err.message || 'Unable to add record.' });
     } finally {
       setAddingRecord(false);
     }
+  };
+
+  // Validation Handlers (Strict Matching SuperAdmin style)
+  const handleNameInput = (val: string, type: 'first' | 'last') => {
+    if (/^[a-zA-Z\s.-]*$/.test(val)) {
+      if (type === 'first') setAddForm({ ...addForm, first_name: val });
+      else setAddForm({ ...addForm, last_name: val });
+    }
+  };
+
+  const handleEditNameInput = (val: string, type: 'first' | 'last') => {
+    if (/^[a-zA-Z\s.-]*$/.test(val)) {
+      if (type === 'first') setEditForm({ ...editForm, first_name: val });
+      else setEditForm({ ...editForm, last_name: val });
+    }
+  };
+
+  const handleNumberInput = (val: string, field: 'student_id' | 'batch_year') => {
+    const clean = field === 'student_id' ? val.replace(/[^0-9-]/g, '') : val.replace(/[^0-9]/g, '');
+    if (field === 'batch_year' && clean.length > 4) return;
+    setAddForm({ ...addForm, [field]: clean });
+  };
+
+  const handleEditNumberInput = (val: string, field: 'batch_year') => {
+    const clean = val.replace(/[^0-9]/g, '');
+    if (clean.length > 4) return;
+    setEditForm({ ...editForm, [field]: clean });
   };
 
   return (
@@ -307,19 +366,19 @@ const AllAlumniRecords: React.FC = () => {
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4">
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setCreated(false);
+                setAddForm({ ...addForm, first_name: '', last_name: '', email: '', student_id: '', password: generatePassword() });
+                setShowAddModal(true);
+              }}
               className="bg-white text-blue-700 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-50 shadow-xl transition-all h-fit"
             >
-              <UserPlus className="w-5 h-5" /> Add Individual
+              <UserPlus className="w-5 h-5" /> Add Alumni
             </button>
             <div className="hidden md:flex items-center gap-4">
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-                <p className="text-2xl font-black text-white">{stats.total}</p>
-                <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Records</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-                <p className="text-2xl font-black text-white">{stats.verified}</p>
-                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Verified</p>
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-8 py-3 text-center">
+                <p className="text-3xl font-black text-white">{stats.total}</p>
+                <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Active Alumni</p>
               </div>
             </div>
           </div>
@@ -328,34 +387,30 @@ const AllAlumniRecords: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2.5 bg-blue-100 rounded-xl"><Users className="w-5 h-5 text-blue-600" /></div>
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Records</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Alumni Registry</span>
           </div>
           <p className="text-3xl font-black text-slate-900">{stats.total}</p>
+          <p className="text-xs text-slate-400 mt-1 font-bold">Total registered accounts</p>
         </div>
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-emerald-100 rounded-xl"><UserCheck className="w-5 h-5 text-emerald-600" /></div>
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Verified</span>
+            <div className="p-2.5 bg-purple-100 rounded-xl"><GraduationCap className="w-5 h-5 text-purple-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Courses</span>
           </div>
-          <p className="text-3xl font-black text-slate-900">{stats.verified}</p>
+          <p className="text-3xl font-black text-slate-900">{activeCourses.length}</p>
+          <p className="text-xs text-slate-400 mt-1 font-bold">Programs with alumni</p>
         </div>
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-amber-100 rounded-xl"><Clock className="w-5 h-5 text-amber-600" /></div>
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pending</span>
+            <div className="p-2.5 bg-indigo-100 rounded-xl"><CalendarDays className="w-5 h-5 text-indigo-600" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Batch Years</span>
           </div>
-          <p className="text-3xl font-black text-slate-900">{stats.pending}</p>
-        </div>
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-purple-100 rounded-xl"><FileText className="w-5 h-5 text-purple-600" /></div>
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Master List</span>
-          </div>
-          <p className="text-3xl font-black text-slate-900">{stats.masterList}</p>
+          <p className="text-3xl font-black text-slate-900">{batchYears.length}</p>
+          <p className="text-xs text-slate-400 mt-1 font-bold">Graduation years tracked</p>
         </div>
       </div>
 
@@ -366,9 +421,9 @@ const AllAlumniRecords: React.FC = () => {
             <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filterCourse === 'All' ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-500'}`}>{records.length}</span>
           </button>
           {activeCourses.map((c) => (
-            <button key={c.value} onClick={() => setFilterCourse(c.value)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterCourse === c.value ? 'bg-blue-900 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              {c.value}
-              <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filterCourse === c.value ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-500'}`}>{courseCountMap[c.value] || 0}</span>
+            <button key={c} onClick={() => setFilterCourse(c)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterCourse === c ? 'bg-blue-900 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {c}
+              <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filterCourse === c ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-500'}`}>{courseCountMap[c] || 0}</span>
             </button>
           ))}
         </div>
@@ -380,12 +435,6 @@ const AllAlumniRecords: React.FC = () => {
           <input type="text" placeholder="Search by name, student ID, email, or section..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="flex flex-wrap gap-2">
-          <select className="px-3 py-2 border border-gray-200 rounded-xl bg-white text-sm font-medium outline-none" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="All">All Statuses</option>
-            <option value="verified">Verified</option>
-            <option value="pending_approval">Pending</option>
-            <option value="master_list">Master List</option>
-          </select>
           <select className="px-3 py-2 border border-gray-200 rounded-xl bg-white text-sm font-medium outline-none" value={filterBatchYear} onChange={(e) => setFilterBatchYear(e.target.value)}>
             <option value="All">All Batch Years</option>
             {batchYears.map((y) => <option key={y} value={y}>Batch {y}</option>)}
@@ -478,22 +527,35 @@ const AllAlumniRecords: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {paginatedRecords.map((rec) => {
               const section = parseSection(rec.verification_answer);
               return (
-                <div key={rec.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex items-start justify-between gap-3">
-                    <div><p className="font-bold text-slate-900 leading-tight">{rec.last_name}, {rec.first_name}</p><p className="text-xs text-slate-400 mt-1">ID: {rec.student_id || 'N/A'}</p></div>
-                    {!isStaff && <button onClick={() => handleEditRecord(rec)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all" title="Edit Record"><Edit2 className="w-3.5 h-3.5" /></button>}
+                <AdminResourceCard
+                  key={rec.id}
+                  title={`${rec.last_name}, ${rec.first_name}`}
+                  subtitle={`ID: ${rec.student_id || 'N/A'}`}
+                  status={rec.status === 'master_list' ? 'unclaimed' : rec.status}
+                  category={rec.course}
+                  onEdit={!isStaff ? () => handleEditRecord(rec) : undefined}
+                >
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="font-bold">Batch {rec.batch_year}</span>
+                    </div>
+                    {section && (
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Hash className="w-3.5 h-3.5 text-purple-500" />
+                        <span>Section {section}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-gray-400 truncate">
+                      <Mail className="w-3.5 h-3.5" />
+                      <span className="line-clamp-1">{rec.email?.includes('unregistered_') ? 'Not registered' : rec.email}</span>
+                    </div>
                   </div>
-                  <div className="mt-3 space-y-1.5 text-xs text-slate-600">
-                    <p><span className="font-semibold">Course:</span> {rec.course || 'N/A'}</p>
-                    <p><span className="font-semibold">Batch:</span> {rec.batch_year || 'N/A'}</p>
-                    <p><span className="font-semibold">Section:</span> {section || '—'}</p>
-                    <p className="truncate"><span className="font-semibold">Email:</span> {rec.email?.includes('unregistered_') ? 'Not registered' : rec.email}</p>
-                  </div>
-                </div>
+                </AdminResourceCard>
               );
             })}
           </div>
@@ -507,77 +569,164 @@ const AllAlumniRecords: React.FC = () => {
         </div>
       )}
 
-      {/* Modal for adding record */}
+      {/* Modal for adding Alumni (UI/UX based on CreateUserModal) */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-in fade-in">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-slate-50">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">Register Alumni</h3>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Manual Entry (Individual Record)</p>
-              </div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white rounded-full transition-all shadow-sm"><X className="w-5 h-5 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleAddRecord} className="p-8 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">First Name</label>
-                  <input required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all border border-slate-100" value={addForm.first_name} onChange={e => setAddForm({ ...addForm, first_name: e.target.value })} placeholder="Ex. Juan" />
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in overflow-y-auto">
+          <div className="bg-white p-10 rounded-[3rem] w-full max-w-2xl shadow-2xl relative my-auto">
+            {created ? (
+              <div className="text-center animate-in zoom-in-95">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-10 h-10 text-green-600" />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Last Name</label>
-                  <input required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all border border-slate-100" value={addForm.last_name} onChange={e => setAddForm({ ...addForm, last_name: e.target.value })} placeholder="Ex. Cruz" />
-                </div>
-              </div>
+                <h3 className="text-3xl font-black tracking-tighter text-slate-900 uppercase">Alumni Registered!</h3>
+                <p className="text-sm text-slate-400 mt-1 mb-8">The alumni record has been successfully created and verified.</p>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input required type="email" className="w-full pl-11 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100" value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} placeholder="juan.cruz@gmail.com" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Student ID</label>
-                  <div className="relative">
-                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input required className="w-full pl-11 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100" value={addForm.student_id} onChange={e => setAddForm({ ...addForm, student_id: e.target.value })} placeholder="202X-XXXX" />
+                <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-slate-100">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Account Summary</p>
+                  <p className="text-xl font-black text-slate-900">{addForm.first_name} {addForm.last_name}</p>
+                  <p className="text-sm font-bold text-blue-600">{addForm.course} · Batch {addForm.batch_year}</p>
+                  <div className="mt-4 pt-4 border-t border-slate-200/50 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                    <span className="text-sm font-black text-slate-600">{addForm.email}</span>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Batch Year</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input required className="w-full pl-11 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100" value={addForm.batch_year} onChange={e => setAddForm({ ...addForm, batch_year: e.target.value })} placeholder="2024" />
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Academic Course</label>
-                  <select className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100 appearance-none" value={addForm.course} onChange={e => setAddForm({ ...addForm, course: e.target.value })}>
-                    {COURSES.map(c => <option key={c.value} value={c.value}>{c.value}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Status</label>
-                  <select className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100 appearance-none" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>
-                    <option value="verified">Verified</option>
-                    <option value="master_list">Master List</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-6">
-                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all uppercase text-xs tracking-widest">Cancel</button>
-                <button type="submit" disabled={addingRecord} className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all uppercase text-xs tracking-widest flex items-center justify-center gap-2">
-                  {addingRecord ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> Save Record</>}
+                <button
+                  onClick={() => { setShowAddModal(false); fetchRecords(); }}
+                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all uppercase tracking-widest"
+                >
+                  Done
                 </button>
               </div>
-            </form>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h3 className="text-3xl font-black tracking-tighter text-slate-900 uppercase italic">Add Alumni</h3>
+                    <p className="text-sm text-slate-400 mt-1">Manual registration for individual alumni records.</p>
+                  </div>
+                  <button onClick={() => setShowAddModal(false)} className="p-3 bg-slate-100 rounded-full hover:rotate-90 transition-transform"><X className="w-5 h-5 text-slate-400" /></button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Role Overlay (Fixed to Alumni) */}
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Account Type</p>
+                      <p className="text-sm font-black text-blue-900 uppercase">Alumni Account (Verified)</p>
+                    </div>
+                  </div>
+
+                  {/* Name Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5" /> First Name <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={addForm.first_name}
+                        onChange={e => handleNameInput(e.target.value, 'first')}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                        placeholder="Juan"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
+                        <User className="w-3.5 h-3.5" /> Last Name <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={addForm.last_name}
+                        onChange={e => handleNameInput(e.target.value, 'last')}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                        placeholder="Dela Cruz"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5" /> Email Address <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={addForm.email}
+                      onChange={e => setAddForm({ ...addForm, email: e.target.value })}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                      placeholder="juan.cruz@email.com"
+                      required
+                    />
+                  </div>
+
+                  {/* Student ID + Course */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
+                        <Hash className="w-3.5 h-3.5" /> Student ID
+                      </label>
+                      <input
+                        type="text"
+                        value={addForm.student_id}
+                        onChange={e => handleNumberInput(e.target.value, 'student_id')}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                        placeholder="202X-XXXX"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
+                        <GraduationCap className="w-3.5 h-3.5" /> Course <span className="text-rose-400">*</span>
+                      </label>
+                      <select
+                        value={addForm.course}
+                        onChange={e => setAddForm({ ...addForm, course: e.target.value })}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black text-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition-all cursor-pointer appearance-none"
+                      >
+                        {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Batch Year */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" /> Batch Year <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={addForm.batch_year}
+                      onChange={e => handleNumberInput(e.target.value, 'batch_year')}
+                      maxLength={4}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                      placeholder="2024"
+                      required
+                    />
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all uppercase tracking-widest"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddAlumni}
+                      disabled={addingRecord}
+                      className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 transition-all uppercase tracking-widest"
+                    >
+                      {addingRecord ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus className="w-5 h-5" /> Register Alumni</>}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -596,11 +745,11 @@ const AllAlumniRecords: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">First Name</label>
-                  <input value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
+                  <input value={editForm.first_name} onChange={(e) => handleEditNameInput(e.target.value, 'first')} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Last Name</label>
-                  <input value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
+                  <input value={editForm.last_name} onChange={(e) => handleEditNameInput(e.target.value, 'last')} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -608,12 +757,12 @@ const AllAlumniRecords: React.FC = () => {
                   <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Course</label>
                   <select value={editForm.course} onChange={(e) => setEditForm({ ...editForm, course: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200">
                     <option value="">— None —</option>
-                    {COURSES.map((c) => <option key={c.value} value={c.value}>{c.value}</option>)}
+                    {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Batch Year</label>
-                  <input value={editForm.batch_year} onChange={(e) => setEditForm({ ...editForm, batch_year: e.target.value })} placeholder="e.g. 2024" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
+                  <input value={editForm.batch_year} onChange={(e) => handleEditNumberInput(e.target.value, 'batch_year')} placeholder="e.g. 2024" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
                 </div>
               </div>
             </div>

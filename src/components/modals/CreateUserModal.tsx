@@ -81,6 +81,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
         }
     };
 
+    const handleStudentIdChange = (value: string) => {
+        // Allows numbers and hyphens only
+        if (/^[0-9-]*$/.test(value)) {
+            setForm({ ...form, student_id: value });
+        }
+    };
+
     const handleBatchYearChange = (value: string) => {
         if (/^\d*$/.test(value)) {
             setForm({ ...form, batch_year: value });
@@ -376,7 +383,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                             <input
                                 type="text"
                                 value={form.student_id}
-                                onChange={e => setForm({ ...form, student_id: e.target.value })}
+                                onChange={e => handleStudentIdChange(e.target.value)}
                                 className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                                 placeholder="Ex. 2024-00001"
                             />

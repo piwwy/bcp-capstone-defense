@@ -155,11 +155,8 @@ const ReportsAnalytics = () => {
   };
 
   // ==================== SHARED COMPUTED DATA ====================
-  const verifiedAlumni = useMemo(() =>
-    profiles.filter(p => p.status === 'verified'), [profiles]);
-
   const activeAlumni = useMemo(() =>
-    profiles.filter(p => p.status !== 'archived'), [profiles]);
+    profiles.filter(p => p.status !== 'archived' && p.status !== 'rejected'), [profiles]);
 
   const uniqueBatches = useMemo(() =>
     ['All', ...new Set(profiles.map(p => p.batch_year).filter(Boolean))].sort(), [profiles]);
@@ -209,7 +206,7 @@ const ReportsAnalytics = () => {
 
   const batchDistribution = useMemo(() => {
     const batches: Record<string, number> = {};
-    verifiedAlumni.forEach(p => {
+    activeAlumni.forEach(p => {
       const batch = p.batch_year || 'Unknown';
       batches[batch] = (batches[batch] || 0) + 1;
     });
@@ -217,11 +214,11 @@ const ReportsAnalytics = () => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => a.name.localeCompare(b.name))
       .slice(-10);
-  }, [verifiedAlumni]);
+  }, [activeAlumni]);
 
   const courseDistribution = useMemo(() => {
     const courses: Record<string, number> = {};
-    verifiedAlumni.forEach(p => {
+    activeAlumni.forEach(p => {
       const course = p.course || 'Unknown';
       courses[course] = (courses[course] || 0) + 1;
     });
@@ -229,7 +226,7 @@ const ReportsAnalytics = () => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
-  }, [verifiedAlumni]);
+  }, [activeAlumni]);
 
   const employmentDistribution = useMemo(() => {
     const statuses: Record<string, number> = {
@@ -1086,8 +1083,8 @@ const ReportsAnalytics = () => {
                       <span className="font-bold text-gray-900">{filteredProfiles.length}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-gray-500">Verified Alumni</span>
-                      <span className="font-bold text-emerald-600">{reportStats.verified}</span>
+                      <span className="text-gray-500">Active Alumni</span>
+                      <span className="font-bold text-emerald-600">{activeAlumni.length}</span>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-gray-500">Total Donations</span>

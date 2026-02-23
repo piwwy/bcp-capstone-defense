@@ -28,7 +28,7 @@ interface User {
     phone?: string;
 }
 
-type StatusFilter = 'all' | 'verified' | 'master_list' | 'pending_approval' | 'archived';
+type StatusFilter = 'all' | 'active' | 'archived';
 type RoleFilter = 'all' | 'alumni' | 'staff' | 'admin';
 
 const AdminUsers: React.FC = () => {
@@ -68,7 +68,12 @@ const AdminUsers: React.FC = () => {
                 .order('created_at', { ascending: false })
                 .limit(50);
 
-            if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+            if (statusFilter === 'active' || statusFilter === 'all') {
+                // Return everything except archived for general views
+                query = query.neq('status', 'archived');
+            } else if (statusFilter === 'archived') {
+                query = query.eq('status', 'archived');
+            }
             if (roleFilter !== 'all') query = query.eq('role', roleFilter);
 
             if (debouncedSearch) {
@@ -96,17 +101,15 @@ const AdminUsers: React.FC = () => {
         alumni: users.filter(u => u.role === 'alumni').length,
         staff: users.filter(u => u.role === 'staff').length,
         admin: users.filter(u => u.role === 'admin' || u.role === 'super_admin' || u.role === 'superadmin').length,
-        verified: users.filter(u => u.status === 'verified').length,
-        master_list: users.filter(u => u.status === 'master_list').length,
-        pending: users.filter(u => u.status === 'pending_approval').length,
+        active: users.filter(u => u.status !== 'archived').length,
         archived: users.filter(u => u.status === 'archived').length,
     };
 
     const getStatusBadge = (status: string) => {
         const badges: Record<string, { bg: string; text: string; label: string; border: string }> = {
-            verified: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', label: 'Verified' },
+            verified: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', label: 'Active' },
             master_list: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', label: 'Active' },
-            pending_approval: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', label: 'Pending' },
+            pending_approval: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', label: 'Active' },
             rejected: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200', label: 'Rejected' },
             archived: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-300', label: 'Archived' },
         };
@@ -280,11 +283,11 @@ const AdminUsers: React.FC = () => {
                     <div className="hidden md:flex items-center gap-4">
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
                             <p className="text-2xl font-black text-white">{counts.all}</p>
-                            <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Total</p>
+                            <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Database</p>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-                            <p className="text-2xl font-black text-white">{counts.pending}</p>
-                            <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Pending</p>
+                            <p className="text-2xl font-black text-white">{counts.active}</p>
+                            <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest">Active</p>
                         </div>
                     </div>
                 </div>
@@ -335,10 +338,8 @@ const AdminUsers: React.FC = () => {
                             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                             className="px-4 py-3.5 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 focus:ring-blue-200 outline-none"
                         >
-                            <option value="all">All Status</option>
-                            <option value="verified">Verified</option>
-                            <option value="pending_approval">Pending</option>
-                            <option value="master_list">Active</option>
+                            <option value="all">Database</option>
+                            <option value="active">Active Only</option>
                             <option value="archived">Archived</option>
                         </select>
 
@@ -567,10 +568,9 @@ const AdminUsers: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
                     <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
                         <div className="p-8 text-center">
-                            <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center mx-auto mb-5 ${
-                                confirmAction.type === 'archive' ? 'bg-slate-100' :
+                            <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center mx-auto mb-5 ${confirmAction.type === 'archive' ? 'bg-slate-100' :
                                 confirmAction.type === 'restore' ? 'bg-emerald-100' :
-                                confirmAction.type === 'approve' ? 'bg-emerald-100' : 'bg-amber-100'
+                                    confirmAction.type === 'approve' ? 'bg-emerald-100' : 'bg-amber-100'
                                 }`}>
                                 {confirmAction.type === 'archive' && <Archive className="w-8 h-8 text-slate-700" />}
                                 {confirmAction.type === 'restore' && <History className="w-8 h-8 text-emerald-600" />}
@@ -602,11 +602,10 @@ const AdminUsers: React.FC = () => {
                                     if (confirmAction.type === 'reset') handleResetPassword(confirmAction.user);
                                 }}
                                 disabled={actionLoading}
-                                className={`flex-1 py-3 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg ${
-                                    confirmAction.type === 'archive' ? 'bg-slate-700 hover:bg-slate-800 shadow-slate-200' :
+                                className={`flex-1 py-3 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg ${confirmAction.type === 'archive' ? 'bg-slate-700 hover:bg-slate-800 shadow-slate-200' :
                                     confirmAction.type === 'restore' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' :
-                                    confirmAction.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' :
-                                        'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
+                                        confirmAction.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' :
+                                            'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
                                     }`}
                             >
                                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}

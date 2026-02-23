@@ -72,7 +72,8 @@ const CareerTracking = () => {
                 .from('profiles')
                 .select('id, first_name, last_name, email, batch_year, course, avatar_url, status')
                 .eq('role', 'alumni')
-                .eq('status', 'verified')
+                .neq('status', 'archived')
+                .neq('status', 'rejected')
                 .order('last_name', { ascending: true });
 
             if (profilesError) throw profilesError;
