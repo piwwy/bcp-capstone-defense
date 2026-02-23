@@ -236,3 +236,78 @@ export function useSavedJobIds(userId: string | undefined) {
     enabled: !!userId,
   });
 }
+
+/** Fetch Audit Logs with profile names */
+export function useAuditLogs(filters: { action?: string; search?: string; dateFrom?: string; dateTo?: string }) {
+  return useQuery({
+    queryKey: ['audit_logs', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('audit_logs')
+        .select('id, user_id, action, details, ip_address, created_at')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (filters.action && filters.action !== 'all') query = query.eq('action', filters.action);
+      if (filters.search) {
+        query = query.or(`action.ilike.%${filters.search}%,ip_address.ilike.%${filters.search}%`);
+      }
+      if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
+      if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const userIds = [...new Set((data || []).map(l => l.user_id))].filter(Boolean);
+      let profileMap = new Map();
+
+      if (userIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+        profileMap = new Map((profileData || []).map(p => [p.id, p]));
+      }
+
+      return (data || []).map(l => ({
+        ...l,
+        profiles: l.user_id ? profileMap.get(l.user_id) : undefined
+      }));
+    },
+    staleTime: 10_000, // Audit logs updated frequently
+  });
+}
+
+/** Fetch Admin Dashboard Stats in parallel */
+export function useAdminDashboardStats() {
+  return useQuery({
+    queryKey: ['admin_dashboard_stats'],
+    queryFn: async () => {
+      const [
+        { count: total },
+        { count: unclaimed },
+        { count: verified },
+        { count: rejected },
+        { count: events },
+        { count: jobs },
+        { count: campaigns },
+        { count: news },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+        supabase.from('alumni_events').select('*', { count: 'exact', head: true }),
+        supabase.from('jobs').select('*', { count: 'exact', head: true }),
+        supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }),
+        supabase.from('news_articles').select('*', { count: 'exact', head: true }),
+      ]);
+
+      return {
+        stats: { total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 },
+        modules: { events: events || 0, jobs: jobs || 0, campaigns: campaigns || 0, news: news || 0 }
+      };
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds automatically
+  });
+}

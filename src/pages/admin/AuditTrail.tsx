@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../../services/supabaseClient';
 import { logAudit, logExport, logModuleView } from '../../services/auditLogger';
+import { useAuditLogs } from '../../hooks/useSupabaseQuery';
 import {
   ClipboardList, ShieldCheck, History, Search, Download,
   Filter, Calendar, ChevronLeft, ChevronRight, X, RefreshCw,
@@ -8,26 +8,8 @@ import {
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 
-interface AuditLog {
-  id: string;
-  user_id: string;
-  action: string;
-  details: any;
-  ip_address: string;
-  created_at: string;
-  profiles?: {
-    first_name: string;
-    last_name: string;
-  };
-}
-
 const AuditTrail = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
-  const [totalActions, setTotalActions] = useState(0);
-  const [filteredActions, setFilteredActions] = useState(0);
-  const [todayCount, setTodayCount] = useState(0);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,9 +32,13 @@ const AuditTrail = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  useEffect(() => {
-    fetchLogs();
-  }, [debouncedSearch, actionFilter, moduleFilter, dateFrom, dateTo]);
+  // Use React Query Hook
+  const { data: logs = [], isLoading: loading, refetch, isFetching } = useAuditLogs({
+    action: actionFilter,
+    search: debouncedSearch,
+    dateFrom,
+    dateTo
+  });
 
   useEffect(() => {
     void logModuleView('System Audit Trail', '/admin/audit-trail');
@@ -62,77 +48,11 @@ const AuditTrail = () => {
     });
   }, []);
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-
-      // Global counters (not filter-limited)
-      const [{ count: totalCount }, { count: todayTotal }] = await Promise.all([
-        supabase.from('audit_logs').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('audit_logs')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
-      ]);
-      setTotalActions(totalCount || 0);
-      setTodayCount(todayTotal || 0);
-
-      let countQuery = supabase
-        .from('audit_logs')
-        .select('*', { count: 'exact', head: true });
-      if (actionFilter !== 'all') countQuery = countQuery.eq('action', actionFilter);
-      if (debouncedSearch) {
-        countQuery = countQuery.or(`action.ilike.%${debouncedSearch}%,ip_address.ilike.%${debouncedSearch}%`);
-      }
-      if (dateFrom) countQuery = countQuery.gte('created_at', dateFrom);
-      if (dateTo) countQuery = countQuery.lte('created_at', dateTo);
-      const { count: filteredCount } = await countQuery;
-      setFilteredActions(filteredCount || 0);
-
-      // Fetch audit logs without FK join (no FK exists between audit_logs and profiles)
-      let query = supabase
-        .from('audit_logs')
-        .select('id, user_id, action, details, ip_address, created_at')
-        .order('created_at', { ascending: false })
-        .limit(500);
-
-      if (actionFilter !== 'all') query = query.eq('action', actionFilter);
-
-      if (debouncedSearch) {
-        query = query.or(`action.ilike.%${debouncedSearch}%,ip_address.ilike.%${debouncedSearch}%`);
-      }
-
-      if (dateFrom) query = query.gte('created_at', dateFrom);
-      if (dateTo) query = query.lte('created_at', dateTo);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Batch-fetch profiles for user names
-      const userIds = [...new Set((data || []).map(l => l.user_id))].filter(Boolean);
-      let profileMap = new Map();
-
-      if (userIds.length > 0) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-
-        profileMap = new Map((profileData || []).map(p => [p.id, p]));
-      }
-
-      const mappedLogs = (data || []).map(l => ({
-        ...l,
-        profiles: l.user_id ? profileMap.get(l.user_id) : undefined
-      }));
-      setLogs(mappedLogs as any);
-    } catch (err) {
-      console.error('Audit fetch catch:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const totalActions = logs.length; // Approximate from cached set
+  const todayCount = useMemo(() => {
+    const today = new Date().setHours(0, 0, 0, 0);
+    return logs.filter(l => new Date(l.created_at).getTime() >= today).length;
+  }, [logs]);
 
   const uniqueActions = useMemo(() =>
     [...new Set(logs.map(l => l.action))].filter(Boolean).sort()
@@ -145,7 +65,7 @@ const AuditTrail = () => {
     }))].filter(Boolean).sort()
     , [logs]);
 
-  const filteredLogs = logs; // Now server-side filtered
+  const filteredLogs = logs;
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const paginatedLogs = useMemo(() => {
@@ -271,7 +191,7 @@ const AuditTrail = () => {
             <div className="p-2.5 bg-indigo-100 rounded-xl"><Filter className="w-5 h-5 text-indigo-600" /></div>
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Filtered</span>
           </div>
-          <p className="text-3xl font-black text-slate-900">{filteredActions}</p>
+          <p className="text-3xl font-black text-slate-900">{logs.length}</p>
         </div>
         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center gap-3 mb-3">
@@ -331,10 +251,10 @@ const AuditTrail = () => {
             </button>
 
             <button
-              onClick={fetchLogs}
+              onClick={() => refetch()}
               className="flex items-center gap-2 px-4 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>

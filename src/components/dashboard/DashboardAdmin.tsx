@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
+import { useAdminDashboardStats } from '../../hooks/useSupabaseQuery';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Users, Clock, ArrowRight, Activity, Calendar, Loader2,
   Briefcase, Heart, Newspaper, BarChart3, Sparkles, TrendingUp, Shield,
@@ -15,15 +17,7 @@ const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
 
 const DashboardAdmin: React.FC = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-
-  const [stats, setStats] = useState({
-    total: 0, unclaimed: 0, verified: 0, rejected: 0
-  });
-
-  const [moduleCounts, setModuleCounts] = useState({
-    events: 0, jobs: 0, campaigns: 0, news: 0
-  });
+  const queryClient = useQueryClient();
 
   const [employmentStats, setEmploymentStats] = useState({
     employed: 0, selfEmployed: 0, unemployed: 0, student: 0
@@ -32,69 +26,52 @@ const DashboardAdmin: React.FC = () => {
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
+  const { data, isLoading: loading, isFetching } = useAdminDashboardStats();
+  const { stats, modules: moduleCounts } = data || {
+    stats: { total: 0, unclaimed: 0, verified: 0, rejected: 0 },
+    modules: { events: 0, jobs: 0, campaigns: 0, news: 0 }
+  };
+
   useEffect(() => {
     if (user) {
-      fetchDashboardData();
+      fetchExtraData();
     }
 
-    // Real-time: listen to ALL tables the dashboard displays
     const subscription = supabase
       .channel('admin-dashboard-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'donation_campaigns' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_events' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, fetchDashboardData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
+        fetchExtraData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => {
+        fetchExtraData();
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(subscription); };
   }, [user]);
 
-  const fetchDashboardData = async () => {
+  const fetchExtraData = async () => {
     try {
-      setLoading(true);
-
-      const [
-        { count: total },
-        { count: unclaimed },
-        { count: verified },
-        { count: rejected },
-      ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-      ]);
-
-      setStats({ total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 });
-
-      // Module counts (safe — catch if tables don't exist)
-      let events = 0, jobs = 0, campaigns = 0, news = 0;
-      try { const r = await supabase.from('alumni_events').select('*', { count: 'exact', head: true }); events = r.count || 0; } catch { }
-      try { const r = await supabase.from('jobs').select('*', { count: 'exact', head: true }); jobs = r.count || 0; } catch { }
-      try { const r = await supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }); campaigns = r.count || 0; } catch { }
-      try { const r = await supabase.from('news_articles').select('*', { count: 'exact', head: true }); news = r.count || 0; } catch { }
-      setModuleCounts({ events, jobs, campaigns, news });
-
       // Employment stats from alumni_profiles
-      try {
-        const [
-          { count: employed },
-          { count: selfEmployed },
-          { count: unemployed },
-          { count: student },
-        ] = await Promise.all([
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'self-employed'),
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
-        ]);
-        setEmploymentStats({
-          employed: employed || 0, selfEmployed: selfEmployed || 0,
-          unemployed: unemployed || 0, student: student || 0,
-        });
-      } catch { }
+      const [
+        { count: employed },
+        { count: selfEmployed },
+        { count: unemployed },
+        { count: student },
+      ] = await Promise.all([
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'self-employed'),
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
+      ]);
+      setEmploymentStats({
+        employed: employed || 0, selfEmployed: selfEmployed || 0,
+        unemployed: unemployed || 0, student: student || 0,
+      });
 
       const { data: recents } = await supabase
         .from('profiles')
@@ -105,7 +82,6 @@ const DashboardAdmin: React.FC = () => {
 
       if (recents) setRecentUsers(recents);
 
-      // Fetch recent audit logs (without broken FK join)
       const { data: logs, error: logError } = await supabase
         .from('audit_logs')
         .select('id, user_id, action, details, created_at')
@@ -113,29 +89,20 @@ const DashboardAdmin: React.FC = () => {
         .limit(6);
 
       if (!logError && logs) {
-        // Batch-fetch profiles for these logs
         const userIds = [...new Set(logs.map(l => l.user_id))].filter(Boolean);
         if (userIds.length > 0) {
           const { data: profs } = await supabase
             .from('profiles')
             .select('id, first_name, last_name')
             .in('id', userIds);
-
           const profMap = new Map((profs || []).map(p => [p.id, p]));
-          const mappedLogs = logs.map(l => ({
-            ...l,
-            profiles: l.user_id ? profMap.get(l.user_id) : undefined
-          }));
-          setRecentLogs(mappedLogs);
+          setRecentLogs(logs.map(l => ({ ...l, profiles: l.user_id ? profMap.get(l.user_id) : undefined })));
         } else {
           setRecentLogs(logs);
         }
       }
-
     } catch (error) {
-      console.error('Error fetching dashboard:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching dashboard extra data:', error);
     }
   };
 
@@ -244,7 +211,9 @@ const DashboardAdmin: React.FC = () => {
               <p className="text-xs text-blue-200 mt-1">All services operational</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
-              <p className="text-xs font-black text-blue-200 uppercase tracking-wider mb-1">Last Updated</p>
+              <p className="text-xs font-black text-blue-200 uppercase tracking-wider mb-1 flex items-center gap-2">
+                Last Updated {isFetching && <Loader2 className="w-3 h-3 animate-spin text-white" />}
+              </p>
               <p className="text-sm font-bold text-white">{new Date().toLocaleTimeString()}</p>
             </div>
           </div>
