@@ -36,6 +36,7 @@ const PublicDonationPage = () => {
   const [step, setStep] = useState(1); // 1: Select, 2: Details, 3: Success
   const [refNumber, setRefNumber] = useState('');
   const [receiptAutoDownloaded, setReceiptAutoDownloaded] = useState(false);
+  const [submittedAmount, setSubmittedAmount] = useState(0);
 
   const qrCodes: any = {
     GCash: "https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg",
@@ -76,6 +77,13 @@ const PublicDonationPage = () => {
 
   const generateReference = () => {
     return `TRX-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+  };
+
+  const normalizeAmountInput = (raw: string) => {
+    const cleaned = raw.replace(/[^\d.]/g, '');
+    const parts = cleaned.split('.');
+    if (parts.length <= 1) return cleaned;
+    return `${parts[0]}.${parts.slice(1).join('')}`;
   };
 
   // --- NEW: PROGRESS PREVIEW LOGIC ---
@@ -146,13 +154,20 @@ const PublicDonationPage = () => {
 
     setIsProcessing(true);
     setReceiptAutoDownloaded(false);
+    const normalizedAmount = Number(normalizeAmountInput(form.amount));
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+      showToast({ title: 'Invalid Amount', message: 'Please enter a valid donation amount.', type: 'warning' });
+      setIsProcessing(false);
+      return;
+    }
+    setSubmittedAmount(normalizedAmount);
     const generatedRef = generateReference();
     setRefNumber(generatedRef);
 
     try {
       const { error } = await supabase.from('donations').insert([{
         campaign_id: selectedCampaign.id,
-        amount: parseFloat(form.amount),
+        amount: normalizedAmount,
         payment_method: form.method,
         guest_name: form.name,
         guest_email: form.email,
@@ -175,7 +190,7 @@ const PublicDonationPage = () => {
           form.email,
           form.name || 'Valued Donor',
           selectedCampaign.title,
-          parseFloat(form.amount),
+          normalizedAmount,
           generatedRef,
           form.method
         );
@@ -198,7 +213,7 @@ const PublicDonationPage = () => {
     doc.text(`Donor: ${form.name || 'Valued Donor'}`, 14, 46);
     doc.text(`Email: ${form.email || '-'}`, 14, 56);
     doc.text(`Campaign: ${selectedCampaign?.title || '-'}`, 14, 66);
-    doc.text(`Amount: PHP ${Number(form.amount || 0).toLocaleString()}`, 14, 76);
+    doc.text(`Amount: PHP ${Number(submittedAmount || 0).toLocaleString()}`, 14, 76);
     doc.text(`Payment Method: ${form.method}`, 14, 86);
     doc.text(`Date: ${new Date().toLocaleString()}`, 14, 96);
     doc.setFontSize(9);
@@ -231,7 +246,7 @@ const PublicDonationPage = () => {
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-6 text-left relative border-dashed">
             <div className="flex justify-between mb-2">
               <span className="text-xs text-gray-400 uppercase font-bold">Amount Paid</span>
-              <span className="font-bold text-xl text-green-600">₱{Number(form.amount).toLocaleString()}</span>
+              <span className="font-bold text-xl text-green-600">₱{Number(submittedAmount).toLocaleString()}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span className="text-xs text-gray-400 uppercase font-bold">Reference No.</span>
@@ -413,7 +428,16 @@ const PublicDonationPage = () => {
                 <label className="block text-xs font-bold text-blue-200/50 uppercase mb-2">Donation Amount (PHP)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-3.5 text-emerald-400 font-bold">₱</span>
-                  <input type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-lg" placeholder="0.00" />
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={form.amount}
+                    onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                    onChange={e => setForm({ ...form, amount: normalizeAmountInput(e.target.value) })}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-lg"
+                    placeholder="0.00"
+                  />
                 </div>
               </div>
 

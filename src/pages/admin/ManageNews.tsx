@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminPageLayout from './AdminPageLayout';
 import { supabase } from '../../services/supabaseClient';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import { EmailService } from '../../services/emailService';
@@ -43,15 +42,12 @@ const CATEGORIES = [
     { value: 'alumni', label: 'Alumni Spotlight', color: 'bg-purple-100 text-purple-700' },
     { value: 'success', label: 'Success Stories', color: 'bg-rose-100 text-rose-700' },
     { value: 'events', label: 'Events & Activities', color: 'bg-emerald-100 text-emerald-700' },
-    { value: 'newsletter', label: 'Newsletter', color: 'bg-indigo-100 text-indigo-700' },
     { value: 'achievements', label: 'Achievements', color: 'bg-amber-100 text-amber-700' },
     { value: 'updates', label: 'System Updates', color: 'bg-gray-100 text-gray-700' },
 ];
 
 const ManageNews = () => {
     const { showToast } = useToast();
-    const { user: currentUser } = useAuth();
-    const isStaff = currentUser?.role === 'staff';
     const [articles, setArticles] = useState<NewsArticle[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -59,7 +55,7 @@ const ManageNews = () => {
     const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
-    const [viewTab, setViewTab] = useState<'published' | 'archived'>('published');
+    const [viewTab, setViewTab] = useState<'published' | 'draft' | 'archived'>('published');
     const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [showSubscribers, setShowSubscribers] = useState(false);
     const [sendingArticleId, setSendingArticleId] = useState<string | null>(null);
@@ -261,7 +257,8 @@ const ManageNews = () => {
         }
     };
 
-    const isArchived = (article: NewsArticle) => article.status === 'archived' || !!article.archived_at;
+    const isArchived = (article: NewsArticle) =>
+        article.status === 'archived' || !!article.archived_at || article.category === 'archived';
 
     const archiveArticle = async (article: NewsArticle) => {
         try {
@@ -278,7 +275,7 @@ const ManageNews = () => {
             if (primaryUpdate.error) {
                 const fallback = await supabase
                     .from('news_articles')
-                    .update({ is_published: false, is_featured: false })
+                    .update({ is_published: false, is_featured: false, category: 'archived' })
                     .eq('id', article.id);
                 if (fallback.error) throw fallback.error;
             }
@@ -311,7 +308,10 @@ const ManageNews = () => {
             if (primaryUpdate.error) {
                 const fallback = await supabase
                     .from('news_articles')
-                    .update({ is_published: true })
+                    .update({
+                        is_published: true,
+                        category: article.category === 'archived' ? 'updates' : article.category
+                    })
                     .eq('id', article.id);
                 if (fallback.error) throw fallback.error;
             }
@@ -385,15 +385,18 @@ const ManageNews = () => {
         const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             article.content.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = filterCategory === 'all' || article.category === filterCategory;
-        const matchesTab = viewTab === 'published'
-            ? article.is_published && !isArchived(article)
-            : isArchived(article);
+        const matchesTab =
+            viewTab === 'published'
+                ? article.is_published && !isArchived(article)
+                : viewTab === 'draft'
+                    ? !article.is_published && !isArchived(article)
+                    : isArchived(article);
         return matchesSearch && matchesCategory && matchesTab;
     });
 
     const publishedCount = articles.filter(a => a.is_published && !isArchived(a)).length;
     const archivedCount = articles.filter(a => isArchived(a)).length;
-    const draftCount = articles.filter(a => !a.is_published).length;
+    const draftCount = articles.filter(a => !a.is_published && !isArchived(a)).length;
 
 
     const setAsFeatured = async (articleId: string) => {
@@ -481,6 +484,12 @@ const ManageNews = () => {
                         className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${viewTab === 'published' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
                         Published ({publishedCount})
+                    </button>
+                    <button
+                        onClick={() => setViewTab('draft')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${viewTab === 'draft' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Draft ({draftCount})
                     </button>
                     <button
                         onClick={() => setViewTab('archived')}
@@ -616,7 +625,7 @@ const ManageNews = () => {
                                                 {sendingArticleId === article.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                                             </button>
                                         )}
-                                        {!isStaff && !isArchived(article) && (
+                                        {!isArchived(article) && (
                                             <button
                                                 onClick={() => archiveArticle(article)}
                                                 className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
@@ -625,7 +634,7 @@ const ManageNews = () => {
                                                 <Archive className="w-4 h-4" />
                                             </button>
                                         )}
-                                        {!isStaff && isArchived(article) && (
+                                        {isArchived(article) && (
                                             <button
                                                 onClick={() => restoreArticle(article)}
                                                 className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"

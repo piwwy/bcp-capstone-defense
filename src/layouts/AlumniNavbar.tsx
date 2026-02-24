@@ -130,7 +130,6 @@ const AlumniNavbar: React.FC = () => {
       icon: Newspaper,
       children: [
         { name: 'News Feed', path: '/alumni/news', icon: Newspaper, description: 'Latest alumni news & updates' },
-        { name: 'Newsletter', path: '/alumni/newsletter', icon: Mail, description: 'Browse & subscribe to newsletters' },
       ],
     },
     {

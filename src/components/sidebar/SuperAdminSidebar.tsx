@@ -51,7 +51,6 @@ const SuperAdminSidebar: React.FC = () => {
     {
       name: "Communication & Updates", icon: Mail, subItems: [
         { name: "News Feed", path: "/superadmin/news", icon: Newspaper },
-        { name: "Newsletter", path: "/superadmin/newsletter", icon: Mail },
         { name: "Partner Inquiries", path: "/superadmin/partner-inquiries", icon: Briefcase },
       ]
     },

@@ -48,7 +48,6 @@ const ManageBatchReunions = React.lazy(() => import('./pages/admin/ManageBatchRe
 const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
 const TracerSurvey = React.lazy(() => import('./pages/admin/TracerSurvey'));
 const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries'));
-const ManageNewsletter = React.lazy(() => import('./pages/admin/ManageNewsletter'));
 const ManageResources = React.lazy(() => import('./pages/admin/ManageResources'));
 
 // Alumni pages
@@ -65,7 +64,6 @@ const AlumniGraduateTracking = React.lazy(() => import('./pages/alumni/AlumniGra
 const AlumniFeedback = React.lazy(() => import('./pages/alumni/AlumniFeedback'));
 const AlumniSettings = React.lazy(() => import('./pages/alumni/AlumniSettings'));
 const AlumniMessages = React.lazy(() => import('./pages/alumni/AlumniMessages'));
-const AlumniNewsletter = React.lazy(() => import('./pages/alumni/AlumniNewsletter'));
 
 // Dashboards
 const DashboardAdmin = React.lazy(() => import('./components/dashboard/DashboardAdmin'));
@@ -229,8 +227,6 @@ function AppRoutes() {
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
                   <Route path="collections" element={<DonationCollections />} />
 
-                  {/* Newsletter */}
-                  <Route path="newsletter" element={<ManageNewsletter />} />
 
                   {/* Alumni Resources Management */}
                   <Route path="resources" element={<ManageResources />} />
@@ -283,8 +279,6 @@ function AppRoutes() {
                   <Route path="train-ai" element={<TrainAI />} />
                   <Route path="audit-trail" element={<AuditTrail />} />
 
-                  {/* Newsletter */}
-                  <Route path="newsletter" element={<ManageNewsletter />} />
 
                   {/* Alumni Resources Management */}
                   <Route path="resources" element={<ManageResources />} />
@@ -316,7 +310,6 @@ function AppRoutes() {
                   <Route path="jobs/board" element={<ManageJobs />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
                   <Route path="collections" element={<DonationCollections />} />
-                  <Route path="newsletter" element={<ManageNewsletter />} />
                   <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
                 </Routes>
               </Suspense>
@@ -354,7 +347,6 @@ function AppRoutes() {
                   {/* New Modules */}
                   <Route path="messages" element={<AlumniMessages />} />
                   <Route path="feedback" element={<AlumniFeedback />} />
-                  <Route path="newsletter" element={<AlumniNewsletter />} />
 
                   {/* Catch-all - MUST be last */}
                   <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />

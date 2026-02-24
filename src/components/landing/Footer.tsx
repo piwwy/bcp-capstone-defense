@@ -17,12 +17,28 @@ const Footer: React.FC = () => {
     if (!subEmail.trim() || !subEmail.includes('@')) return;
     setSubLoading(true);
     try {
-      const { error } = await supabase.from('newsletter_subscribers').upsert({
-        email: subEmail.trim(),
+      const cleanEmail = subEmail.trim().toLowerCase();
+      const payload = {
+        email: cleanEmail,
         alumni_name: 'Guest Subscriber',
         subscribed: true,
-      }, { onConflict: 'email' });
-      if (error) throw error;
+      };
+
+      const { error: upsertError } = await supabase
+        .from('newsletter_subscribers')
+        .upsert(payload, { onConflict: 'email' });
+
+      if (upsertError) {
+        const { error: insertError } = await supabase.from('newsletter_subscribers').insert([payload]);
+        if (insertError) {
+          const { error: updateError } = await supabase
+            .from('newsletter_subscribers')
+            .update({ subscribed: true, alumni_name: 'Guest Subscriber' })
+            .eq('email', cleanEmail);
+          if (updateError) throw updateError;
+        }
+      }
+
       setSubSuccess(true);
       setSubEmail('');
       setTimeout(() => setSubSuccess(false), 4000);

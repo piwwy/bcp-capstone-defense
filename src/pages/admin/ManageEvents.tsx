@@ -848,24 +848,9 @@ const ManageEvents = () => {
                         )}
                         <div className="flex gap-2">
                           {isPending && (
-                            <>
-                              <button
-                                onClick={() => openApprovalModal(event, 'approve')}
-                                disabled={processing === event.id}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => openApprovalModal(event, 'reject')}
-                                disabled={processing === event.id}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                Reject
-                              </button>
-                            </>
+                            <div className="px-3 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold">
+                              Awaiting external Event Management System approval
+                            </div>
                           )}
                           {isApproved && (
                             <button

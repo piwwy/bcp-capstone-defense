@@ -30,7 +30,6 @@ const CATEGORIES = [
     { value: 'alumni', label: 'Alumni Spotlight', color: 'bg-purple-100 text-purple-700' },
     { value: 'success', label: 'Success Stories', color: 'bg-rose-100 text-rose-700' },
     { value: 'events', label: 'Events & Activities', color: 'bg-emerald-100 text-emerald-700' },
-    { value: 'newsletter', label: 'Newsletter', color: 'bg-indigo-100 text-indigo-700' },
     { value: 'achievements', label: 'Achievements', color: 'bg-amber-100 text-amber-700' },
     { value: 'updates', label: 'System Updates', color: 'bg-slate-100 text-slate-700' },
 ];

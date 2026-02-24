@@ -50,7 +50,6 @@ const AdminSidebar: React.FC = () => {
     {
       name: "Communication & Updates", icon: Mail, subItems: [
         { name: "News Feed", path: "/admin/news/manage", icon: Newspaper },
-        { name: "Newsletter", path: "/admin/newsletter", icon: Mail },
         { name: "Partner Inquiries", path: "/admin/partner-inquiries", icon: Briefcase },
       ]
     },

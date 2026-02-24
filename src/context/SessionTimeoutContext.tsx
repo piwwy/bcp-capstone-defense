@@ -6,8 +6,8 @@ import { ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
 // ============================================================
 // CONFIGURATION — ADJUST THESE TWO VALUES
 // ============================================================
-const IDLE_TRIGGER = 15 * 60 * 1000;     // 15 minutes idle → show warning modal
-const LOGOUT_COUNTDOWN = 5 * 60;         // 5 minutes (300 seconds) countdown on the modal before auto-logout
+const IDLE_TRIGGER = 55 * 60 * 1000;     // 55 minutes idle → show warning modal
+const LOGOUT_COUNTDOWN = 5 * 60;         // 5 minutes countdown (total ~1 hour session window)
 // ============================================================
 
 interface SessionTimeoutContextType {
@@ -83,15 +83,19 @@ export const SessionTimeoutProvider: React.FC<{ children: ReactNode }> = ({ chil
       startIdleTimer();
     };
 
-    // NOTE: No 'mousemove' — it's too sensitive and prevents the timer from firing
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click', 'mousemove', 'focus'];
     events.forEach(e => window.addEventListener(e, handleActivity));
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') handleActivity();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Start timer immediately on mount
     startIdleTimer();
 
     return () => {
       events.forEach(e => window.removeEventListener(e, handleActivity));
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearAllTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
