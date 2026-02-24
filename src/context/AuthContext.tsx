@@ -24,6 +24,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const clearAppClientStorage = () => {
+  // Avoid wiping unrelated app cache/settings; clear only auth/session keys.
+  try {
+    localStorage.removeItem(SUPABASE_STORAGE_KEY);
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('is_switched');
+  } catch { /* ignore */ }
+  try {
+    sessionStorage.clear();
+  } catch { /* ignore */ }
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
@@ -135,17 +147,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return;
         }
 
-        // On first boot, retry once if localStorage still has a persisted session snapshot.
-        if (!hasInitializedRef.current && hasStoredSupabaseSession()) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          const retryUser = (await supabase.auth.getSession()).data.session?.user;
-          if (retryUser?.id && retryUser.email) {
-            const nextUser = await fetchProfile(retryUser.id, retryUser.email);
-            if (requestId !== requestIdRef.current) return;
-            if (nextUser) {
-              setUser(nextUser);
-              setStatus('authenticated');
-              return;
+        // On first boot, do a short retry window to prevent refresh race redirects.
+        if (!hasInitializedRef.current || hasStoredSupabaseSession()) {
+          const retryDelaysMs = [200, 450, 800];
+          for (const delay of retryDelaysMs) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            const retryUser = (await supabase.auth.getSession()).data.session?.user;
+            if (retryUser?.id && retryUser.email) {
+              const nextUser = await fetchProfile(retryUser.id, retryUser.email);
+              if (requestId !== requestIdRef.current) return;
+              if (nextUser) {
+                setUser(nextUser);
+                setStatus('authenticated');
+                return;
+              }
             }
           }
         }
@@ -180,9 +195,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!mounted) return;
 
       if (event === 'SIGNED_OUT') {
+        // Guard against transient refresh race: if snapshot exists, try re-resolving first.
+        if (hasStoredSupabaseSession()) {
+          await resolveSession(null, true);
+          return;
+        }
         setUser(null);
         setStatus('unauthenticated');
-        localStorage.clear();
+        clearAppClientStorage();
         return;
       }
 
@@ -228,11 +248,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setUser(null);
       setStatus('unauthenticated');
-      localStorage.clear();
-      sessionStorage.clear();
-      // Siguraduhin na tanggal lahat ng persistent roles
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('is_switched');
+      clearAppClientStorage();
     }
   };
 

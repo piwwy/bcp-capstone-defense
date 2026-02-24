@@ -90,6 +90,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   const { status, user, isLoading, isAuthenticated } = useAuth();
   const [checkingPersistedSession, setCheckingPersistedSession] = React.useState(false);
   const [persistedSessionChecked, setPersistedSessionChecked] = React.useState(false);
+  const [graceSessionCheck, setGraceSessionCheck] = React.useState(false);
 
   const hasPersistedSessionSnapshot = React.useMemo(() => {
     try {
@@ -125,7 +126,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return () => { active = false; };
   }, [status, user, hasPersistedSessionSnapshot, persistedSessionChecked]);
 
-  if ((status === 'loading' || isLoading || checkingPersistedSession) && !user) {
+  React.useEffect(() => {
+    let active = true;
+    if (!user && status === 'unauthenticated' && !checkingPersistedSession && !graceSessionCheck) {
+      setGraceSessionCheck(true);
+      supabase.auth.getSession()
+        .catch(() => null)
+        .finally(() => {
+          if (!active) return;
+          // tiny delay so AuthContext can settle if session is restored asynchronously
+          setTimeout(() => {
+            if (!active) return;
+            setGraceSessionCheck(false);
+          }, 400);
+        });
+    }
+    return () => { active = false; };
+  }, [status, user, checkingPersistedSession, graceSessionCheck]);
+
+  if ((status === 'loading' || isLoading || checkingPersistedSession || graceSessionCheck) && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
