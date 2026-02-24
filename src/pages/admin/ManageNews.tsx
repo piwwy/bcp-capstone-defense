@@ -4,10 +4,11 @@ import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
+import { EmailService } from '../../services/emailService';
 import {
-    Newspaper, Plus, Edit2, Trash2, Eye, EyeOff,
+    Newspaper, Plus, Edit2, Eye, EyeOff,
     Loader2, X, Calendar, User, Search, RefreshCw,
-    Image, AlertTriangle, Clock, CheckCircle, UploadCloud, Star, Crown
+    Image, Clock, CheckCircle, UploadCloud, Crown, Archive, Users, Mail
 } from 'lucide-react';
 
 interface NewsArticle {
@@ -19,6 +20,8 @@ interface NewsArticle {
     category: string;
     is_published: boolean;
     is_featured: boolean;
+    status?: string;
+    archived_at?: string | null;
     published_at: string | null;
     created_at: string;
     author_id: string;
@@ -26,6 +29,13 @@ interface NewsArticle {
         first_name: string;
         last_name: string;
     };
+}
+
+interface Subscriber {
+    id: string;
+    alumni_name: string;
+    email: string;
+    subscribed: boolean;
 }
 
 const CATEGORIES = [
@@ -49,12 +59,10 @@ const ManageNews = () => {
     const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
-
-    // Delete modal
-    const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; title: string }>({
-        show: false, id: '', title: ''
-    });
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [viewTab, setViewTab] = useState<'published' | 'archived'>('published');
+    const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+    const [showSubscribers, setShowSubscribers] = useState(false);
+    const [sendingArticleId, setSendingArticleId] = useState<string | null>(null);
 
     // Image upload state
     const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -73,12 +81,16 @@ const ManageNews = () => {
 
     useEffect(() => {
         fetchArticles();
+        fetchSubscribers();
 
         // Realtime subscription
         const channel = supabase
             .channel('news-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'news_articles' }, () => {
                 fetchArticles();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'newsletter_subscribers' }, () => {
+                fetchSubscribers();
             })
             .subscribe();
 
@@ -100,6 +112,21 @@ const ManageNews = () => {
             showToast({ title: 'Error', message: 'Failed to load news articles.', type: 'error' });
         }
         setLoading(false);
+    };
+
+    const fetchSubscribers = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('newsletter_subscribers')
+                .select('id, alumni_name, email, subscribed')
+                .eq('subscribed', true)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            setSubscribers(data || []);
+        } catch (error: any) {
+            console.error('Error fetching subscribers:', error);
+            showToast({ title: 'Error', message: 'Failed to load subscribers.', type: 'error' });
+        }
     };
 
     const openCreateModal = () => {
@@ -234,30 +261,115 @@ const ManageNews = () => {
         }
     };
 
-    const openDeleteModal = (id: string, title: string) => {
-        setDeleteModal({ show: true, id, title });
-    };
+    const isArchived = (article: NewsArticle) => article.status === 'archived' || !!article.archived_at;
 
-    const handleDeleteConfirm = async () => {
-        setIsDeleting(true);
+    const archiveArticle = async (article: NewsArticle) => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { error } = await supabase.from('news_articles').delete().eq('id', deleteModal.id);
-            if (error) throw error;
+            const primaryUpdate = await supabase
+                .from('news_articles')
+                .update({
+                    status: 'archived',
+                    archived_at: new Date().toISOString(),
+                    is_published: false,
+                    is_featured: false
+                })
+                .eq('id', article.id);
 
-            await logAudit(AUDIT_ACTIONS.NEWS_DELETED, {
+            if (primaryUpdate.error) {
+                const fallback = await supabase
+                    .from('news_articles')
+                    .update({ is_published: false, is_featured: false })
+                    .eq('id', article.id);
+                if (fallback.error) throw fallback.error;
+            }
+
+            await logAudit(AUDIT_ACTIONS.NEWS_UPDATED, {
                 module: 'News Feed',
-                message: `Deleted article: ${deleteModal.title}`,
-                articleId: deleteModal.id
+                message: `Archived article: ${article.title}`,
+                articleId: article.id,
+                status: 'archived'
             });
 
-            showToast({ title: 'Deleted', message: `"${deleteModal.title}" has been removed.`, type: 'success' });
-            setDeleteModal({ show: false, id: '', title: '' });
+            showToast({ title: 'Archived', message: `"${article.title}" moved to archive.`, type: 'success' });
             fetchArticles();
         } catch (error: any) {
             showToast({ title: 'Error', message: error.message, type: 'error' });
         }
-        setIsDeleting(false);
+    };
+
+    const restoreArticle = async (article: NewsArticle) => {
+        try {
+            const primaryUpdate = await supabase
+                .from('news_articles')
+                .update({
+                    status: 'published',
+                    archived_at: null,
+                    is_published: true
+                })
+                .eq('id', article.id);
+
+            if (primaryUpdate.error) {
+                const fallback = await supabase
+                    .from('news_articles')
+                    .update({ is_published: true })
+                    .eq('id', article.id);
+                if (fallback.error) throw fallback.error;
+            }
+
+            await logAudit(AUDIT_ACTIONS.NEWS_UPDATED, {
+                module: 'News Feed',
+                message: `Restored article: ${article.title}`,
+                articleId: article.id,
+                status: 'published'
+            });
+
+            showToast({ title: 'Restored', message: `"${article.title}" is now published.`, type: 'success' });
+            fetchArticles();
+        } catch (error: any) {
+            showToast({ title: 'Error', message: error.message, type: 'error' });
+        }
+    };
+
+    const sendToSubscribers = async (article: NewsArticle) => {
+        if (subscribers.length === 0) {
+            showToast({ title: 'No Subscribers', message: 'There are no active subscribers.', type: 'warning' });
+            return;
+        }
+
+        setSendingArticleId(article.id);
+        let successCount = 0;
+        let failCount = 0;
+        const summary = article.excerpt || (article.content.length > 300 ? `${article.content.slice(0, 300)}...` : article.content);
+
+        for (const sub of subscribers) {
+            try {
+                const result = await EmailService.sendNewsletterUpdate(
+                    sub.email,
+                    sub.alumni_name || 'Alumni',
+                    article.title,
+                    summary
+                );
+                if (result.success) successCount += 1;
+                else failCount += 1;
+            } catch {
+                failCount += 1;
+            }
+        }
+
+        setSendingArticleId(null);
+        showToast({
+            title: 'Send Complete',
+            message: `Sent to ${successCount} subscriber${successCount !== 1 ? 's' : ''}${failCount > 0 ? `, ${failCount} failed` : ''}.`,
+            type: successCount > 0 ? 'success' : 'error'
+        });
+
+        await logAudit(AUDIT_ACTIONS.NEWSLETTER_SENT, {
+            module: 'News Feed',
+            message: `Sent article "${article.title}" to ${successCount} subscribers`,
+            articleId: article.id,
+            sentCount: successCount,
+            failedCount: failCount
+        });
     };
 
     const getCategoryStyle = (category: string) => {
@@ -273,10 +385,14 @@ const ManageNews = () => {
         const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             article.content.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = filterCategory === 'all' || article.category === filterCategory;
-        return matchesSearch && matchesCategory;
+        const matchesTab = viewTab === 'published'
+            ? article.is_published && !isArchived(article)
+            : isArchived(article);
+        return matchesSearch && matchesCategory && matchesTab;
     });
 
-    const publishedCount = articles.filter(a => a.is_published).length;
+    const publishedCount = articles.filter(a => a.is_published && !isArchived(a)).length;
+    const archivedCount = articles.filter(a => isArchived(a)).length;
     const draftCount = articles.filter(a => !a.is_published).length;
 
 
@@ -359,6 +475,20 @@ const ManageNews = () => {
 
             {/* Search & Filters */}
             <div className="flex flex-wrap gap-4 mb-6">
+                <div className="flex items-center gap-2 bg-white border border-slate-100 rounded-2xl p-1">
+                    <button
+                        onClick={() => setViewTab('published')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${viewTab === 'published' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Published ({publishedCount})
+                    </button>
+                    <button
+                        onClick={() => setViewTab('archived')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${viewTab === 'archived' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Archive ({archivedCount})
+                    </button>
+                </div>
                 <div className="flex-1 min-w-[200px] relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input
@@ -379,6 +509,12 @@ const ManageNews = () => {
                 </select>
                 <button onClick={fetchArticles} className="p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50">
                     <RefreshCw className={`w-5 h-5 text-slate-500 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                    onClick={() => setShowSubscribers(true)}
+                    className="bg-white border border-slate-200 text-slate-600 px-4 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-50 transition-all text-sm"
+                >
+                    <Users className="w-4 h-4" /> Subscribers ({subscribers.length})
                 </button>
                 <button
                     onClick={openCreateModal}
@@ -421,9 +557,13 @@ const ManageNews = () => {
                                     </div>
                                 )}
                                 {/* Status Badge */}
-                                <div className={`absolute top-3 right-3 px-2 py-1 rounded-lg text-[10px] font-bold ${article.is_published ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-700'
+                                <div className={`absolute top-3 right-3 px-2 py-1 rounded-lg text-[10px] font-bold ${isArchived(article)
+                                    ? 'bg-slate-700 text-white'
+                                    : article.is_published
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-amber-100 text-amber-700'
                                     }`}>
-                                    {article.is_published ? 'Published' : 'Draft'}
+                                    {isArchived(article) ? 'Archived' : article.is_published ? 'Published' : 'Draft'}
                                 </div>
                             </div>
 
@@ -450,26 +590,48 @@ const ManageNews = () => {
                                         >
                                             <Crown className="w-4 h-4" />
                                         </button>
-                                        <button
-                                            onClick={() => togglePublish(article)}
-                                            className={`p-2 rounded-lg transition-colors ${article.is_published ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'
-                                                }`}
-                                            title={article.is_published ? 'Unpublish' : 'Publish'}
-                                        >
-                                            {article.is_published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
+                                        {!isArchived(article) && (
+                                            <button
+                                                onClick={() => togglePublish(article)}
+                                                className={`p-2 rounded-lg transition-colors ${article.is_published ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'
+                                                    }`}
+                                                title={article.is_published ? 'Unpublish' : 'Publish'}
+                                            >
+                                                {article.is_published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => openEditModal(article)}
                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
-                                        {!isStaff && (
+                                        {article.is_published && !isArchived(article) && (
                                             <button
-                                                onClick={() => openDeleteModal(article.id, article.title)}
-                                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                onClick={() => sendToSubscribers(article)}
+                                                disabled={sendingArticleId === article.id}
+                                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                                                title="Send to subscribers"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                {sendingArticleId === article.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                                            </button>
+                                        )}
+                                        {!isStaff && !isArchived(article) && (
+                                            <button
+                                                onClick={() => archiveArticle(article)}
+                                                className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                                title="Archive article"
+                                            >
+                                                <Archive className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {!isStaff && isArchived(article) && (
+                                            <button
+                                                onClick={() => restoreArticle(article)}
+                                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                title="Restore to published"
+                                            >
+                                                <Eye className="w-4 h-4" />
                                             </button>
                                         )}
                                     </div>
@@ -623,26 +785,33 @@ const ManageNews = () => {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
-            {deleteModal.show && (
+            {showSubscribers && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
-                        <div className="p-6 text-center">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <AlertTriangle className="w-8 h-8 text-red-600" />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Article</h3>
-                            <p className="text-gray-500 text-sm">
-                                Are you sure you want to delete "<span className="font-bold text-gray-700">{deleteModal.title}</span>"?
-                            </p>
+                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <Users className="w-5 h-5 text-blue-600" /> Active Subscribers ({subscribers.length})
+                            </h3>
+                            <button onClick={() => setShowSubscribers(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
-                        <div className="flex border-t border-gray-100 bg-gray-50/50 p-4 gap-3">
-                            <button onClick={() => setDeleteModal({ show: false, id: '', title: '' })} className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50">
-                                Cancel
-                            </button>
-                            <button onClick={handleDeleteConfirm} disabled={isDeleting} className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 flex items-center justify-center gap-2">
-                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
-                            </button>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            {subscribers.length === 0 ? (
+                                <p className="text-center text-slate-400 py-10">No subscribers yet.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {subscribers.map(sub => (
+                                        <div key={sub.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-800">{sub.alumni_name || 'Alumni Subscriber'}</p>
+                                                <p className="text-xs text-slate-500">{sub.email}</p>
+                                            </div>
+                                            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase rounded-full">Subscribed</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

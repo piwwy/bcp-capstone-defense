@@ -12,6 +12,8 @@ import {
   CheckCircle2, Search, Eye, EyeOff, FileSpreadsheet,
   AlertTriangle, ArrowRight, Wallet, RefreshCw
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // ─── TYPE DEFINITIONS ────────────────────────────────────────────────────────
 interface Campaign {
@@ -215,10 +217,28 @@ const DonationCollections = () => {
     return Object.entries(methods).map(([name, value]) => ({ name, value }));
   }, [donations]);
 
+  const campaignTotalsMap = useMemo(() => {
+    const totals: Record<string, number> = {};
+    donations
+      .filter(d => d.status?.trim().toLowerCase() === 'verified')
+      .forEach(d => {
+        const campaignId = d.campaign_id || d.donation_campaigns?.id;
+        if (!campaignId) return;
+        totals[campaignId] = (totals[campaignId] || 0) + (Number(d.amount) || 0);
+      });
+    return totals;
+  }, [donations]);
+
   // Only show active campaigns in the analytics bar chart
   const activeCampaigns = useMemo(
-    () => campaigns.filter(c => c.status?.toLowerCase() === 'active'),
-    [campaigns]
+    () =>
+      campaigns
+        .filter(c => c.status?.toLowerCase() === 'active')
+        .map(c => ({
+          ...c,
+          current_amount: Number(campaignTotalsMap[c.id] ?? 0),
+        })),
+    [campaigns, campaignTotalsMap]
   );
 
   // ─── CSV EXPORT ───────────────────────────────────────────────────────────
@@ -239,6 +259,38 @@ const DonationCollections = () => {
     a.click();
 
     logExport('CSV', filteredDonations.length, 'Donations');
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('BCP Donation Collections Report', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Total Verified Donations: PHP ${Number(stats.total).toLocaleString()}`, 14, 38);
+    doc.text(`Verified Records: ${stats.count}`, 14, 46);
+
+    autoTable(doc, {
+      startY: 54,
+      head: [['Date', 'Reference', 'Donor', 'Campaign', 'Amount (PHP)', 'Method', 'Status']],
+      body: filteredDonations.map(d => [
+        new Date(d.created_at).toLocaleDateString(),
+        d.reference_number || '-',
+        d.guest_name || '-',
+        d.donation_campaigns?.title || '-',
+        Number(d.amount || 0).toLocaleString(),
+        d.payment_method || '-',
+        d.status || '-',
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [15, 23, 42] },
+      styles: { fontSize: 9 },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.save(`LCP_Donation_Collections_${new Date().toISOString().slice(0, 10)}.pdf`);
+    logExport('PDF', filteredDonations.length, 'Donations');
+    showToast({ title: 'Export Complete', message: 'PDF file has been downloaded.', type: 'success' });
   };
 
   // ─── SKELETON LOADER ──────────────────────────────────────────────────────
@@ -367,7 +419,7 @@ const DonationCollections = () => {
             <FileSpreadsheet className="w-4 h-4" /> Export CSV
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={exportToPDF}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg"
           >
             <Download className="w-4 h-4" /> Export PDF

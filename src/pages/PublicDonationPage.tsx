@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext'; // 1. IMPORT TOAST
-import { ChevronRight, CheckCircle, Loader2, Heart, ArrowLeft, CreditCard, Smartphone, Download, Image as ImageIcon } from 'lucide-react'; // Para sa stepper
+import { ChevronRight, CheckCircle, Loader2, Heart, ArrowLeft, Smartphone, Download, Image as ImageIcon } from 'lucide-react'; // Para sa stepper
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { Link, useSearchParams } from 'react-router-dom';
 import { EmailService } from '../services/emailService';
+import jsPDF from 'jspdf';
 
 
 const PublicDonationPage = () => {
@@ -34,6 +35,7 @@ const PublicDonationPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState(1); // 1: Select, 2: Details, 3: Success
   const [refNumber, setRefNumber] = useState('');
+  const [receiptAutoDownloaded, setReceiptAutoDownloaded] = useState(false);
 
   const qrCodes: any = {
     GCash: "https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg",
@@ -143,6 +145,7 @@ const PublicDonationPage = () => {
     }
 
     setIsProcessing(true);
+    setReceiptAutoDownloaded(false);
     const generatedRef = generateReference();
     setRefNumber(generatedRef);
 
@@ -186,6 +189,30 @@ const PublicDonationPage = () => {
     }
   };
 
+  const handleDownloadReceiptPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('BCP Alumni Donation Receipt', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Reference Number: ${refNumber}`, 14, 36);
+    doc.text(`Donor: ${form.name || 'Valued Donor'}`, 14, 46);
+    doc.text(`Email: ${form.email || '-'}`, 14, 56);
+    doc.text(`Campaign: ${selectedCampaign?.title || '-'}`, 14, 66);
+    doc.text(`Amount: PHP ${Number(form.amount || 0).toLocaleString()}`, 14, 76);
+    doc.text(`Payment Method: ${form.method}`, 14, 86);
+    doc.text(`Date: ${new Date().toLocaleString()}`, 14, 96);
+    doc.setFontSize(9);
+    doc.text('Status: Pending verification by Finance Office', 14, 112);
+    doc.save(`donation_receipt_${refNumber || Date.now()}.pdf`);
+  };
+
+  useEffect(() => {
+    if (step === 3 && refNumber && !receiptAutoDownloaded) {
+      handleDownloadReceiptPDF();
+      setReceiptAutoDownloaded(true);
+    }
+  }, [step, refNumber, receiptAutoDownloaded]);
+
   if (step === 3) {
     return (
       <div className="fixed inset-0 bg-green-600 z-50 flex items-center justify-center p-4 animate-in fade-in duration-500 overflow-hidden">
@@ -218,7 +245,7 @@ const PublicDonationPage = () => {
 
           <div className="flex flex-col gap-3 print:hidden">
             <div className="flex gap-3">
-              <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50">
+              <button onClick={handleDownloadReceiptPDF} className="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50">
                 <Download className="w-4 h-4" /> Receipt
               </button>
               <button onClick={() => window.location.reload()} className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg">
@@ -400,10 +427,10 @@ const PublicDonationPage = () => {
 
               <div>
                 <label className="block text-xs font-bold text-blue-200/50 uppercase mb-2">Select Payment Method</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['GCash', 'Maya', 'Stripe'].map(m => (
+                <div className="grid grid-cols-2 gap-3">
+                  {['GCash', 'Maya'].map(m => (
                     <button key={m} onClick={() => setForm({ ...form, method: m })} className={`py-3 rounded-xl text-sm font-bold border flex flex-col items-center gap-1 transition-all ${form.method === m ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-900 border-white/10 text-white/60 hover:bg-slate-700'}`}>
-                      {m === 'Stripe' ? <CreditCard className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
+                      <Smartphone className="w-4 h-4" />
                       {m}
                     </button>
                   ))}
@@ -440,23 +467,6 @@ const PublicDonationPage = () => {
                     {isUploading && <p className="text-[10px] text-emerald-400 mt-1 animate-pulse italic">Uploading to storage...</p>}
                     {form.proof_image_url && <p className="text-[10px] text-green-400 mt-1 flex items-center gap-1 font-bold"><CheckCircle className="w-3 h-3" /> Image ready for verification!</p>}
                     <p className="text-[10px] text-gray-500 mt-1 italic">*Max size: 20MB. Required for manual verification.</p>
-                  </div>
-                )}
-
-
-
-                {form.method === 'Stripe' && (
-                  <div className="space-y-3 animate-in fade-in">
-                    <div className="flex gap-2 mb-2">
-                      <div className="h-8 w-12 bg-white/10 rounded flex items-center justify-center"><ImageIcon className="w-4 h-4 text-gray-600" /></div>
-                      <div className="h-8 w-12 bg-white/10 rounded flex items-center justify-center"><ImageIcon className="w-4 h-4 text-gray-600" /></div>
-                    </div>
-                    <input className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-sm text-white" placeholder="Card Number (xxxx xxxx xxxx xxxx)" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <input className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-sm text-white" placeholder="MM / YY" />
-                      <input className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-sm text-white" placeholder="CVC" />
-                    </div>
-                    <p className="text-[10px] text-gray-500 mt-2 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Payments are secured by Stripe</p>
                   </div>
                 )}
               </div>

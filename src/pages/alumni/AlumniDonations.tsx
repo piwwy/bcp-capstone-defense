@@ -11,6 +11,8 @@ import {
   Image as ChevronRight, ExternalLink, X, Trophy, Award,
   TrendingUp, Target, Wallet
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const AlumniDonations = () => {
   const { user } = useAuth();
@@ -72,6 +74,34 @@ const AlumniDonations = () => {
 
   const totalRaised = campaigns.reduce((s, c) => s + (c.current_amount || 0), 0);
   const myTotal = myHistory.filter(d => d.status === 'verified').reduce((s, d) => s + (d.amount || 0), 0);
+
+  const exportHistoryPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('My Donation History', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Alumni: ${user?.name || 'Alumni Member'}`, 14, 30);
+    doc.text(`Email: ${user?.email || '-'}`, 14, 38);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 46);
+    doc.text(`Total Verified Donations: PHP ${Number(myTotal).toLocaleString()}`, 14, 54);
+
+    autoTable(doc, {
+      startY: 62,
+      head: [['Campaign Name', 'Amount (PHP)', 'Date Paid', 'Status']],
+      body: myHistory.map(don => [
+        don.donation_campaigns?.title || 'Unknown Campaign',
+        Number(don.amount || 0).toLocaleString(),
+        new Date(don.created_at).toLocaleDateString(),
+        don.status || '-',
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] },
+      styles: { fontSize: 9 },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.save(`my_donation_history_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   return (
     <PageTransition>
@@ -196,7 +226,7 @@ const AlumniDonations = () => {
                     <History className="w-5 h-5 text-blue-500" />
                     <h3 className="font-black text-slate-800">My Contribution Records</h3>
                   </div>
-                  <button onClick={() => window.print()} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                  <button onClick={exportHistoryPDF} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
                     <Download className="w-5 h-5" />
                   </button>
                 </div>
