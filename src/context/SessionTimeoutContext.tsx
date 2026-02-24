@@ -6,8 +6,8 @@ import { ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
 // ============================================================
 // CONFIGURATION — ADJUST THESE TWO VALUES
 // ============================================================
-const IDLE_TRIGGER = 55 * 60 * 1000;     // 55 minutes idle → show warning modal
-const LOGOUT_COUNTDOWN = 5 * 60;         // 5 minutes countdown (total ~1 hour session window)
+const IDLE_TRIGGER = 10 * 60 * 1000;     // 10 minutes idle → show warning modal
+const LOGOUT_COUNTDOWN = 5 * 60;         // 5 minutes countdown before auto-logout
 // ============================================================
 
 interface SessionTimeoutContextType {

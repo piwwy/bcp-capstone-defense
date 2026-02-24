@@ -67,9 +67,8 @@ const SuperAdminSidebar: React.FC = () => {
     },
     {
       name: "Advanced Tools", icon: BarChart3, subItems: [
-        { name: "Analytics", path: "/superadmin/analytics", icon: PieChart },
+        { name: "Reports & Analytics", path: "/superadmin/analytics", icon: PieChart },
         { name: "Tracer Survey", path: "/superadmin/tracer-survey", icon: Mail },
-        { name: "Report Generator", path: "/superadmin/reports", icon: FileText },
         { name: "Train AI", path: "/superadmin/train-ai", icon: Bot },
         { name: "Audit Trail", path: "/superadmin/audit-trail", icon: ClipboardCheck },
       ]

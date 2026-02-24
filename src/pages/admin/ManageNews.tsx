@@ -7,7 +7,7 @@ import { EmailService } from '../../services/emailService';
 import {
     Newspaper, Plus, Edit2, Eye, EyeOff,
     Loader2, X, Calendar, User, Search, RefreshCw,
-    Image, Clock, CheckCircle, UploadCloud, Crown, Archive, Users, Mail
+    Image, Clock, CheckCircle, UploadCloud, Crown, Archive, Users, Mail, AlertTriangle
 } from 'lucide-react';
 
 interface NewsArticle {
@@ -59,6 +59,7 @@ const ManageNews = () => {
     const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [showSubscribers, setShowSubscribers] = useState(false);
     const [sendingArticleId, setSendingArticleId] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ type: 'archive' | 'restore'; article: NewsArticle } | null>(null);
 
     // Image upload state
     const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -328,6 +329,16 @@ const ManageNews = () => {
         } catch (error: any) {
             showToast({ title: 'Error', message: error.message, type: 'error' });
         }
+    };
+
+    const handleConfirmArchiveAction = async () => {
+        if (!confirmAction) return;
+        if (confirmAction.type === 'archive') {
+            await archiveArticle(confirmAction.article);
+        } else {
+            await restoreArticle(confirmAction.article);
+        }
+        setConfirmAction(null);
     };
 
     const sendToSubscribers = async (article: NewsArticle) => {
@@ -627,7 +638,7 @@ const ManageNews = () => {
                                         )}
                                         {!isArchived(article) && (
                                             <button
-                                                onClick={() => archiveArticle(article)}
+                                                onClick={() => setConfirmAction({ type: 'archive', article })}
                                                 className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                                 title="Archive article"
                                             >
@@ -636,7 +647,7 @@ const ManageNews = () => {
                                         )}
                                         {isArchived(article) && (
                                             <button
-                                                onClick={() => restoreArticle(article)}
+                                                onClick={() => setConfirmAction({ type: 'restore', article })}
                                                 className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                                                 title="Restore to published"
                                             >
@@ -788,6 +799,41 @@ const ManageNews = () => {
                                 className="flex-[2] py-5 bg-blue-600 text-white rounded-3xl font-black shadow-2xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
                                 {saving ? <Loader2 className="animate-spin" /> : <>{editingArticle ? 'Update' : 'Create'} Article</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {confirmAction && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 text-center">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${confirmAction.type === 'archive' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                                {confirmAction.type === 'archive' ? (
+                                    <Archive className="w-8 h-8 text-amber-600" />
+                                ) : (
+                                    <AlertTriangle className="w-8 h-8 text-emerald-600" />
+                                )}
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                {confirmAction.type === 'archive' ? 'Archive Article?' : 'Restore Article?'}
+                            </h3>
+                            <p className="text-gray-500 text-sm">
+                                {confirmAction.type === 'archive'
+                                    ? `Are you sure you want to archive "${confirmAction.article.title}"?`
+                                    : `Are you sure you want to restore "${confirmAction.article.title}"?`}
+                            </p>
+                        </div>
+                        <div className="flex border-t border-gray-100 bg-gray-50/50 p-4 gap-3">
+                            <button onClick={() => setConfirmAction(null)} className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmArchiveAction}
+                                className={`flex-1 py-2.5 text-white font-bold rounded-xl flex items-center justify-center gap-2 ${confirmAction.type === 'archive' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                            >
+                                {confirmAction.type === 'archive' ? 'Confirm Archive' : 'Confirm Restore'}
                             </button>
                         </div>
                     </div>

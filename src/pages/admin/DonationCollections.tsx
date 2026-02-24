@@ -45,6 +45,7 @@ const DonationCollections = () => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,6 +109,7 @@ const DonationCollections = () => {
           current_amount: Number(c.current_amount) || 0,
         }))
       );
+      setLastSyncedAt(new Date());
     } catch (err: any) {
       showToast({ title: 'Fetch Error', message: err.message, type: 'error' });
     } finally {
@@ -365,6 +367,9 @@ const DonationCollections = () => {
               <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                 Financial Audit
               </span>
+              <span className="bg-emerald-400/20 border border-emerald-300/30 text-emerald-100 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                External Source: Financial Management System
+              </span>
             </div>
             <h2 className="text-3xl font-black text-white tracking-tighter">Donation Collections</h2>
             <p className="text-purple-100 text-sm font-medium mt-1">
@@ -391,6 +396,9 @@ const DonationCollections = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Audit Dashboard</h1>
           <p className="text-slate-500 text-sm font-medium">
             Reconciling {maskAmount(stats.total)} across {activeCampaigns.length} active campaigns.
+          </p>
+          <p className="text-[11px] text-slate-400 font-bold mt-1">
+            Last Synced: {lastSyncedAt ? lastSyncedAt.toLocaleString() : 'Not yet synced'}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap justify-end">

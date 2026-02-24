@@ -20,6 +20,7 @@ const ManageEvents = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'management' | 'calendar' | 'approvals'>('calendar');
 
   // Filter Tab State for Event List view
@@ -126,6 +127,7 @@ const ManageEvents = () => {
 
     const { data } = await query;
     if (data) setEvents(data);
+    setLastSyncedAt(new Date());
     setInitialLoading(false);
   };
 
@@ -543,6 +545,15 @@ const ManageEvents = () => {
             <Plus className="w-5 h-5" /> Launch New Event
           </button>
         )}
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+        <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-widest">
+          External Source: Event Management System
+        </div>
+        <p className="text-[11px] text-slate-400 font-bold">
+          Last Synced: {lastSyncedAt ? lastSyncedAt.toLocaleString() : 'Not yet synced'}
+        </p>
       </div>
 
 
