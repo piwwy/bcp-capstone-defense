@@ -271,12 +271,6 @@ export default function Login() {
 
           {/* Footer */}
           <div className="mt-8 text-center space-y-4">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-xs text-blue-600 font-medium">
-                💡 Don't have an account? Contact your administrator for access.
-              </p>
-            </div>
-
             <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
               <ArrowLeft className="w-3 h-3" /> Back to Home
             </Link>
