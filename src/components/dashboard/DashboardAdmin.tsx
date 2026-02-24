@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
-import { useAdminDashboardStats } from '../../hooks/useSupabaseQuery';
+import { useAdminDashboardStats, useEmploymentStats } from '../../hooks/useSupabaseQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Users, Clock, ArrowRight, Activity, Calendar, Loader2,
@@ -19,14 +19,11 @@ const DashboardAdmin: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [employmentStats, setEmploymentStats] = useState({
-    employed: 0, selfEmployed: 0, unemployed: 0, student: 0
-  });
-
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   const { data, isLoading: loading, isFetching } = useAdminDashboardStats();
+  const { data: employmentStats } = useEmploymentStats();
   const { stats, modules: moduleCounts } = data || {
     stats: { total: 0, unclaimed: 0, verified: 0, rejected: 0 },
     modules: { events: 0, jobs: 0, campaigns: 0, news: 0 }
@@ -56,23 +53,6 @@ const DashboardAdmin: React.FC = () => {
 
   const fetchExtraData = async () => {
     try {
-      // Employment stats from alumni_profiles
-      const [
-        { count: employed },
-        { count: selfEmployed },
-        { count: unemployed },
-        { count: student },
-      ] = await Promise.all([
-        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
-        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'self-employed'),
-        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
-        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
-      ]);
-      setEmploymentStats({
-        employed: employed || 0, selfEmployed: selfEmployed || 0,
-        unemployed: unemployed || 0, student: student || 0,
-      });
-
       const { data: recents } = await supabase
         .from('profiles')
         .select('*')
@@ -137,10 +117,10 @@ const DashboardAdmin: React.FC = () => {
 
   // Employment bar chart data
   const employmentChartData = [
-    { name: 'Employed', value: employmentStats.employed },
-    { name: 'Self-Employed', value: employmentStats.selfEmployed },
-    { name: 'Unemployed', value: employmentStats.unemployed },
-    { name: 'Student', value: employmentStats.student },
+    { name: 'Employed', value: employmentStats?.employed || 0 },
+    { name: 'Self-Employed', value: employmentStats?.selfEmployed || 0 },
+    { name: 'Unemployed', value: employmentStats?.unemployed || 0 },
+    { name: 'Student', value: employmentStats?.student || 0 },
   ];
 
   if (loading) {

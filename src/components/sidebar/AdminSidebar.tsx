@@ -45,7 +45,7 @@ const AdminSidebar: React.FC = () => {
     },
     {
       name: "Events & Reunions", icon: Calendar, subItems: [
-        { name: "Event Management", path: "/admin/events/calendar", icon: CalendarDays },
+        { name: "Events", path: "/admin/events/calendar", icon: CalendarDays },
         { name: "Batch Reunions", path: "/admin/batch-reunions", icon: PartyPopper },
       ]
     },

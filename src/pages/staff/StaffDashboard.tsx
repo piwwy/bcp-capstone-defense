@@ -9,6 +9,7 @@ import {
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
+import { useEmploymentStats, useModuleCounts } from '../../hooks/useSupabaseQuery';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
 
@@ -20,13 +21,9 @@ const StaffDashboard: React.FC = () => {
         total: 0, unclaimed: 0, verified: 0, rejected: 0
     });
 
-    const [moduleCounts, setModuleCounts] = useState({
-        events: 0, jobs: 0, campaigns: 0, news: 0
-    });
+    const { data: moduleCounts } = useModuleCounts({ activeOnly: true });
 
-    const [employmentStats, setEmploymentStats] = useState({
-        employed: 0, selfEmployed: 0, unemployed: 0, student: 0
-    });
+    const { data: employmentStats } = useEmploymentStats();
 
     const [recentUsers, setRecentUsers] = useState<any[]>([]);
 
@@ -66,32 +63,7 @@ const StaffDashboard: React.FC = () => {
 
             setStats({ total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 });
 
-            // Module counts
-            let events = 0, jobs = 0, campaigns = 0, news = 0;
-            try { const r = await supabase.from('alumni_events').select('*', { count: 'exact', head: true }); events = r.count || 0; } catch { }
-            try { const r = await supabase.from('jobs').select('*', { count: 'exact', head: true }); jobs = r.count || 0; } catch { }
-            try { const r = await supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }); campaigns = r.count || 0; } catch { }
-            try { const r = await supabase.from('news_articles').select('*', { count: 'exact', head: true }); news = r.count || 0; } catch { }
-            setModuleCounts({ events, jobs, campaigns, news });
-
-            // Employment stats
-            try {
-                const [
-                    { count: employed },
-                    { count: selfEmployed },
-                    { count: unemployed },
-                    { count: student },
-                ] = await Promise.all([
-                    supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
-                    supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'self-employed'),
-                    supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
-                    supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
-                ]);
-                setEmploymentStats({
-                    employed: employed || 0, selfEmployed: selfEmployed || 0,
-                    unemployed: unemployed || 0, student: student || 0,
-                });
-            } catch { }
+            // Module and employment stats are provided by hooks
 
             const { data: recents } = await supabase
                 .from('profiles')
@@ -121,10 +93,10 @@ const StaffDashboard: React.FC = () => {
 
     // Employment bar chart data
     const employmentChartData = [
-        { name: 'Employed', value: employmentStats.employed },
-        { name: 'Self-Employed', value: employmentStats.selfEmployed },
-        { name: 'Unemployed', value: employmentStats.unemployed },
-        { name: 'Student', value: employmentStats.student },
+        { name: 'Employed', value: employmentStats?.employed || 0 },
+        { name: 'Self-Employed', value: employmentStats?.selfEmployed || 0 },
+        { name: 'Unemployed', value: employmentStats?.unemployed || 0 },
+        { name: 'Student', value: employmentStats?.student || 0 },
     ];
 
     if (loading) {

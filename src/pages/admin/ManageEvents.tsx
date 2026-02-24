@@ -16,6 +16,7 @@ const ManageEvents = () => {
   const { showToast } = useToast();
   const { user } = useAuth();
   const isStaff = user?.role === 'staff';
+  const canManage = user?.role === 'admin' || user?.role === 'superadmin';
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -502,8 +503,15 @@ const ManageEvents = () => {
     </div>
   );
 
+  // Enforce view restrictions: hide approvals for non-managers
+  useEffect(() => {
+    if (!canManage && viewMode === 'approvals') {
+      setViewMode('calendar');
+    }
+  }, [canManage, viewMode]);
+
   return (
-    <AdminPageLayout title="Event Management" subtitle="Schedule and visualize alumni activities" icon={CalendarIcon}>
+    <AdminPageLayout title="Events" subtitle="Calendar, list, and registrations" icon={CalendarIcon}>
 
       {/* 1. VIEW SWITCHER & CONTROLS */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -520,17 +528,21 @@ const ManageEvents = () => {
           >
             <LayoutGrid className="w-4 h-4" /> Event List
           </button>
-          <button
-            onClick={() => setViewMode('approvals')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${viewMode === 'approvals' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
-          >
-            <CalendarCheck className="w-4 h-4" /> Approvals {pendingCount > 0 && <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{pendingCount}</span>}
-          </button>
+          {canManage && (
+            <button
+              onClick={() => setViewMode('approvals')}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${viewMode === 'approvals' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            >
+              <CalendarCheck className="w-4 h-4" /> Approvals {pendingCount > 0 && <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{pendingCount}</span>}
+            </button>
+          )}
         </div>
 
-        <button onClick={openCreateModal} className="bg-blue-600 text-white px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-100 active:scale-95 transition-all">
-          <Plus className="w-5 h-5" /> Launch New Event
-        </button>
+        {canManage && (
+          <button onClick={openCreateModal} className="bg-blue-600 text-white px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-100 active:scale-95 transition-all">
+            <Plus className="w-5 h-5" /> Launch New Event
+          </button>
+        )}
       </div>
 
 
@@ -573,10 +585,12 @@ const ManageEvents = () => {
                         showToast({ title: 'Invalid Date', message: 'You cannot schedule an event in the past. Please pick a future date.', type: 'warning' });
                         return;
                       }
-                      const y = day.getFullYear();
-                      const m = (day.getMonth() + 1).toString().padStart(2, '0');
-                      const d = day.getDate().toString().padStart(2, '0');
-                      openCreateModalWithDate(`${y}-${m}-${d}`);
+                      if (canManage) {
+                        const y = day.getFullYear();
+                        const m = (day.getMonth() + 1).toString().padStart(2, '0');
+                        const d = day.getDate().toString().padStart(2, '0');
+                        openCreateModalWithDate(`${y}-${m}-${d}`);
+                      }
                     }
                   }}
                   className={`min-h-[140px] border-r border-b border-slate-700/50 p-3 transition-colors ${!day ? 'bg-slate-800/30' : isPast ? 'bg-slate-800/50 cursor-not-allowed opacity-40' : 'hover:bg-slate-700/30 cursor-pointer'}`}
@@ -588,7 +602,7 @@ const ManageEvents = () => {
                       </span>
                       <div className="mt-2 space-y-1">
                         {getEventsForDate(day).map(event => (
-                          <div key={event.id} onClick={(e) => { e.stopPropagation(); openEditModal(event); }} className="p-2 bg-blue-600 rounded-lg shadow-sm cursor-pointer hover:scale-105 transition-transform">
+                          <div key={event.id} onClick={(e) => { e.stopPropagation(); if (canManage) { openEditModal(event); } }} className="p-2 bg-blue-600 rounded-lg shadow-sm cursor-pointer hover:scale-105 transition-transform">
                             <p className="text-[9px] font-black text-white truncate leading-none uppercase">{event.title}</p>
                             <p className="text-[8px] text-blue-100 font-bold mt-1 uppercase">{event.category}</p>
                           </div>
@@ -684,7 +698,7 @@ const ManageEvents = () => {
                     : filterTab === 'past' ? 'Events that have already occurred will show up here automatically.'
                       : 'Archived events will appear here. You can restore them anytime.'}
               </p>
-              {filterTab === 'active' && !searchQuery && (
+              {canManage && filterTab === 'active' && !searchQuery && (
                 <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">
                   <Plus className="w-4 h-4" /> Launch New Event
                 </button>
@@ -703,8 +717,8 @@ const ManageEvents = () => {
                     category={event.category}
                     status={event.status}
                     subtitle={eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                    onEdit={() => openEditModal(event)}
-                    onDelete={isStaff ? undefined : () => confirmArchive(event.id, event.title, event.status)}
+                    onEdit={canManage ? () => openEditModal(event) : undefined}
+                    onDelete={canManage ? () => confirmArchive(event.id, event.title, event.status) : undefined}
                     onView={() => openRSVPList(event.id, event.title)}
                   >
                     <div className="mt-4 flex flex-col gap-2">

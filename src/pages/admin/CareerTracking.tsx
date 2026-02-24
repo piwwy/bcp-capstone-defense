@@ -34,8 +34,7 @@ interface AlumniProfile {
 
 const EMPLOYMENT_STATUSES = [
     { value: 'employed', label: 'Employed', color: '#10B981', bgColor: 'bg-emerald-100 text-emerald-700' },
-    { value: 'self_employed', label: 'Self-Employed', color: '#3B82F6', bgColor: 'bg-blue-100 text-blue-700' },
-    { value: 'freelance', label: 'Freelance', color: '#8B5CF6', bgColor: 'bg-purple-100 text-purple-700' },
+    { value: 'self-employed', label: 'Self-Employed', color: '#3B82F6', bgColor: 'bg-blue-100 text-blue-700' },
     { value: 'unemployed', label: 'Seeking Work', color: '#F59E0B', bgColor: 'bg-amber-100 text-amber-700' },
     { value: 'student', label: 'Further Studies', color: '#06B6D4', bgColor: 'bg-cyan-100 text-cyan-700' },
     { value: 'other', label: 'Other', color: '#6B7280', bgColor: 'bg-gray-100 text-gray-700' },
@@ -195,8 +194,8 @@ const CareerTracking = () => {
         EMPLOYMENT_STATUSES.forEach(s => stats[s.value] = 0);
         alumni.forEach(a => {
             const status = a.employment_status || 'other';
-            if (stats[status] !== undefined) stats[status]++;
-            else stats['other']++;
+            const normalized = status === 'self_employed' || status === 'freelance' ? 'self-employed' : status;
+            if (stats[normalized] !== undefined) stats[normalized]++; else stats['other']++;
         });
         return EMPLOYMENT_STATUSES.map(s => ({
             name: s.label,
@@ -220,9 +219,10 @@ const CareerTracking = () => {
 
     // Employment rate
     const employmentRate = useMemo(() => {
-        const employed = alumni.filter(a =>
-            ['employed', 'self_employed', 'freelance'].includes(a.employment_status)
-        ).length;
+        const employed = alumni.filter(a => {
+            const st = a.employment_status;
+            return st === 'employed' || st === 'self-employed' || st === 'self_employed' || st === 'freelance';
+        }).length;
         return alumni.length > 0 ? ((employed / alumni.length) * 100).toFixed(1) : '0';
     }, [alumni]);
 

@@ -45,7 +45,20 @@ const DataAnalytics = () => {
                 .from('profiles')
                 .select('*')
                 .eq('role', 'alumni');
-            if (profilesData) setProfiles(profilesData);
+            if (profilesData) {
+                let careerMap = new Map<string, { employment_status: string }>();
+                try {
+                    const { data: career } = await supabase
+                        .from('alumni_profiles')
+                        .select('id, employment_status');
+                    careerMap = new Map((career || []).map((c: any) => [c.id, { employment_status: c.employment_status }]));
+                } catch { /* ignore */ }
+                const merged = profilesData.map((p: any) => ({
+                    ...p,
+                    employment_status: careerMap.get(p.id)?.employment_status || p.employment_status || ''
+                }));
+                setProfiles(merged as Profile[]);
+            }
 
             const { data: donations } = await supabase
                 .from('donations')
@@ -134,26 +147,25 @@ const DataAnalytics = () => {
 
     const employmentDistribution = useMemo(() => {
         const statuses: Record<string, number> = {
-            'Employed': 0, 'Self-Employed': 0, 'Freelance': 0,
+            'Employed': 0, 'Self-Employed': 0,
             'Seeking Work': 0, 'Further Studies': 0, 'Other': 0
         };
         activeAlumni.forEach(p => {
-            switch (p.employment_status) {
-                case 'employed': statuses['Employed']++; break;
-                case 'self_employed': statuses['Self-Employed']++; break;
-                case 'freelance': statuses['Freelance']++; break;
-                case 'unemployed': statuses['Seeking Work']++; break;
-                case 'student': statuses['Further Studies']++; break;
-                default: statuses['Other']++;
-            }
+            const st = p.employment_status;
+            if (st === 'employed') statuses['Employed']++;
+            else if (st === 'self-employed' || st === 'self_employed' || st === 'freelance') statuses['Self-Employed']++;
+            else if (st === 'unemployed') statuses['Seeking Work']++;
+            else if (st === 'student') statuses['Further Studies']++;
+            else statuses['Other']++;
         });
         return Object.entries(statuses).map(([name, value]) => ({ name, value }));
     }, [activeAlumni]);
 
     const employmentRate = useMemo(() => {
-        const employed = activeAlumni.filter(p =>
-            ['employed', 'self_employed', 'freelance'].includes(p.employment_status)
-        ).length;
+        const employed = activeAlumni.filter(p => {
+            const st = p.employment_status;
+            return st === 'employed' || st === 'self-employed' || st === 'self_employed' || st === 'freelance';
+        }).length;
         return activeAlumni.length > 0 ? ((employed / activeAlumni.length) * 100).toFixed(1) : '0';
     }, [activeAlumni]);
 

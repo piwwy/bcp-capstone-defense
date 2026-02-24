@@ -6,6 +6,64 @@ import { supabase } from '../services/supabaseClient';
 // Uses TanStack Query for caching, deduplication, background refetch
 // ============================================================
 
+/** Employment status counts used by dashboards (deduplicated) */
+export function useEmploymentStats() {
+  return useQuery({
+    queryKey: ['employment_stats'],
+    queryFn: async () => {
+      // Handle legacy values: self_employed and freelance => group under Self-Employed
+      const [
+        { count: employed },
+        selfGroup,
+        { count: unemployed },
+        { count: student },
+      ] = await Promise.all([
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).in('employment_status', ['self-employed', 'self_employed', 'freelance']),
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
+        supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
+      ]);
+      return {
+        employed: employed || 0,
+        selfEmployed: (selfGroup.count as number) || 0,
+        unemployed: unemployed || 0,
+        student: student || 0,
+      };
+    },
+    staleTime: 20_000,
+  });
+}
+
+/** Standard module counts; by default counts 'active/live' items to align with UI lists */
+export function useModuleCounts(options?: { activeOnly?: boolean }) {
+  const activeOnly = options?.activeOnly !== false; // default true
+  return useQuery({
+    queryKey: ['module_counts', { activeOnly }],
+    queryFn: async () => {
+      const eventQuery = supabase.from('alumni_events').select('*', { count: 'exact', head: true });
+      const jobsQuery = supabase.from('jobs').select('*', { count: 'exact', head: true });
+      const campaignsQuery = supabase.from('donation_campaigns').select('*', { count: 'exact', head: true });
+      const newsQuery = supabase.from('news_articles').select('*', { count: 'exact', head: true });
+
+      const queries = await Promise.all([
+        (activeOnly ? eventQuery.eq('status', 'active') : eventQuery),
+        (activeOnly ? jobsQuery.eq('status', 'active') : jobsQuery),
+        (activeOnly ? campaignsQuery.eq('status', 'active') : campaignsQuery),
+        (activeOnly ? newsQuery.eq('is_published', true) : newsQuery),
+      ]);
+
+      const [events, jobs, campaigns, news] = queries;
+      return {
+        events: events.count || 0,
+        jobs: jobs.count || 0,
+        campaigns: campaigns.count || 0,
+        news: news.count || 0,
+      };
+    },
+    staleTime: 20_000,
+  });
+}
+
 /** Fetch active jobs (cached, shared across pages) */
 export function useJobs(limit?: number) {
   return useQuery({
@@ -297,10 +355,11 @@ export function useAdminDashboardStats() {
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-        supabase.from('alumni_events').select('*', { count: 'exact', head: true }),
-        supabase.from('jobs').select('*', { count: 'exact', head: true }),
-        supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }),
-        supabase.from('news_articles').select('*', { count: 'exact', head: true }),
+        // Align module counts to active/live by default to match UI lists
+        supabase.from('alumni_events').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('news_articles').select('*', { count: 'exact', head: true }).eq('is_published', true),
       ]);
 
       return {

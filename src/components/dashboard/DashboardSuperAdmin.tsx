@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useEmploymentStats } from '../../hooks/useSupabaseQuery';
 import {
   Users, Shield, Activity, ArrowRight, Calendar, Loader2,
   Crown, Database, BarChart3, AlertTriangle, Briefcase, Heart, Newspaper,
@@ -39,9 +40,7 @@ const DashboardSuperAdmin = () => {
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
-  const [employmentStats, setEmploymentStats] = useState({
-    employed: 0, selfEmployed: 0, unemployed: 0, student: 0
-  });
+  const { data: employmentStats } = useEmploymentStats();
 
   useEffect(() => {
     if (user) {
@@ -97,25 +96,6 @@ const DashboardSuperAdmin = () => {
         rejectedUsers: rejectedUsers || 0, disabledUsers: disabledUsers || 0,
         totalEvents, totalJobs, totalCampaigns, totalNews,
       });
-
-      // Employment stats
-      try {
-        const [
-          { count: employed },
-          { count: selfEmployed },
-          { count: unemployed },
-          { count: student },
-        ] = await Promise.all([
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'employed'),
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'self-employed'),
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'unemployed'),
-          supabase.from('alumni_profiles').select('*', { count: 'exact', head: true }).eq('employment_status', 'student'),
-        ]);
-        setEmploymentStats({
-          employed: employed || 0, selfEmployed: selfEmployed || 0,
-          unemployed: unemployed || 0, student: student || 0,
-        });
-      } catch { }
 
       // Recent users (all roles)
       const { data: recents } = await supabase
@@ -239,10 +219,10 @@ const DashboardSuperAdmin = () => {
 
   // Employment bar chart data
   const employmentChartData = [
-    { name: 'Employed', value: employmentStats.employed },
-    { name: 'Self-Employed', value: employmentStats.selfEmployed },
-    { name: 'Unemployed', value: employmentStats.unemployed },
-    { name: 'Student', value: employmentStats.student },
+    { name: 'Employed', value: employmentStats?.employed || 0 },
+    { name: 'Self-Employed', value: employmentStats?.selfEmployed || 0 },
+    { name: 'Unemployed', value: employmentStats?.unemployed || 0 },
+    { name: 'Student', value: employmentStats?.student || 0 },
   ];
 
   // Account status for analytics overview
