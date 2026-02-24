@@ -121,6 +121,9 @@ export default function Login() {
       showToast({ type: 'success', title: 'Login Successful', message: `Welcome back, ${profile?.first_name || 'User'}!` });
       logLogin(email, 'email');
 
+      // Require DPA prompt once per successful login session across all roles.
+      sessionStorage.setItem('dpa_prompt_required', 'true');
+
       // 4. INTELLIGENT REDIRECT (with small delay for session persistence)
       const role = profile.role?.toLowerCase();
 

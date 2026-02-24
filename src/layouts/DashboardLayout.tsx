@@ -3,7 +3,6 @@ import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, X, Info, Calendar as CalendarIcon, Briefcase, TrendingUp, Heart, MessageSquare, ClipboardList, Loader2, Cpu } from 'lucide-react';
-import { supabase } from '../services/supabaseClient';
 import DPAConsentModal from '../components/modals/DPAConsentModal';
 
 // Sidebar Imports
@@ -20,46 +19,31 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // DPA 2012 consent gate for admin/staff/superadmin roles.
+  // DPA gate shown once per successful login session.
   const [showDPAConsent, setShowDPAConsent] = useState(false);
   const [dpaChecked, setDpaChecked] = useState(false);
 
   useEffect(() => {
-    const checkDPA = async () => {
+    const checkDPA = () => {
       if (!user) {
         setDpaChecked(true);
         return;
       }
 
       const role = (user.role || '').toLowerCase();
-      const requiresDPA = ['admin', 'registrar', 'staff', 'superadmin'].includes(role);
-
-      if (!requiresDPA) {
-        setDpaChecked(true);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('dpa_consented_at')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.warn('DPA check failed, allowing dashboard access:', error.message);
-        } else if (!data?.dpa_consented_at) {
-          setShowDPAConsent(true);
-        }
-      } catch (err) {
-        console.error('Critical DPA check failure:', err);
-      } finally {
-        setDpaChecked(true);
-      }
+      const requiresDPA = ['alumni', 'admin', 'registrar', 'staff', 'superadmin'].includes(role);
+      const shouldPrompt = sessionStorage.getItem('dpa_prompt_required') === 'true';
+      setShowDPAConsent(requiresDPA && shouldPrompt);
+      setDpaChecked(true);
     };
 
     checkDPA();
   }, [user?.id, user?.role]);
+
+  const handleDpaAccepted = () => {
+    sessionStorage.removeItem('dpa_prompt_required');
+    setShowDPAConsent(false);
+  };
 
   const getNotifIcon = (type: string) => {
     switch (type) {
@@ -212,7 +196,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-200 via-blue-100/60 to-indigo-100/50 text-gray-900 font-sans font-medium">
-      {showDPAConsent && <DPAConsentModal onAccept={() => setShowDPAConsent(false)} />}
+      {showDPAConsent && <DPAConsentModal onAccept={handleDpaAccepted} />}
 
       <aside className="h-full z-30 shadow-xl relative">
         {user?.role === 'admin' || user?.role === 'registrar' ? <AdminSidebar /> :

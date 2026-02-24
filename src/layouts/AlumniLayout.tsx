@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import AlumniNavbar from './AlumniNavbar';
 import ChatWidget from '../components/ChatWidget';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabaseClient';
 import DPAConsentModal from '../components/modals/DPAConsentModal';
 import { Loader2 } from 'lucide-react';
 
@@ -18,41 +17,24 @@ const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
   const [dpaChecked, setDpaChecked] = useState(false);
 
   useEffect(() => {
-    const checkDPA = async () => {
+    const checkDPA = () => {
       if (!user) {
         setDpaChecked(true);
         return;
       }
 
-      const shouldShowAfterOtp = sessionStorage.getItem('show_dpa_after_otp') === 'true';
-
-      if (shouldShowAfterOtp) {
-        sessionStorage.removeItem('show_dpa_after_otp');
-        setShowDPAConsent(true);
-        setDpaChecked(true);
-        return;
-      }
-
-      try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('dpa_consented_at')
-          .eq('id', user.id)
-          .single();
-
-        if (!data?.dpa_consented_at) {
-          setShowDPAConsent(true);
-        }
-      } catch (err) {
-        console.error('DPA check failed:', err);
-      } finally {
-        setDpaChecked(true);
-      }
+      const shouldPrompt = sessionStorage.getItem('dpa_prompt_required') === 'true';
+      setShowDPAConsent(shouldPrompt);
+      setDpaChecked(true);
     };
 
     checkDPA();
   }, [user?.id]);
 
+  const handleDpaAccepted = () => {
+    sessionStorage.removeItem('dpa_prompt_required');
+    setShowDPAConsent(false);
+  };
 
 
   if (!dpaChecked && user) {
@@ -65,7 +47,7 @@ const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-blue-50/50 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900 transition-colors duration-300">
-      {showDPAConsent && <DPAConsentModal onAccept={() => setShowDPAConsent(false)} />}
+      {showDPAConsent && <DPAConsentModal onAccept={handleDpaAccepted} />}
       {/* 1. The Top Navigation */}
       <AlumniNavbar />
 
