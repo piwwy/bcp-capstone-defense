@@ -11,6 +11,8 @@ import {
   CheckCircle2, XCircle, Eye, MessageSquare, RefreshCw
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ManageEvents = () => {
   const { showToast } = useToast();
@@ -183,6 +185,35 @@ const ManageEvents = () => {
     } finally {
       setFetchingAttendees(false);
     }
+  };
+
+  const exportAttendeesPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Event Guest List', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Event: ${rsvpEventTitle || 'Untitled Event'}`, 14, 30);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 38);
+    doc.text(`Total Registered: ${attendees.length}`, 14, 46);
+
+    autoTable(doc, {
+      startY: 54,
+      head: [['#', 'Name', 'Email', 'Registered On']],
+      body: attendees.map((att, idx) => [
+        String(idx + 1),
+        att.profiles ? `${att.profiles.first_name || ''} ${att.profiles.last_name || ''}`.trim() : 'Anonymous Alumni',
+        att.profiles?.email || '-',
+        new Date(att.created_at).toLocaleString(),
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [30, 41, 59] },
+      styles: { fontSize: 9 },
+      margin: { left: 14, right: 14 },
+    });
+
+    const safeTitle = (rsvpEventTitle || 'event').replace(/[^a-zA-Z0-9-_]+/g, '_');
+    doc.save(`event_guest_list_${safeTitle}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    showToast({ title: 'Export Complete', message: 'Guest list PDF downloaded.', type: 'success' });
   };
 
   const handleSubmit = async () => {
@@ -1095,7 +1126,7 @@ const ManageEvents = () => {
             </div>
             <div className="p-6 bg-slate-50 border-t border-gray-100 flex items-center justify-between">
               <span className="text-xs font-bold text-slate-400">{attendees.length} Registered</span>
-              <button onClick={() => window.print()} className="py-3 px-6 bg-slate-900 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-colors">
+              <button onClick={exportAttendeesPDF} className="py-3 px-6 bg-slate-900 text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-colors">
                 <Download className="w-4 h-4" /> Export List
               </button>
             </div>

@@ -7,13 +7,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Users, Clock, ArrowRight, Activity, Calendar, Loader2,
   Briefcase, Heart, Newspaper, BarChart3, Sparkles, TrendingUp, Shield,
-  History
+  History, Cpu
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'];
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(Math.max(0, value));
 
 const DashboardAdmin: React.FC = () => {
   const { user } = useAuth();
@@ -21,6 +23,16 @@ const DashboardAdmin: React.FC = () => {
 
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [aiForecast, setAiForecast] = useState<{
+    sourceEngine: string;
+    predictedEmploymentRate: string;
+    projectedDonations: string;
+    forecastWindow: string;
+    lastSyncedAt: string;
+    generatedAt: string;
+  } | null>(null);
+  const [heartbeatStatus, setHeartbeatStatus] = useState<'checking' | 'connected' | 'fallback'>('checking');
+  const [autoDonationProjection, setAutoDonationProjection] = useState<string>('PHP 0');
 
   const { data, isLoading: loading, isFetching } = useAdminDashboardStats();
   const { data: employmentStats } = useEmploymentStats();
@@ -32,6 +44,7 @@ const DashboardAdmin: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchExtraData();
+      void checkHeartbeat();
     }
 
     const subscription = supabase
@@ -51,6 +64,31 @@ const DashboardAdmin: React.FC = () => {
     return () => { supabase.removeChannel(subscription); };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const intervalId = setInterval(() => { void checkHeartbeat(); }, 60_000);
+    return () => clearInterval(intervalId);
+  }, [user]);
+
+  const checkHeartbeat = async () => {
+    setHeartbeatStatus('checking');
+    try {
+      const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/alumni-ai-train';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      setHeartbeatStatus(response.ok ? 'connected' : 'fallback');
+    } catch {
+      setHeartbeatStatus('fallback');
+    }
+  };
+
   const fetchExtraData = async () => {
     try {
       const { data: recents } = await supabase
@@ -61,6 +99,46 @@ const DashboardAdmin: React.FC = () => {
         .limit(5);
 
       if (recents) setRecentUsers(recents);
+
+      const { data: aiLogs } = await supabase
+        .from('audit_logs')
+        .select('created_at, details')
+        .eq('action', 'SETTINGS_UPDATED')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      const latestAi = (aiLogs || []).find((log: any) => log?.details?.module === 'AI Forecasting');
+      if (latestAi?.details?.insights) {
+        const insight = latestAi.details.insights;
+        setAiForecast({
+          sourceEngine: insight.sourceEngine || 'Local Forecast',
+          predictedEmploymentRate: insight.predictedEmploymentRate || '0.0%',
+          projectedDonations: insight.projectedDonations || 'PHP 0',
+          forecastWindow: insight.forecastWindow || 'Next 3 months',
+          lastSyncedAt: insight.lastSyncedAt || new Date(latestAi.created_at).toLocaleString(),
+          generatedAt: latestAi.created_at
+        });
+        if ((insight.sourceEngine || '').includes('n8n')) setHeartbeatStatus('connected');
+      } else {
+        setAiForecast(null);
+      }
+
+      const { data: donations } = await supabase
+        .from('donations')
+        .select('amount, created_at')
+        .eq('status', 'verified');
+      const monthBuckets: Record<string, number> = {};
+      const now = new Date();
+      for (let i = 0; i < 3; i += 1) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthBuckets[d.toISOString().slice(0, 7)] = 0;
+      }
+      (donations || []).forEach((d: any) => {
+        const key = (d.created_at || '').slice(0, 7);
+        if (monthBuckets[key] !== undefined) monthBuckets[key] += Number(d.amount) || 0;
+      });
+      const avg = Object.values(monthBuckets).reduce((a, b) => a + b, 0) / 3;
+      setAutoDonationProjection(formatMoney(avg * 3));
 
       const { data: logs, error: logError } = await supabase
         .from('audit_logs')
@@ -282,6 +360,40 @@ const DashboardAdmin: React.FC = () => {
             </div>
           </div>
         </Link>
+      </div>
+
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-700 rounded-3xl p-6 text-white shadow-lg">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center">
+              <Cpu className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-100">AI + n8n Forecast Sync</p>
+              <p className="text-xl font-black mt-1">
+                {aiForecast ? `${aiForecast.predictedEmploymentRate} projected employment rate` : 'No AI forecast run yet'}
+              </p>
+              <p className="text-xs text-indigo-100 mt-1">
+                Source: {aiForecast?.sourceEngine || 'Not yet available'} • Window: {aiForecast?.forecastWindow || 'N/A'}
+              </p>
+              <p className="text-xs text-indigo-100 mt-1">
+                Projected Donations (3 months): {aiForecast?.projectedDonations || autoDonationProjection}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-widest font-black text-indigo-100">Last Synced</p>
+            <p className="text-sm font-bold">{aiForecast?.lastSyncedAt || 'No data'}</p>
+            <p className={`text-[10px] font-black mt-1 uppercase ${
+              heartbeatStatus === 'connected' ? 'text-emerald-200' : heartbeatStatus === 'checking' ? 'text-amber-200' : 'text-rose-200'
+            }`}>
+              n8n Heartbeat: {heartbeatStatus === 'connected' ? 'Connected' : heartbeatStatus === 'checking' ? 'Checking' : 'Fallback'}
+            </p>
+            <Link to="/admin/train-ai" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-white text-indigo-700 text-xs font-black hover:bg-indigo-50 transition-colors">
+              Open Train AI <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Analytics + Recent Registrations */}

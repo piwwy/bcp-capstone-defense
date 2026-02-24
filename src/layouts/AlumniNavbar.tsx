@@ -106,7 +106,7 @@ const AlumniNavbar: React.FC = () => {
       icon: Home,
       children: [
         { name: 'Overview', path: '/alumni/dashboard', icon: Home, description: 'Main dashboard & activity' },
-        { name: 'Resources', path: '/alumni/resources', icon: FolderOpen, description: 'Alumni tools & documents' },
+       // { name: 'Resources', path: '/alumni/resources', icon: FolderOpen, description: 'Alumni tools & documents' },
       ],
     },
     {

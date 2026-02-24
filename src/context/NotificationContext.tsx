@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 // ---------- Types ----------
 export interface Notification {
@@ -28,7 +29,9 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 // ---------- Provider ----------
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const shownRealtimeToastIds = useRef<Set<string>>(new Set());
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -123,7 +126,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         (payload) => {
-          setNotifications(prev => [payload.new as Notification, ...prev]);
+          const incoming = payload.new as Notification;
+          setNotifications(prev => [incoming, ...prev]);
+
+          // Real-time AI toast cue for admin/superadmin demo flow.
+          if (incoming?.type === 'ai_forecast' && !shownRealtimeToastIds.current.has(incoming.id)) {
+            shownRealtimeToastIds.current.add(incoming.id);
+            showToast({
+              title: incoming.title || 'AI Forecast Update',
+              message: incoming.message || 'New AI analytics forecast is now available.',
+              type: 'info',
+              durationMs: 6500,
+            });
+          }
         }
       )
       .on(

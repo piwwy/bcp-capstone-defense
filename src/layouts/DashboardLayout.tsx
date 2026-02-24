@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, Bell, X, Info, Calendar as CalendarIcon, Briefcase, TrendingUp, Heart, MessageSquare, ClipboardList, Loader2 } from 'lucide-react';
+import { Search, Bell, X, Info, Calendar as CalendarIcon, Briefcase, TrendingUp, Heart, MessageSquare, ClipboardList, Loader2, Cpu } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import DPAConsentModal from '../components/modals/DPAConsentModal';
 
@@ -69,6 +69,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       case 'survey': return <ClipboardList className="w-4 h-4" />;
       case 'donation': return <Heart className="w-4 h-4" />;
       case 'message': return <MessageSquare className="w-4 h-4" />;
+      case 'ai_forecast': return <Cpu className="w-4 h-4" />;
       default: return <Info className="w-4 h-4" />;
     }
   };
@@ -81,6 +82,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       case 'survey': return 'bg-amber-100 text-amber-500';
       case 'donation': return 'bg-rose-100 text-rose-500';
       case 'message': return 'bg-cyan-100 text-cyan-500';
+      case 'ai_forecast': return 'bg-indigo-100 text-indigo-600';
       default: return 'bg-gray-100 text-gray-500';
     }
   };
@@ -124,6 +126,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       case 'message':
         if (role === 'alumni') navigate('/alumni/messages');
+        else navigate(`${base}/dashboard`);
+        break;
+
+      case 'ai_forecast':
+        if (role === 'superadmin') navigate('/superadmin/train-ai');
+        else if (role === 'admin') navigate('/admin/train-ai');
         else navigate(`${base}/dashboard`);
         break;
 
