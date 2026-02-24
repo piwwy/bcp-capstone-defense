@@ -45,7 +45,6 @@ const CareerTracking = React.lazy(() => import('./pages/admin/CareerTracking'));
 // DataAnalytics merged into ReportsAnalytics
 const ManageFeedback = React.lazy(() => import('./pages/admin/ManageFeedback'));
 const ManageBatchReunions = React.lazy(() => import('./pages/admin/ManageBatchReunions'));
-const ManageJobPlacement = React.lazy(() => import('./pages/admin/ManageJobPlacement'));
 const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
 const TracerSurvey = React.lazy(() => import('./pages/admin/TracerSurvey'));
 const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries'));
@@ -64,8 +63,6 @@ const AlumniEvents = React.lazy(() => import('./pages/alumni/AlumniEvents'));
 const AlumniJobs = React.lazy(() => import('./pages/alumni/AlumniJobs'));
 const AlumniGraduateTracking = React.lazy(() => import('./pages/alumni/AlumniGraduateTracking'));
 const AlumniFeedback = React.lazy(() => import('./pages/alumni/AlumniFeedback'));
-const AlumniBatchReunions = React.lazy(() => import('./pages/alumni/AlumniBatchReunions'));
-const AlumniJobPlacement = React.lazy(() => import('./pages/alumni/AlumniJobPlacement'));
 const AlumniSettings = React.lazy(() => import('./pages/alumni/AlumniSettings'));
 const AlumniMessages = React.lazy(() => import('./pages/alumni/AlumniMessages'));
 const AlumniNewsletter = React.lazy(() => import('./pages/alumni/AlumniNewsletter'));
@@ -232,12 +229,6 @@ function AppRoutes() {
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
                   <Route path="collections" element={<DonationCollections />} />
 
-                  {/* Batch Reunions */}
-                  <Route path="batch-reunions" element={<ManageBatchReunions />} />
-
-                  {/* Job Placement Logs */}
-                  <Route path="job-placement" element={<ManageJobPlacement />} />
-
                   {/* Newsletter */}
                   <Route path="newsletter" element={<ManageNewsletter />} />
 
@@ -271,12 +262,10 @@ function AppRoutes() {
 
                   {/* Career & Jobs */}
                   <Route path="jobs" element={<ManageJobs />} />
-                  <Route path="job-placement" element={<ManageJobPlacement />} />
                   <Route path="career-tracking" element={<CareerTracking />} />
 
-                  {/* Events & Reunions */}
+                  {/* Events */}
                   <Route path="events" element={<ManageEvents />} />
-                  <Route path="batch-reunions" element={<ManageBatchReunions />} />
 
                   {/* Communication */}
                   <Route path="news" element={<ManageNews />} />
@@ -366,8 +355,6 @@ function AppRoutes() {
                   <Route path="messages" element={<AlumniMessages />} />
                   <Route path="feedback" element={<AlumniFeedback />} />
                   <Route path="newsletter" element={<AlumniNewsletter />} />
-                  <Route path="batch-reunions" element={<AlumniBatchReunions />} />
-                  <Route path="job-placement" element={<AlumniJobPlacement />} />
 
                   {/* Catch-all - MUST be last */}
                   <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, BarChart3, Briefcase, Calendar, Mail,
   ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
   PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
-  MessageSquare, PartyPopper, TrendingUp, List, Layers,
+  MessageSquare, List, Layers,
   Bot, Settings, MoreVertical, AlertTriangle, Loader2, RefreshCw
 } from "lucide-react";
 import RoleSwitcherModal from "../modals/RoleSwitcherModal";
@@ -39,14 +39,12 @@ const AdminSidebar: React.FC = () => {
     {
       name: "Career & Jobs", icon: Briefcase, subItems: [
         { name: "Manage Jobs", path: "/admin/jobs/board", icon: ListPlus },
-        { name: "Placement Logs", path: "/admin/job-placement", icon: TrendingUp },
         { name: "Status Tracker", path: "/admin/tracking/career", icon: Briefcase },
       ]
     },
     {
-      name: "Events & Reunions", icon: Calendar, subItems: [
+      name: "Events", icon: Calendar, subItems: [
         { name: "Events", path: "/admin/events/calendar", icon: CalendarDays },
-        { name: "Batch Reunions", path: "/admin/batch-reunions", icon: PartyPopper },
       ]
     },
     {

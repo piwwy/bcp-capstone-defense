@@ -7,7 +7,7 @@ import {
   MoreVertical, AlertTriangle, Loader2, User2,
   ClipboardCheck, FileText, Briefcase, DollarSign,
   CalendarDays, Newspaper, MessageSquare, Bot, Mail, PieChart,
-  ListPlus, TrendingUp, PartyPopper, ChevronRight, List, Layers, RefreshCw
+  ListPlus, ChevronRight, List, Layers, RefreshCw
 } from "lucide-react";
 import RoleSwitcherModal from "../modals/RoleSwitcherModal";
 
@@ -40,14 +40,12 @@ const SuperAdminSidebar: React.FC = () => {
     {
       name: "Career & Jobs", icon: Briefcase, subItems: [
         { name: "Manage Jobs", path: "/superadmin/jobs", icon: ListPlus },
-        { name: "Placement Logs", path: "/superadmin/job-placement", icon: TrendingUp },
         { name: "Status Tracker", path: "/superadmin/career-tracking", icon: Briefcase },
       ]
     },
     {
-      name: "Events & Reunions", icon: CalendarDays, subItems: [
+      name: "Events", icon: CalendarDays, subItems: [
         { name: "Event Calendar", path: "/superadmin/events", icon: CalendarDays },
-        { name: "Batch Reunions", path: "/superadmin/batch-reunions", icon: PartyPopper },
       ]
     },
     {

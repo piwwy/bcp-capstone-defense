@@ -43,7 +43,6 @@ const AlumniSidebar: React.FC = () => {
         { name: "Messages", path: "/alumni/messages" },
         { name: "Community Forum", path: "/alumni/forum" },
         { name: "Events", path: "/alumni/events" },
-        { name: "Batch Reunions", path: "/alumni/batch-reunions" },
       ],
     },
     {
@@ -51,7 +50,6 @@ const AlumniSidebar: React.FC = () => {
       icon: Briefcase,
       subItems: [
         { name: "Job Board", path: "/alumni/jobs" },
-        { name: "Career Timeline", path: "/alumni/job-placement" },
       ],
     },
     {

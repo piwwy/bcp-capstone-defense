@@ -8,7 +8,7 @@ import {
   Menu, X, Bell, ChevronDown,
   Search, Users, MessageSquare, Settings,
   Info, Calendar as CalendarIcon,
-  Newspaper, PartyPopper, TrendingUp, Heart, ClipboardList,
+  Newspaper, TrendingUp, Heart, ClipboardList,
   Mail, FolderOpen, Sun, Moon, Monitor, Loader2
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
@@ -115,7 +115,6 @@ const AlumniNavbar: React.FC = () => {
       children: [
         { name: 'Alumni Network', path: '/alumni/directory', icon: Users, description: 'Browse & connect with alumni' },
         { name: 'Events', path: '/alumni/events', icon: Calendar, description: 'Upcoming alumni events' },
-        { name: 'Batch Reunions', path: '/alumni/batch-reunions', icon: PartyPopper, description: 'Find your batch reunion' },
         { name: 'Community Forum', path: '/alumni/forum', icon: MessageSquare, description: 'Join alumni discussions' },
       ],
     },
@@ -124,7 +123,6 @@ const AlumniNavbar: React.FC = () => {
       icon: Briefcase,
       children: [
         { name: 'Job Board', path: '/alumni/jobs', icon: Briefcase, description: 'Browse job opportunities' },
-        { name: 'Career Timeline', path: '/alumni/job-placement', icon: TrendingUp, description: 'Log your career history' },
       ],
     },
     {

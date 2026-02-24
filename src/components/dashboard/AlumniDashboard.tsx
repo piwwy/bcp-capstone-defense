@@ -366,14 +366,14 @@ const AlumniDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Tracer Study / Employment Status — REAL-TIME */}
+            {/* Status Tracker / Employment Status — REAL-TIME */}
             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
                   <TrendingUp className={`w-5 h-5 ${empConfig.color}`} />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Employment Status</p>
+                  <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Status Tracker</p>
                   <p className={`font-bold text-lg ${empConfig.color}`}>{empConfig.label}</p>
                 </div>
               </div>
