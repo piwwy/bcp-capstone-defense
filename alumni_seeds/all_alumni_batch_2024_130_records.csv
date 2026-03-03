@@ -1,0 +1,131 @@
+student_id,last_name,first_name,course,batch_year,email
+2024-01-0001,Dela Cruz,Juan,BSIT,2024,juan.delacruz01bsit@alumni.bcp.edu.ph
+2024-01-0002,Santos,Maria,BSIT,2024,maria.santos02bsit@alumni.bcp.edu.ph
+2024-01-0003,Reyes,Jose,BSIT,2024,jose.reyes03bsit@alumni.bcp.edu.ph
+2024-01-0004,Pascual,Ana,BSIT,2024,ana.pascual04bsit@alumni.bcp.edu.ph
+2024-01-0005,Bautista,Miguel,BSIT,2024,miguel.bautista05bsit@alumni.bcp.edu.ph
+2024-01-0006,Garcia,Elena,BSIT,2024,elena.garcia06bsit@alumni.bcp.edu.ph
+2024-01-0007,Lopez,Rico,BSIT,2024,rico.lopez07bsit@alumni.bcp.edu.ph
+2024-01-0008,Villanueva,Liza,BSIT,2024,liza.villanueva08bsit@alumni.bcp.edu.ph
+2024-01-0009,Torres,Pedro,BSIT,2024,pedro.torres09bsit@alumni.bcp.edu.ph
+2024-01-0010,Aquino,Sara,BSIT,2024,sara.aquino10bsit@alumni.bcp.edu.ph
+2024-02-0001,Dela Cruz,Juan,BSCS,2024,juan.delacruz01bscs@alumni.bcp.edu.ph
+2024-02-0002,Santos,Maria,BSCS,2024,maria.santos02bscs@alumni.bcp.edu.ph
+2024-02-0003,Reyes,Jose,BSCS,2024,jose.reyes03bscs@alumni.bcp.edu.ph
+2024-02-0004,Pascual,Ana,BSCS,2024,ana.pascual04bscs@alumni.bcp.edu.ph
+2024-02-0005,Bautista,Miguel,BSCS,2024,miguel.bautista05bscs@alumni.bcp.edu.ph
+2024-02-0006,Garcia,Elena,BSCS,2024,elena.garcia06bscs@alumni.bcp.edu.ph
+2024-02-0007,Lopez,Rico,BSCS,2024,rico.lopez07bscs@alumni.bcp.edu.ph
+2024-02-0008,Villanueva,Liza,BSCS,2024,liza.villanueva08bscs@alumni.bcp.edu.ph
+2024-02-0009,Torres,Pedro,BSCS,2024,pedro.torres09bscs@alumni.bcp.edu.ph
+2024-02-0010,Aquino,Sara,BSCS,2024,sara.aquino10bscs@alumni.bcp.edu.ph
+2024-03-0001,Dela Cruz,Juan,BSBA,2024,juan.delacruz01bsba@alumni.bcp.edu.ph
+2024-03-0002,Santos,Maria,BSBA,2024,maria.santos02bsba@alumni.bcp.edu.ph
+2024-03-0003,Reyes,Jose,BSBA,2024,jose.reyes03bsba@alumni.bcp.edu.ph
+2024-03-0004,Pascual,Ana,BSBA,2024,ana.pascual04bsba@alumni.bcp.edu.ph
+2024-03-0005,Bautista,Miguel,BSBA,2024,miguel.bautista05bsba@alumni.bcp.edu.ph
+2024-03-0006,Garcia,Elena,BSBA,2024,elena.garcia06bsba@alumni.bcp.edu.ph
+2024-03-0007,Lopez,Rico,BSBA,2024,rico.lopez07bsba@alumni.bcp.edu.ph
+2024-03-0008,Villanueva,Liza,BSBA,2024,liza.villanueva08bsba@alumni.bcp.edu.ph
+2024-03-0009,Torres,Pedro,BSBA,2024,pedro.torres09bsba@alumni.bcp.edu.ph
+2024-03-0010,Aquino,Sara,BSBA,2024,sara.aquino10bsba@alumni.bcp.edu.ph
+2024-04-0001,Dela Cruz,Juan,BSHM,2024,juan.delacruz01bshm@alumni.bcp.edu.ph
+2024-04-0002,Santos,Maria,BSHM,2024,maria.santos02bshm@alumni.bcp.edu.ph
+2024-04-0003,Reyes,Jose,BSHM,2024,jose.reyes03bshm@alumni.bcp.edu.ph
+2024-04-0004,Pascual,Ana,BSHM,2024,ana.pascual04bshm@alumni.bcp.edu.ph
+2024-04-0005,Bautista,Miguel,BSHM,2024,miguel.bautista05bshm@alumni.bcp.edu.ph
+2024-04-0006,Garcia,Elena,BSHM,2024,elena.garcia06bshm@alumni.bcp.edu.ph
+2024-04-0007,Lopez,Rico,BSHM,2024,rico.lopez07bshm@alumni.bcp.edu.ph
+2024-04-0008,Villanueva,Liza,BSHM,2024,liza.villanueva08bshm@alumni.bcp.edu.ph
+2024-04-0009,Torres,Pedro,BSHM,2024,pedro.torres09bshm@alumni.bcp.edu.ph
+2024-04-0010,Aquino,Sara,BSHM,2024,sara.aquino10bshm@alumni.bcp.edu.ph
+2024-05-0001,Dela Cruz,Juan,BSTM,2024,juan.delacruz01bstm@alumni.bcp.edu.ph
+2024-05-0002,Santos,Maria,BSTM,2024,maria.santos02bstm@alumni.bcp.edu.ph
+2024-05-0003,Reyes,Jose,BSTM,2024,jose.reyes03bstm@alumni.bcp.edu.ph
+2024-05-0004,Pascual,Ana,BSTM,2024,ana.pascual04bstm@alumni.bcp.edu.ph
+2024-05-0005,Bautista,Miguel,BSTM,2024,miguel.bautista05bstm@alumni.bcp.edu.ph
+2024-05-0006,Garcia,Elena,BSTM,2024,elena.garcia06bstm@alumni.bcp.edu.ph
+2024-05-0007,Lopez,Rico,BSTM,2024,rico.lopez07bstm@alumni.bcp.edu.ph
+2024-05-0008,Villanueva,Liza,BSTM,2024,liza.villanueva08bstm@alumni.bcp.edu.ph
+2024-05-0009,Torres,Pedro,BSTM,2024,pedro.torres09bstm@alumni.bcp.edu.ph
+2024-05-0010,Aquino,Sara,BSTM,2024,sara.aquino10bstm@alumni.bcp.edu.ph
+2024-06-0001,Dela Cruz,Juan,BSOA,2024,juan.delacruz01bsoa@alumni.bcp.edu.ph
+2024-06-0002,Santos,Maria,BSOA,2024,maria.santos02bsoa@alumni.bcp.edu.ph
+2024-06-0003,Reyes,Jose,BSOA,2024,jose.reyes03bsoa@alumni.bcp.edu.ph
+2024-06-0004,Pascual,Ana,BSOA,2024,ana.pascual04bsoa@alumni.bcp.edu.ph
+2024-06-0005,Bautista,Miguel,BSOA,2024,miguel.bautista05bsoa@alumni.bcp.edu.ph
+2024-06-0006,Garcia,Elena,BSOA,2024,elena.garcia06bsoa@alumni.bcp.edu.ph
+2024-06-0007,Lopez,Rico,BSOA,2024,rico.lopez07bsoa@alumni.bcp.edu.ph
+2024-06-0008,Villanueva,Liza,BSOA,2024,liza.villanueva08bsoa@alumni.bcp.edu.ph
+2024-06-0009,Torres,Pedro,BSOA,2024,pedro.torres09bsoa@alumni.bcp.edu.ph
+2024-06-0010,Aquino,Sara,BSOA,2024,sara.aquino10bsoa@alumni.bcp.edu.ph
+2024-07-0001,Dela Cruz,Juan,BSCrim,2024,juan.delacruz01bscrim@alumni.bcp.edu.ph
+2024-07-0002,Santos,Maria,BSCrim,2024,maria.santos02bscrim@alumni.bcp.edu.ph
+2024-07-0003,Reyes,Jose,BSCrim,2024,jose.reyes03bscrim@alumni.bcp.edu.ph
+2024-07-0004,Pascual,Ana,BSCrim,2024,ana.pascual04bscrim@alumni.bcp.edu.ph
+2024-07-0005,Bautista,Miguel,BSCrim,2024,miguel.bautista05bscrim@alumni.bcp.edu.ph
+2024-07-0006,Garcia,Elena,BSCrim,2024,elena.garcia06bscrim@alumni.bcp.edu.ph
+2024-07-0007,Lopez,Rico,BSCrim,2024,rico.lopez07bscrim@alumni.bcp.edu.ph
+2024-07-0008,Villanueva,Liza,BSCrim,2024,liza.villanueva08bscrim@alumni.bcp.edu.ph
+2024-07-0009,Torres,Pedro,BSCrim,2024,pedro.torres09bscrim@alumni.bcp.edu.ph
+2024-07-0010,Aquino,Sara,BSCrim,2024,sara.aquino10bscrim@alumni.bcp.edu.ph
+2024-08-0001,Dela Cruz,Juan,BSEd,2024,juan.delacruz01bsed@alumni.bcp.edu.ph
+2024-08-0002,Santos,Maria,BSEd,2024,maria.santos02bsed@alumni.bcp.edu.ph
+2024-08-0003,Reyes,Jose,BSEd,2024,jose.reyes03bsed@alumni.bcp.edu.ph
+2024-08-0004,Pascual,Ana,BSEd,2024,ana.pascual04bsed@alumni.bcp.edu.ph
+2024-08-0005,Bautista,Miguel,BSEd,2024,miguel.bautista05bsed@alumni.bcp.edu.ph
+2024-08-0006,Garcia,Elena,BSEd,2024,elena.garcia06bsed@alumni.bcp.edu.ph
+2024-08-0007,Lopez,Rico,BSEd,2024,rico.lopez07bsed@alumni.bcp.edu.ph
+2024-08-0008,Villanueva,Liza,BSEd,2024,liza.villanueva08bsed@alumni.bcp.edu.ph
+2024-08-0009,Torres,Pedro,BSEd,2024,pedro.torres09bsed@alumni.bcp.edu.ph
+2024-08-0010,Aquino,Sara,BSEd,2024,sara.aquino10bsed@alumni.bcp.edu.ph
+2024-09-0001,Dela Cruz,Juan,BSPsych,2024,juan.delacruz01bspsych@alumni.bcp.edu.ph
+2024-09-0002,Santos,Maria,BSPsych,2024,maria.santos02bspsych@alumni.bcp.edu.ph
+2024-09-0003,Reyes,Jose,BSPsych,2024,jose.reyes03bspsych@alumni.bcp.edu.ph
+2024-09-0004,Pascual,Ana,BSPsych,2024,ana.pascual04bspsych@alumni.bcp.edu.ph
+2024-09-0005,Bautista,Miguel,BSPsych,2024,miguel.bautista05bspsych@alumni.bcp.edu.ph
+2024-09-0006,Garcia,Elena,BSPsych,2024,elena.garcia06bspsych@alumni.bcp.edu.ph
+2024-09-0007,Lopez,Rico,BSPsych,2024,rico.lopez07bspsych@alumni.bcp.edu.ph
+2024-09-0008,Villanueva,Liza,BSPsych,2024,liza.villanueva08bspsych@alumni.bcp.edu.ph
+2024-09-0009,Torres,Pedro,BSPsych,2024,pedro.torres09bspsych@alumni.bcp.edu.ph
+2024-09-0010,Aquino,Sara,BSPsych,2024,sara.aquino10bspsych@alumni.bcp.edu.ph
+2024-10-0001,Dela Cruz,Juan,BSA,2024,juan.delacruz01bsa@alumni.bcp.edu.ph
+2024-10-0002,Santos,Maria,BSA,2024,maria.santos02bsa@alumni.bcp.edu.ph
+2024-10-0003,Reyes,Jose,BSA,2024,jose.reyes03bsa@alumni.bcp.edu.ph
+2024-10-0004,Pascual,Ana,BSA,2024,ana.pascual04bsa@alumni.bcp.edu.ph
+2024-10-0005,Bautista,Miguel,BSA,2024,miguel.bautista05bsa@alumni.bcp.edu.ph
+2024-10-0006,Garcia,Elena,BSA,2024,elena.garcia06bsa@alumni.bcp.edu.ph
+2024-10-0007,Lopez,Rico,BSA,2024,rico.lopez07bsa@alumni.bcp.edu.ph
+2024-10-0008,Villanueva,Liza,BSA,2024,liza.villanueva08bsa@alumni.bcp.edu.ph
+2024-10-0009,Torres,Pedro,BSA,2024,pedro.torres09bsa@alumni.bcp.edu.ph
+2024-10-0010,Aquino,Sara,BSA,2024,sara.aquino10bsa@alumni.bcp.edu.ph
+2024-11-0001,Dela Cruz,Juan,BSEntrep,2024,juan.delacruz01bsentrep@alumni.bcp.edu.ph
+2024-11-0002,Santos,Maria,BSEntrep,2024,maria.santos02bsentrep@alumni.bcp.edu.ph
+2024-11-0003,Reyes,Jose,BSEntrep,2024,jose.reyes03bsentrep@alumni.bcp.edu.ph
+2024-11-0004,Pascual,Ana,BSEntrep,2024,ana.pascual04bsentrep@alumni.bcp.edu.ph
+2024-11-0005,Bautista,Miguel,BSEntrep,2024,miguel.bautista05bsentrep@alumni.bcp.edu.ph
+2024-11-0006,Garcia,Elena,BSEntrep,2024,elena.garcia06bsentrep@alumni.bcp.edu.ph
+2024-11-0007,Lopez,Rico,BSEntrep,2024,rico.lopez07bsentrep@alumni.bcp.edu.ph
+2024-11-0008,Villanueva,Liza,BSEntrep,2024,liza.villanueva08bsentrep@alumni.bcp.edu.ph
+2024-11-0009,Torres,Pedro,BSEntrep,2024,pedro.torres09bsentrep@alumni.bcp.edu.ph
+2024-11-0010,Aquino,Sara,BSEntrep,2024,sara.aquino10bsentrep@alumni.bcp.edu.ph
+2024-12-0001,Dela Cruz,Juan,BSRealEstate,2024,juan.delacruz01bsrealestate@alumni.bcp.edu.ph
+2024-12-0002,Santos,Maria,BSRealEstate,2024,maria.santos02bsrealestate@alumni.bcp.edu.ph
+2024-12-0003,Reyes,Jose,BSRealEstate,2024,jose.reyes03bsrealestate@alumni.bcp.edu.ph
+2024-12-0004,Pascual,Ana,BSRealEstate,2024,ana.pascual04bsrealestate@alumni.bcp.edu.ph
+2024-12-0005,Bautista,Miguel,BSRealEstate,2024,miguel.bautista05bsrealestate@alumni.bcp.edu.ph
+2024-12-0006,Garcia,Elena,BSRealEstate,2024,elena.garcia06bsrealestate@alumni.bcp.edu.ph
+2024-12-0007,Lopez,Rico,BSRealEstate,2024,rico.lopez07bsrealestate@alumni.bcp.edu.ph
+2024-12-0008,Villanueva,Liza,BSRealEstate,2024,liza.villanueva08bsrealestate@alumni.bcp.edu.ph
+2024-12-0009,Torres,Pedro,BSRealEstate,2024,pedro.torres09bsrealestate@alumni.bcp.edu.ph
+2024-12-0010,Aquino,Sara,BSRealEstate,2024,sara.aquino10bsrealestate@alumni.bcp.edu.ph
+2024-13-0001,Dela Cruz,Juan,BSCustoms,2024,juan.delacruz01bscustoms@alumni.bcp.edu.ph
+2024-13-0002,Santos,Maria,BSCustoms,2024,maria.santos02bscustoms@alumni.bcp.edu.ph
+2024-13-0003,Reyes,Jose,BSCustoms,2024,jose.reyes03bscustoms@alumni.bcp.edu.ph
+2024-13-0004,Pascual,Ana,BSCustoms,2024,ana.pascual04bscustoms@alumni.bcp.edu.ph
+2024-13-0005,Bautista,Miguel,BSCustoms,2024,miguel.bautista05bscustoms@alumni.bcp.edu.ph
+2024-13-0006,Garcia,Elena,BSCustoms,2024,elena.garcia06bscustoms@alumni.bcp.edu.ph
+2024-13-0007,Lopez,Rico,BSCustoms,2024,rico.lopez07bscustoms@alumni.bcp.edu.ph
+2024-13-0008,Villanueva,Liza,BSCustoms,2024,liza.villanueva08bscustoms@alumni.bcp.edu.ph
+2024-13-0009,Torres,Pedro,BSCustoms,2024,pedro.torres09bscustoms@alumni.bcp.edu.ph
+2024-13-0010,Aquino,Sara,BSCustoms,2024,sara.aquino10bscustoms@alumni.bcp.edu.ph

@@ -7,7 +7,7 @@ import {
   Download, Filter, Lock, Loader2,
   Users, Briefcase, GraduationCap, TrendingUp, PieChart as PieChartIcon,
   BarChart3, Calendar, RefreshCw, Eye, EyeOff, X, ShieldCheck,
-  Heart, DollarSign, Award, ArrowUpRight, Activity
+  Heart, DollarSign, Award, ArrowUpRight, Activity, CheckCircle2
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -18,6 +18,10 @@ import autoTable from 'jspdf-autotable';
 
 interface Profile {
   id: string;
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
   batch_year: string;
   course: string;
   employment_status: string;
@@ -385,7 +389,9 @@ const ReportsAnalytics = () => {
       filteredProfiles.forEach((p) => {
         rows.push({
           module: 'alumni',
-          id: p.id,
+          student_id: p.student_id || '',
+          name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+          email: p.email || '',
           batch_year: p.batch_year || '',
           course: p.course || '',
           employment_status: p.employment_status || '',
@@ -632,6 +638,23 @@ const ReportsAnalytics = () => {
           companyIndustryStats.map(d => [d.name, d.value.toString()]),
           [139, 92, 246]
         );
+
+        // --- ADDED: DETAILED LIST ---
+        if (filteredProfiles.length > 0) {
+          addSection(
+            'Detailed Alumni Directory',
+            ['Student ID', 'Name', 'Course', 'Batch', 'Status', 'Employment'],
+            filteredProfiles.slice(0, 300).map(p => [
+              p.student_id || 'N/A',
+              `${p.last_name || ''}, ${p.first_name || ''}`,
+              p.course || 'N/A',
+              p.batch_year || 'N/A',
+              p.status || 'N/A',
+              p.employment_status || 'N/A'
+            ]),
+            [30, 64, 175]
+          );
+        }
       }
 
       if (include.donations) {
@@ -726,398 +749,445 @@ const ReportsAnalytics = () => {
     <AdminPageLayout title="Reports & Analytics" subtitle="Data insights and report generation" icon={BarChart3}>
       <div className="space-y-6">
         <div className="space-y-8">
-            {/* Hero Banner */}
-            <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-700 overflow-hidden shadow-2xl flex items-center px-10">
-              <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
-              <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
-              <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
-              <div className="relative z-10 flex items-center justify-between w-full">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Analytics Dashboard</span>
-                  </div>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">System Insights</h2>
-                  <p className="text-emerald-100 text-sm font-medium mt-1">Real-time data visualization & reporting</p>
+          {/* Hero Banner */}
+          <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-700 overflow-hidden shadow-2xl flex items-center px-10">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
+            <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
+            <div className="relative z-10 flex items-center justify-between w-full">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Analytics Dashboard</span>
                 </div>
-                <div className="hidden md:flex items-center gap-3">
-                  <button
-                    onClick={() => setShowSensitive(!showSensitive)}
-                    className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
-                  >
-                    {showSensitive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    {showSensitive ? 'Hide Sensitive' : 'Show Sensitive'}
-                  </button>
-                  <button
-                    onClick={fetchAllData}
-                    className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Refresh
-                  </button>
-                </div>
+                <h2 className="text-3xl font-black text-white tracking-tighter">System Insights</h2>
+                <p className="text-emerald-100 text-sm font-medium mt-1">Real-time data visualization & reporting</p>
               </div>
-              <BarChart3 className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+              <div className="hidden md:flex items-center gap-3">
+                <button
+                  onClick={() => setShowSensitive(!showSensitive)}
+                  className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
+                >
+                  {showSensitive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {showSensitive ? 'Hide Sensitive' : 'Show Sensitive'}
+                </button>
+                <button
+                  onClick={fetchAllData}
+                  className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                </button>
+              </div>
             </div>
+            <BarChart3 className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
+          </div>
 
-            {/* Key Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[
-                { icon: Users, color: 'blue', label: 'Active Alumni', value: filteredProfiles.length, trend: 'Filtered' },
-                { icon: TrendingUp, color: 'emerald', label: 'Employment Rate', value: `${reportStats.employmentRate}%`, trend: null },
-                { icon: GraduationCap, color: 'purple', label: 'Courses', value: reportCourseData.length, trend: null },
-                { icon: Calendar, color: 'amber', label: 'Events', value: eventStats.total, trend: null },
-                { icon: Heart, color: 'rose', label: 'Donations', value: showSensitive ? donationStats.count : '•••', trend: null },
-                { icon: DollarSign, color: 'emerald', label: 'Total Raised', value: showSensitive ? `₱${donationStats.total.toLocaleString()}` : '₱•••••', trend: null },
-              ].map((stat, i) => {
-                const bgMap: Record<string, string> = { blue: 'bg-blue-100', emerald: 'bg-emerald-100', purple: 'bg-purple-100', amber: 'bg-amber-100', rose: 'bg-rose-100' };
-                const textMap: Record<string, string> = { blue: 'text-blue-600', emerald: 'text-emerald-600', purple: 'text-purple-600', amber: 'text-amber-600', rose: 'text-rose-600' };
-                return (
-                  <div key={i} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={`p-2.5 ${bgMap[stat.color]} rounded-xl`}>
-                        <stat.icon className={`w-5 h-5 ${textMap[stat.color]}`} />
-                      </div>
-                      {stat.trend && (
-                        <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5">
-                          <ArrowUpRight className="w-3 h-3" />{stat.trend}
-                        </span>
-                      )}
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { icon: Users, color: 'blue', label: 'Active Alumni', value: filteredProfiles.length, trend: 'Filtered' },
+              { icon: TrendingUp, color: 'emerald', label: 'Employment Rate', value: `${reportStats.employmentRate}%`, trend: null },
+              { icon: GraduationCap, color: 'purple', label: 'Courses', value: reportCourseData.length, trend: null },
+              { icon: Calendar, color: 'amber', label: 'Events', value: eventStats.total, trend: null },
+              { icon: Heart, color: 'rose', label: 'Donations', value: showSensitive ? donationStats.count : '•••', trend: null },
+              { icon: DollarSign, color: 'emerald', label: 'Total Raised', value: showSensitive ? `₱${donationStats.total.toLocaleString()}` : '₱•••••', trend: null },
+            ].map((stat, i) => {
+              const bgMap: Record<string, string> = { blue: 'bg-blue-100', emerald: 'bg-emerald-100', purple: 'bg-purple-100', amber: 'bg-amber-100', rose: 'bg-rose-100' };
+              const textMap: Record<string, string> = { blue: 'text-blue-600', emerald: 'text-emerald-600', purple: 'text-purple-600', amber: 'text-amber-600', rose: 'text-rose-600' };
+              return (
+                <div key={i} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`p-2.5 ${bgMap[stat.color]} rounded-xl`}>
+                      <stat.icon className={`w-5 h-5 ${textMap[stat.color]}`} />
                     </div>
-                    <p className="text-2xl font-black text-slate-900">{stat.value}</p>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{stat.label}</p>
+                    {stat.trend && (
+                      <span className="text-[10px] text-emerald-600 font-black flex items-center gap-0.5">
+                        <ArrowUpRight className="w-3 h-3" />{stat.trend}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
+                  <p className="text-2xl font-black text-slate-900">{stat.value}</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{stat.label}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Filter className="w-4 h-4" /> Filter Data
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Batch Year</label>
+                  <select
+                    className="w-full mt-1 p-3 border border-gray-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-blue-200 outline-none"
+                    value={filters.batch}
+                    onChange={e => setFilters({ ...filters, batch: e.target.value })}
+                  >
+                    {uniqueBatches.map(b => <option key={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Course</label>
+                  <select
+                    className="w-full mt-1 p-3 border border-gray-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-blue-200 outline-none"
+                    value={filters.course}
+                    onChange={e => setFilters({ ...filters, course: e.target.value })}
+                  >
+                    {uniqueCourses.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Employment Status</label>
+                  <select
+                    className="w-full mt-1 p-3 border border-gray-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-blue-200 outline-none"
+                    value={filters.status}
+                    onChange={e => setFilters({ ...filters, status: e.target.value })}
+                  >
+                    {statusFilterOptions.map(option => <option key={option}>{option}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Filter className="w-4 h-4" /> Filter Data
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase">Batch Year</label>
-                    <select
-                      className="w-full mt-1 p-3 border border-gray-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-blue-200 outline-none"
-                      value={filters.batch}
-                      onChange={e => setFilters({ ...filters, batch: e.target.value })}
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <PieChartIcon className="w-4 h-4 text-amber-600" /> Employment Status
+              </h3>
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reportEmploymentData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={70}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={({ name, percent }: any) => `${name} ${(((percent as number) || 0) * 100).toFixed(0)}%`}
+                      labelLine={false}
                     >
-                      {uniqueBatches.map(b => <option key={b}>{b}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase">Course</label>
-                    <select
-                      className="w-full mt-1 p-3 border border-gray-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-blue-200 outline-none"
-                      value={filters.course}
-                      onChange={e => setFilters({ ...filters, course: e.target.value })}
-                    >
-                      {uniqueCourses.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase">Employment Status</label>
-                    <select
-                      className="w-full mt-1 p-3 border border-gray-200 rounded-xl bg-white font-medium focus:ring-2 focus:ring-blue-200 outline-none"
-                      value={filters.status}
-                      onChange={e => setFilters({ ...filters, status: e.target.value })}
-                    >
-                      {statusFilterOptions.map(option => <option key={option}>{option}</option>)}
-                    </select>
-                  </div>
+                      {reportEmploymentData.map((_, index) => (
+                        <Cell key={`status-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-xl group">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                    <Download className="w-6 h-6 text-blue-600" />
+                    Secure Export
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Select data modules to package</p>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
+                  <Lock className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <PieChartIcon className="w-4 h-4 text-amber-600" /> Employment Status
-                </h3>
-                <div className="h-[220px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={reportEmploymentData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, percent }: any) => `${name} ${(((percent as number) || 0) * 100).toFixed(0)}%`}
-                        labelLine={false}
-                      >
-                        {reportEmploymentData.map((_, index) => (
-                          <Cell key={`status-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Download className="w-4 h-4" /> Report Export
-                </h3>
-                <div className="mb-4">
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Export Scope</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      ['allVisual', 'All Visual'],
-                      ['alumni', 'Alumni'],
-                      ['donations', 'Donations'],
-                      ['jobs', 'Jobs'],
-                      ['events', 'Events'],
-                      ['audit', 'Audit Logs'],
-                    ].map(([key, label]) => (
-                      <label key={key} className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-50 rounded-lg px-2 py-2">
-                        <input
-                          type="checkbox"
-                          checked={(moduleSelection as any)[key]}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            if (key === 'allVisual') {
-                              setModuleSelection(prev => ({ ...prev, allVisual: checked }));
-                              return;
-                            }
-                            setModuleSelection(prev => ({ ...prev, allVisual: false, [key]: checked }));
-                          }}
-                        />
+              <div className="grid grid-cols-1 gap-3 mb-8">
+                {[
+                  { key: 'allVisual', label: 'Complete System Overview', desc: 'Summary of all system activities', icon: Activity, color: 'text-blue-600', bg: 'bg-blue-50' },
+                  { key: 'alumni', label: 'Detailed Alumni List', desc: 'Full profile records & career status', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                  { key: 'donations', label: 'Financial Records', desc: 'Verified donation history & totals', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                  { key: 'jobs', label: 'Career & Opportunities', desc: 'Job board posts & placement metrics', icon: Briefcase, color: 'text-violet-600', bg: 'bg-violet-50' },
+                  { key: 'events', label: 'Engagement & Events', desc: 'Event attendance & participation', icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50' },
+                  { key: 'audit', label: 'System Audit Logs', desc: 'Internal activity tracking', icon: ShieldCheck, color: 'text-slate-600', bg: 'bg-slate-50' },
+                ].map(({ key, label, desc, icon: Icon, color, bg }) => (
+                  <label
+                    key={key}
+                    className={`group/item flex items-center gap-4 p-4 rounded-3xl border-2 transition-all cursor-pointer ${(moduleSelection as any)[key]
+                      ? 'bg-white border-blue-600 shadow-xl shadow-blue-50 scale-[1.02]'
+                      : 'bg-slate-50 border-transparent hover:border-slate-200'
+                      }`}
+                  >
+                    <div className={`p-3 rounded-2xl transition-all group-hover/item:scale-110 ${bg}`}>
+                      <Icon className={`w-5 h-5 ${color}`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-black ${(moduleSelection as any)[key] ? 'text-blue-700' : 'text-slate-700'}`}>
                         {label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-3">
+                      </p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{desc}</p>
+                    </div>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${(moduleSelection as any)[key]
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'border-slate-300'
+                      }`}>
+                      {(moduleSelection as any)[key] && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={(moduleSelection as any)[key]}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        if (key === 'allVisual') {
+                          setModuleSelection({
+                            allVisual: checked,
+                            alumni: checked,
+                            donations: checked,
+                            jobs: checked,
+                            events: checked,
+                            audit: checked
+                          });
+                          return;
+                        }
+                        setModuleSelection(prev => ({ ...prev, allVisual: false, [key]: checked }));
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex gap-4">
                   <button
                     onClick={exportCSV}
-                    className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-black hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
                   >
                     <Download className="w-4 h-4" /> CSV
                   </button>
                   <button
                     onClick={exportJSON}
-                    className="w-full bg-violet-600 text-white py-2.5 rounded-xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 bg-violet-600 text-white py-4 rounded-2xl font-black hover:bg-violet-700 shadow-xl shadow-violet-100 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
                   >
                     <Download className="w-4 h-4" /> JSON
                   </button>
-                  <button
-                    onClick={handleGenerateClick}
-                    disabled={generating}
-                    className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
-                  >
-                    {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Lock className="w-4 h-4" /> Export PDF</>}
-                  </button>
+                </div>
+                <button
+                  onClick={handleGenerateClick}
+                  disabled={generating}
+                  className="w-full bg-blue-600 text-white py-5 rounded-[2rem] font-black hover:bg-blue-700 shadow-2xl shadow-blue-200 transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-sm uppercase tracking-[0.2em]"
+                >
+                  {generating ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5 shadow-sm" />
+                      Generate PDF Report
+                    </>
+                  )}
+                </button>
+                <div className="flex items-center justify-center gap-4 pt-4 border-t border-slate-50">
                   <button
                     onClick={fetchAllData}
-                    className="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-sm"
+                    className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors flex items-center gap-2"
                   >
-                    <RefreshCw className="w-4 h-4" /> Refresh
+                    <RefreshCw className="w-3.5 h-3.5" /> Force Sync Data
                   </button>
                 </div>
-              </div>
-            </div>
-
-            {/* Growth Trend Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 line-animation">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="font-black text-slate-900 flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                      Database Growth Activity
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 font-medium">Monthly growth of alumni records in the system</p>
-                  </div>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                    <AreaChart data={reportGrowthTrend}>
-                      <defs>
-                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
-                        itemStyle={{ color: '#10B981' }}
-                      />
-                      <Area type="monotone" dataKey="count" stroke="#10B981" strokeWidth={3} fill="url(#colorCount)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Donation Performance Chart */}
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="font-black text-slate-900 flex items-center gap-2">
-                      <Heart className="w-5 h-5 text-rose-600" />
-                      Donation Performance
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 font-medium">Monthly giving and fundraising growth</p>
-                  </div>
-                </div>
-                <div className="h-64">
-                  {showSensitive ? (
-                    <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                      <AreaChart data={donationTrendData}>
-                        <defs>
-                          <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                        <Tooltip
-                          contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
-                        />
-                        <Area type="monotone" dataKey="amount" stroke="#F43F5E" strokeWidth={3} fill="url(#colorAmount)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      <Lock className="w-8 h-8 text-slate-300 mb-2" />
-                      <p className="text-sm font-black text-slate-400">Financial Data Hidden</p>
-                      <p className="text-[10px] text-slate-300 font-bold uppercase mt-1">Enable "Show Sensitive" to view charts</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Batch Distribution */}
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-purple-600" />
-                  Alumni by Batch Year
-                </h3>
-                <p className="text-xs text-slate-400 mb-4 font-medium">Last 10 batch years</p>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                    <BarChart data={reportBatchData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                      <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }} />
-                      <Bar dataKey="count" fill="#8B5CF6" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Course Distribution */}
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-blue-600" />
-                  Alumni by Course
-                </h3>
-                <p className="text-xs text-slate-400 mb-4 font-medium">Top 8 academic programs</p>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                    <PieChart>
-                      <Pie
-                        data={reportCourseData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        label={({ name, percent }: any) => `${(name || '').substring(0, 15)}${(name || '').length > 15 ? '...' : ''} (${(((percent as number) || 0) * 100).toFixed(0)}%)`}
-                        labelLine={false}
-                      >
-                        {reportCourseData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Top Industries (From Status Tracker Companies) */}
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-violet-600" />
-                  Top Industries
-                </h3>
-                <p className="text-xs text-slate-400 mb-4 font-medium">Derived from current company in Status Tracker</p>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                    <BarChart data={companyIndustryStats} layout="vertical" margin={{ left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                      <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#8B5CF6" radius={[0, 8, 8, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Industry Legacy */}
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
-                <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-indigo-600" />
-                  Industry Legacy
-                </h3>
-                <p className="text-xs text-slate-400 mb-4 font-medium">Company footprint from Status Tracker</p>
-                <div className="flex flex-col gap-4 mt-8">
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unique Companies</p>
-                    <p className="text-2xl font-black text-slate-900">{industryLegacy.totalCompanies}</p>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Leading Company</p>
-                    <p className="text-lg font-black text-indigo-700">{industryLegacy.leadingName}</p>
-                    <p className="text-xs font-bold text-indigo-500 mt-1">{industryLegacy.leadingCount} alumni</p>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Top Company List</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(companyIndustryStats.length > 0 ? companyIndustryStats.slice(0, 5) : [{ name: 'No data', value: 0 }]).map((c) => (
-                        <span key={c.name} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold">
-                          {c.name} {c.value > 0 ? `(${c.value})` : ''}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                <h4 className="text-blue-100 text-[10px] font-black uppercase tracking-widest mb-3">Most Common Course</h4>
-                <p className="text-2xl font-black">{reportCourseData[0]?.name || 'N/A'}</p>
-                <p className="text-blue-200 text-sm mt-1 font-bold">{reportCourseData[0]?.value || 0} alumni enrolled</p>
-              </div>
-              <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 rounded-[2rem] p-6 text-white overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                <h4 className="text-emerald-100 text-[10px] font-black uppercase tracking-widest mb-3">Largest Batch</h4>
-                <p className="text-2xl font-black">Batch {reportBatchData[reportBatchData.length - 1]?.year || 'N/A'}</p>
-                <p className="text-emerald-200 text-sm mt-1 font-bold">{reportBatchData[reportBatchData.length - 1]?.count || 0} alumni</p>
-              </div>
-              <div className="relative bg-gradient-to-br from-purple-600 to-pink-700 rounded-[2rem] p-6 text-white overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-                <h4 className="text-purple-100 text-[10px] font-black uppercase tracking-widest mb-3">Event Participation</h4>
-                <p className="text-2xl font-black">{eventStats.attendees}</p>
-                <p className="text-purple-200 text-sm mt-1 font-bold">Across {eventStats.total} events</p>
               </div>
             </div>
           </div>
+
+          {/* Growth Trend Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 line-animation">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-black text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    Database Growth Activity
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">Monthly growth of alumni records in the system</p>
+                </div>
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                  <AreaChart data={reportGrowthTrend}>
+                    <defs>
+                      <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                      itemStyle={{ color: '#10B981' }}
+                    />
+                    <Area type="monotone" dataKey="count" stroke="#10B981" strokeWidth={3} fill="url(#colorCount)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Donation Performance Chart */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="font-black text-slate-900 flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-rose-600" />
+                    Donation Performance
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">Monthly giving and fundraising growth</p>
+                </div>
+              </div>
+              <div className="h-64">
+                {showSensitive ? (
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                    <AreaChart data={donationTrendData}>
+                      <defs>
+                        <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                      />
+                      <Area type="monotone" dataKey="amount" stroke="#F43F5E" strokeWidth={3} fill="url(#colorAmount)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <Lock className="w-8 h-8 text-slate-300 mb-2" />
+                    <p className="text-sm font-black text-slate-400">Financial Data Hidden</p>
+                    <p className="text-[10px] text-slate-300 font-bold uppercase mt-1">Enable "Show Sensitive" to view charts</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Batch Distribution */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+              <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-purple-600" />
+                Alumni by Batch Year
+              </h3>
+              <p className="text-xs text-slate-400 mb-4 font-medium">Last 10 batch years</p>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                  <BarChart data={reportBatchData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="year" tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }} />
+                    <Bar dataKey="count" fill="#8B5CF6" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Course Distribution */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+              <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
+                <Award className="w-5 h-5 text-blue-600" />
+                Alumni by Course
+              </h3>
+              <p className="text-xs text-slate-400 mb-4 font-medium">Top 8 academic programs</p>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                  <PieChart>
+                    <Pie
+                      data={reportCourseData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, percent }: any) => `${(name || '').substring(0, 15)}${(name || '').length > 15 ? '...' : ''} (${(((percent as number) || 0) * 100).toFixed(0)}%)`}
+                      labelLine={false}
+                    >
+                      {reportCourseData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', fontWeight: 700 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Top Industries (From Status Tracker Companies) */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+              <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-violet-600" />
+                Top Industries
+              </h3>
+              <p className="text-xs text-slate-400 mb-4 font-medium">Derived from current company in Status Tracker</p>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                  <BarChart data={companyIndustryStats} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#8B5CF6" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Industry Legacy */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+              <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-600" />
+                Industry Legacy
+              </h3>
+              <p className="text-xs text-slate-400 mb-4 font-medium">Company footprint from Status Tracker</p>
+              <div className="flex flex-col gap-4 mt-8">
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Unique Companies</p>
+                  <p className="text-2xl font-black text-slate-900">{industryLegacy.totalCompanies}</p>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Leading Company</p>
+                  <p className="text-lg font-black text-indigo-700">{industryLegacy.leadingName}</p>
+                  <p className="text-xs font-bold text-indigo-500 mt-1">{industryLegacy.leadingCount} alumni</p>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Top Company List</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(companyIndustryStats.length > 0 ? companyIndustryStats.slice(0, 5) : [{ name: 'No data', value: 0 }]).map((c) => (
+                      <span key={c.name} className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold">
+                        {c.name} {c.value > 0 ? `(${c.value})` : ''}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
+              <h4 className="text-blue-100 text-[10px] font-black uppercase tracking-widest mb-3">Most Common Course</h4>
+              <p className="text-2xl font-black">{reportCourseData[0]?.name || 'N/A'}</p>
+              <p className="text-blue-200 text-sm mt-1 font-bold">{reportCourseData[0]?.value || 0} alumni enrolled</p>
+            </div>
+            <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 rounded-[2rem] p-6 text-white overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
+              <h4 className="text-emerald-100 text-[10px] font-black uppercase tracking-widest mb-3">Largest Batch</h4>
+              <p className="text-2xl font-black">Batch {reportBatchData[reportBatchData.length - 1]?.year || 'N/A'}</p>
+              <p className="text-emerald-200 text-sm mt-1 font-bold">{reportBatchData[reportBatchData.length - 1]?.count || 0} alumni</p>
+            </div>
+            <div className="relative bg-gradient-to-br from-purple-600 to-pink-700 rounded-[2rem] p-6 text-white overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
+              <h4 className="text-purple-100 text-[10px] font-black uppercase tracking-widest mb-3">Event Participation</h4>
+              <p className="text-2xl font-black">{eventStats.attendees}</p>
+              <p className="text-purple-200 text-sm mt-1 font-bold">Across {eventStats.total} events</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* PDF Password Modal */}

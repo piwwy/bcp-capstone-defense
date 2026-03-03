@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
+import { useSearchParams } from 'react-router-dom';
 import AdminPageLayout from './AdminPageLayout';
 import {
   MessageSquare, Star, Loader2, Search, X, Send,
@@ -18,6 +19,8 @@ interface Feedback {
   status: string;
   admin_reply: string;
   created_at: string;
+  event_id?: string;
+  alumni_events?: { title: string };
 }
 
 interface Survey {
@@ -56,16 +59,26 @@ const ManageFeedback: React.FC = () => {
   // Tab
   const [activeTab, setActiveTab] = useState<'feedback' | 'surveys'>('feedback');
 
+  // Event list for filtering
+  const [events, setEvents] = useState<{ id: string, title: string }[]>([]);
+  const [selectedEventFilter, setSelectedEventFilter] = useState('all');
+
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
+    const eventId = searchParams.get('event');
+    if (eventId) setSelectedEventFilter(eventId);
+
     fetchFeedbacks();
     fetchSurveys();
-  }, []);
+    fetchEvents();
+  }, [searchParams]);
 
   const fetchFeedbacks = async () => {
     try {
       const { data, error } = await supabase
         .from('alumni_feedback')
-        .select('*')
+        .select('*, alumni_events(title)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setFeedbacks(data || []);
@@ -74,6 +87,11 @@ const ManageFeedback: React.FC = () => {
     } finally {
       setFeedbackLoading(false);
     }
+  };
+
+  const fetchEvents = async () => {
+    const { data } = await supabase.from('alumni_events').select('id, title').order('title');
+    if (data) setEvents(data);
   };
 
   const fetchSurveys = async () => {
@@ -211,13 +229,14 @@ const ManageFeedback: React.FC = () => {
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter(f => {
       const matchStatus = statusFilter === 'all' || f.status === statusFilter;
+      const matchEvent = selectedEventFilter === 'all' || f.event_id === selectedEventFilter;
       const matchSearch = !searchQuery ||
         f.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.alumni_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.message.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchStatus && matchSearch;
+      return matchStatus && matchEvent && matchSearch;
     });
-  }, [feedbacks, statusFilter, searchQuery]);
+  }, [feedbacks, statusFilter, selectedEventFilter, searchQuery]);
 
   const feedbackCounts = useMemo(() => ({
     all: feedbacks.length,
@@ -316,7 +335,18 @@ const ManageFeedback: React.FC = () => {
 
           {/* Filters */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={selectedEventFilter}
+                onChange={e => setSelectedEventFilter(e.target.value)}
+                className="px-4 py-2.5 bg-white border border-slate-100 rounded-xl text-xs font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="all">Any Event</option>
+                <option value="none">General Feedback</option>
+                {events.map(e => (
+                  <option key={e.id} value={e.id}>{e.title}</option>
+                ))}
+              </select>
               {['all', 'pending', 'reviewed', 'resolved'].map(s => (
                 <button
                   key={s}
@@ -355,6 +385,11 @@ const ManageFeedback: React.FC = () => {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-black text-slate-900 truncate">{fb.subject}</h3>
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${getStatusBadge(fb.status)}`}>{fb.status}</span>
+                        {fb.alumni_events?.title && (
+                          <span className="px-2.5 py-0.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase border border-purple-100">
+                            Event: {fb.alumni_events.title}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-500 line-clamp-2 mb-2">{fb.message}</p>
                       <div className="flex items-center gap-4 text-[10px] font-bold text-slate-300">

@@ -63,26 +63,39 @@ const AlumniGraduateTracking = () => {
 
     const fetchProfileData = async () => {
         try {
+            setLoading(true);
+            // Updated to fetch from profiles and join alumni_profiles
             const { data, error } = await supabase
                 .from('profiles')
-                .select('employment_status, job_title, company, industry, location, linkedin_url, years_experience')
+                .select(`
+                    id, 
+                    employment_status, 
+                    company, 
+                    position, 
+                    location, 
+                    linkedin_url,
+                    alumni_profiles (*)
+                `)
                 .eq('id', user?.id)
                 .single();
 
             if (error) throw error;
+
             if (data) {
+                const alumni = (data as any).alumni_profiles?.[0] || {};
                 setProfile({
-                    employment_status: data.employment_status || '',
-                    job_title: data.job_title || '',
-                    company: data.company || '',
-                    industry: data.industry || '',
-                    location: data.location || '',
-                    linkedin_url: data.linkedin_url || '',
-                    years_experience: data.years_experience || '',
+                    employment_status: alumni.employment_status || data.employment_status || 'unemployed',
+                    job_title: alumni.current_position || data.position || '',
+                    company: alumni.current_company || data.company || '',
+                    industry: alumni.industry || 'Other',
+                    location: alumni.location || data.location || '',
+                    years_experience: alumni.years_experience || 0,
+                    linkedin_url: alumni.linkedin_url || data.linkedin_url || '',
                 });
             }
         } catch (error: any) {
             console.error('Error fetching profile:', error);
+            showToast({ title: 'Error', message: 'Failed to load career data.', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -91,27 +104,38 @@ const AlumniGraduateTracking = () => {
     const handleSaveProfile = async () => {
         setSaving(true);
         try {
-            const { error } = await supabase
+            // Updated to save to alumni_profiles with correct column names
+            const { error: alumniError } = await supabase
+                .from('alumni_profiles')
+                .upsert({
+                    id: user?.id,
+                    employment_status: profile.employment_status,
+                    current_position: profile.job_title,
+                    current_company: profile.company,
+                    location: profile.location,
+                    linkedin_url: profile.linkedin_url,
+                    updated_at: new Date().toISOString(),
+                });
+
+            if (alumniError) throw alumniError;
+
+            // Also update the main profiles table for consistency if needed
+            await supabase
                 .from('profiles')
                 .update({
                     employment_status: profile.employment_status,
-                    job_title: profile.job_title,
                     company: profile.company,
-                    industry: profile.industry,
-                    location: profile.location,
-                    linkedin_url: profile.linkedin_url,
-                    years_experience: profile.years_experience,
+                    position: profile.job_title,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', user?.id);
 
-            if (error) throw error;
-
             showToast({ title: 'Success!', message: 'Career information updated successfully.', type: 'success' });
             setEditMode(false);
+            fetchProfileData();
         } catch (error: any) {
             console.error('Error saving profile:', error);
-            showToast({ title: 'Error', message: 'Failed to save changes.', type: 'error' });
+            showToast({ title: 'Error', message: 'Failed to save changes: ' + (error.message || 'Unknown error'), type: 'error' });
         } finally {
             setSaving(false);
         }

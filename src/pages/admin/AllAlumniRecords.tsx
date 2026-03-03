@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
-import { createClient } from '@supabase/supabase-js';
 import { useToast } from '../../context/ToastContext';
-import { logAudit, AUDIT_ACTIONS, buildFieldDiff } from '../../services/auditLogger';
-import EmailService from '../../services/emailService';
 import AdminPageLayout from './AdminPageLayout';
 import AdminResourceCard from './AdminResourceCard';
 import {
   Search, Loader2, Database, Users, GraduationCap, Calendar,
-  ChevronDown, ChevronRight, ArrowUpDown, Hash, BookOpen,
+  ChevronDown, ChevronRight, ArrowUpDown, BookOpen,
   Phone, Mail, Grid3X3, CalendarDays,
-  Edit2, X, Save, Plus, UserPlus, Shield, User, Send, CheckCircle
+  Download, FileText, Table2, Layers
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Alumni {
   id: string;
@@ -20,6 +18,8 @@ interface Alumni {
   last_name: string;
   middle_name?: string;
   suffix?: string;
+  birthday?: string;
+  address?: string;
   email: string;
   mobile_number?: string;
   course: string;
@@ -30,36 +30,26 @@ interface Alumni {
 }
 
 const COURSES = [
-  'BSIT', 'BSCS', 'BSCpE', 'BSBA', 'BSA', 'BSED', 'BEED',
-  'BSCRIM', 'BSHM', 'BSTM', 'BSN', 'BSME', 'BSEE', 'BSCE',
-  'AB-POLSCI', 'AB-COMM', 'BSENTREP'
+  'BSIT', 'BSCS', 'BSBA', 'BSHM', 'BSTM', 'BSOA', 'BSCrim',
+  'BSEd', 'BSPsych', 'BSA', 'BSEntrep', 'BSRealEstate', 'BSCustoms'
 ];
 
-const generatePassword = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const specials = '!@#$%';
-  let pass = '';
-  for (let i = 0; i < 8; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-  pass += specials.charAt(Math.floor(Math.random() * specials.length));
-  return pass;
-};
+
 
 const parseSection = (answer?: string): string => {
   if (!answer) return '';
-  const match = answer.match(/Section:\s*(.+)/i);
+  const match = answer.match(/Section:\s*([^|]+)/i);
   return match ? match[1].trim() : '';
 };
 
 const parseAdviser = (answer?: string): string => {
   if (!answer) return '';
-  const match = answer.match(/Adviser:\s*(.+?)(?:\s*\||$)/i);
+  const match = answer.match(/Adviser:\s*([^|]+)/i);
   return match ? match[1].trim() : '';
 };
 
 const AllAlumniRecords: React.FC = () => {
   const { showToast } = useToast();
-  const { user } = useAuth();
-  const isStaff = user?.role === 'staff';
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<Alumni[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,24 +60,6 @@ const AllAlumniRecords: React.FC = () => {
   const [layoutMode, setLayoutMode] = useState<'table' | 'grid'>('table');
   const [groupView, setGroupView] = useState<'batch' | 'course'>('batch');
   const [currentPage, setCurrentPage] = useState(0);
-  const [editingRecord, setEditingRecord] = useState<Alumni | null>(null);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', batch_year: '', course: '' });
-  const [savingEdit, setSavingEdit] = useState(false);
-
-  // Create Alumni Logic (Based on SuperAdmin CreateUserModal)
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addingRecord, setAddingRecord] = useState(false);
-  const [created, setCreated] = useState(false);
-  const [addForm, setAddForm] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    student_id: '',
-    course: COURSES[0],
-    batch_year: new Date().getFullYear().toString(),
-    role: 'alumni' as const,
-    password: generatePassword(), // Auto-generated but hidden from UI per request
-  });
 
   const itemsPerPage = 12;
 
@@ -198,155 +170,82 @@ const AllAlumniRecords: React.FC = () => {
     });
   };
 
-  const handleEditRecord = (rec: Alumni) => {
-    setEditingRecord(rec);
-    setEditForm({
-      first_name: rec.first_name || '',
-      last_name: rec.last_name || '',
-      batch_year: rec.batch_year || '',
-      course: rec.course || '',
+  const exportCSV = () => {
+    const headers = ['Student ID', 'Last Name', 'First Name', 'Middle Name', 'Suffix', 'Course', 'Batch', 'Mobile', 'Email', 'Address', 'Adviser'];
+    const rows = filteredRecords.map(r => [
+      r.student_id || '',
+      r.last_name || '',
+      r.first_name || '',
+      r.middle_name || '',
+      r.suffix || '',
+      r.course || '',
+      r.batch_year || '',
+      r.mobile_number || '',
+      r.email?.includes('unregistered_') ? '' : r.email,
+      r.address || '',
+      parseAdviser(r.verification_answer) || ''
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `alumni_records_${filterCourse !== 'All' ? filterCourse + '_' : ''}${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast({ type: 'success', title: 'Export Complete', message: `${filteredRecords.length} records exported to CSV.` });
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF('landscape');
+    const title = 'BCP Alumni Directory';
+    const subtitle = `Course: ${filterCourse} | Batch: ${filterBatchYear}`;
+
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(subtitle, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 36);
+
+    const tableData = filteredRecords.map((r, i) => [
+      i + 1,
+      r.student_id || 'N/A',
+      r.last_name || '',
+      r.first_name || '',
+      r.middle_name || '',
+      r.suffix || '',
+      r.course || '',
+      r.batch_year || '',
+      r.mobile_number || 'N/A',
+      r.email?.includes('unregistered_') ? 'N/A' : r.email || 'N/A',
+      r.address || 'N/A',
+      parseAdviser(r.verification_answer) || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [['#', 'Student ID', 'Last Name', 'First Name', 'Middle Name', 'Suffix', 'Course', 'Batch', 'Mobile', 'Email', 'Address', 'Adviser']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [30, 64, 175], textColor: 255 }, // blue-800
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      margin: { top: 40 },
     });
+
+    doc.save(`alumni_records_${filterCourse !== 'All' ? filterCourse + '_' : ''}${new Date().getTime()}.pdf`);
+    showToast({ type: 'success', title: 'Export Complete', message: 'PDF document generated successfully.' });
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingRecord) return;
-    setSavingEdit(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: editForm.first_name,
-          last_name: editForm.last_name,
-          batch_year: editForm.batch_year,
-          course: editForm.course,
-        })
-        .eq('id', editingRecord.id);
 
-      if (error) throw error;
 
-      showToast({ type: 'success', title: 'Updated', message: 'Alumni record has been updated.' });
 
-      await logAudit(AUDIT_ACTIONS.USER_UPDATED, {
-        module: 'Alumni Records',
-        message: `Updated profile for alumni: ${editForm.first_name} ${editForm.last_name}`,
-        alumniId: editingRecord.id,
-        ...buildFieldDiff(
-          {
-            first_name: editingRecord.first_name,
-            last_name: editingRecord.last_name,
-            batch_year: editingRecord.batch_year,
-            course: editingRecord.course,
-          },
-          editForm,
-          ['first_name', 'last_name', 'batch_year', 'course']
-        )
-      });
 
-      setEditingRecord(null);
-      fetchRecords();
-    } catch (err: any) {
-      showToast({ type: 'error', title: 'Save Failed', message: err.message || 'Unable to save record.' });
-    } finally {
-      setSavingEdit(false);
-    }
-  };
 
-  const handleAddAlumni = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!addForm.first_name || !addForm.last_name || !addForm.email) {
-      showToast({ type: 'warning', title: 'Missing Fields', message: 'Please fill in required fields.' });
-      return;
-    }
-
-    setAddingRecord(true);
-    try {
-      // Use the logic from CreateUserModal but simplified for Admin
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const tempClient = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } });
-
-      const { data: authData, error: signUpError } = await tempClient.auth.signUp({
-        email: addForm.email,
-        password: addForm.password,
-        options: {
-          data: {
-            full_name: `${addForm.first_name} ${addForm.last_name}`,
-            first_name: addForm.first_name,
-            last_name: addForm.last_name,
-          }
-        }
-      });
-
-      if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error('Auth creation failed');
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          email: addForm.email,
-          first_name: addForm.first_name,
-          last_name: addForm.last_name,
-          student_id: addForm.student_id || null,
-          course: addForm.course,
-          batch_year: addForm.batch_year,
-          role: 'alumni',
-          status: 'verified',
-          auth_provider: 'email',
-          avatar_url: `https://ui-avatars.com/api/?name=${addForm.first_name}+${addForm.last_name}&background=random`,
-          created_at: new Date().toISOString()
-        });
-
-      if (profileError) throw profileError;
-
-      await logAudit(AUDIT_ACTIONS.USER_CREATED, {
-        module: 'Alumni Records',
-        message: `Manually registered alumni: ${addForm.first_name} ${addForm.last_name}`,
-        data: addForm
-      });
-
-      // Auto-send credentials email
-      try {
-        await EmailService.sendAccountReadyEmail(addForm.email, addForm.first_name, addForm.password);
-        showToast({ type: 'success', title: 'Email Sent', message: `Credentials sent to ${addForm.email}` });
-      } catch (emailErr) {
-        console.error('Email sending failed:', emailErr);
-      }
-
-      setCreated(true);
-    } catch (err: any) {
-      showToast({ type: 'error', title: 'Registration Failed', message: err.message || 'Unable to add record.' });
-    } finally {
-      setAddingRecord(false);
-    }
-  };
-
-  // Validation Handlers (Strict Matching SuperAdmin style)
-  const handleNameInput = (val: string, type: 'first' | 'last') => {
-    if (/^[a-zA-Z\s.-]*$/.test(val)) {
-      if (type === 'first') setAddForm({ ...addForm, first_name: val });
-      else setAddForm({ ...addForm, last_name: val });
-    }
-  };
-
-  const handleEditNameInput = (val: string, type: 'first' | 'last') => {
-    if (/^[a-zA-Z\s.-]*$/.test(val)) {
-      if (type === 'first') setEditForm({ ...editForm, first_name: val });
-      else setEditForm({ ...editForm, last_name: val });
-    }
-  };
-
-  const handleNumberInput = (val: string, field: 'student_id' | 'batch_year') => {
-    const clean = field === 'student_id' ? val.replace(/[^0-9-]/g, '') : val.replace(/[^0-9]/g, '');
-    if (field === 'batch_year' && clean.length > 4) return;
-    setAddForm({ ...addForm, [field]: clean });
-  };
-
-  const handleEditNumberInput = (val: string, field: 'batch_year') => {
-    const clean = val.replace(/[^0-9]/g, '');
-    if (clean.length > 4) return;
-    setEditForm({ ...editForm, [field]: clean });
-  };
 
   return (
     <AdminPageLayout title="All Alumni Records" subtitle="Organized by Course, Batch Year & Section" icon={Database}>
@@ -365,16 +264,6 @@ const AllAlumniRecords: React.FC = () => {
             <p className="text-blue-100 text-sm font-medium mt-1">Complete database organized by course, batch & section</p>
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4">
-            <button
-              onClick={() => {
-                setCreated(false);
-                setAddForm({ ...addForm, first_name: '', last_name: '', email: '', student_id: '', password: generatePassword() });
-                setShowAddModal(true);
-              }}
-              className="bg-white text-blue-700 px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-50 shadow-xl transition-all h-fit"
-            >
-              <UserPlus className="w-5 h-5" /> Add Alumni
-            </button>
             <div className="hidden md:flex items-center gap-4">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-8 py-3 text-center">
                 <p className="text-3xl font-black text-white">{stats.total}</p>
@@ -414,44 +303,90 @@ const AllAlumniRecords: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-4 overflow-x-auto">
-        <div className="flex gap-2 pb-2">
-          <button onClick={() => setFilterCourse('All')} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterCourse === 'All' ? 'bg-blue-900 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-            <GraduationCap className="w-3.5 h-3.5" />All Courses
-            <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filterCourse === 'All' ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-500'}`}>{records.length}</span>
+      {/* Course Filter Bar */}
+      <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilterCourse('All')}
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all shadow-sm ${filterCourse === 'All' ? 'bg-blue-900 text-white shadow-blue-200' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+          >
+            <Layers className="w-3.5 h-3.5" /> All Programs
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${filterCourse === 'All' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-400'}`}>{records.length}</span>
           </button>
           {activeCourses.map((c) => (
-            <button key={c} onClick={() => setFilterCourse(c)} className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filterCourse === c ? 'bg-blue-900 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            <button
+              key={c}
+              onClick={() => setFilterCourse(c)}
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all shadow-sm ${filterCourse === c ? 'bg-blue-900 text-white shadow-blue-200' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+            >
               {c}
-              <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filterCourse === c ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-500'}`}>{courseCountMap[c] || 0}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] ${filterCourse === c ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-400'}`}>{courseCountMap[c] || 0}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Search by name, student ID, email, or section..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <select className="px-3 py-2 border border-gray-200 rounded-xl bg-white text-sm font-medium outline-none" value={filterBatchYear} onChange={(e) => setFilterBatchYear(e.target.value)}>
-            <option value="All">All Batch Years</option>
-            {batchYears.map((y) => <option key={y} value={y}>Batch {y}</option>)}
-          </select>
-          <button onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl bg-white text-sm font-medium hover:bg-gray-50 transition-all">
-            <ArrowUpDown className="w-4 h-4 text-gray-500" />{sortOrder === 'desc' ? 'Newest' : 'Oldest'}
-          </button>
-          <div className="inline-flex gap-1 rounded-xl bg-slate-100 p-1">
-            <button onClick={() => setLayoutMode('table')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${layoutMode === 'table' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>Table</button>
-            <button onClick={() => setLayoutMode('grid')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${layoutMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}><Grid3X3 className="w-3.5 h-3.5" />Grid</button>
+      {/* Main Toolbar */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 mb-8 flex flex-col lg:flex-row gap-6">
+        <div className="flex-1 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, student ID, email, or section..."
+              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="inline-flex gap-1 rounded-2xl bg-slate-100 p-1">
+              <button onClick={() => setGroupView('batch')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${groupView === 'batch' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>Batch View</button>
+              <button onClick={() => setGroupView('course')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${groupView === 'course' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>Course View</button>
+            </div>
+            <select className="px-5 py-2.5 bg-slate-100 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none transition-all appearance-none cursor-pointer hover:bg-slate-200" value={filterBatchYear} onChange={(e) => setFilterBatchYear(e.target.value)}>
+              <option value="All">All Years</option>
+              {batchYears.map((y) => <option key={y} value={y}>Batch {y}</option>)}
+            </select>
           </div>
         </div>
-      </div>
 
-      <div className="mb-4 inline-flex gap-1 rounded-xl bg-slate-100 p-1">
-        <button onClick={() => setGroupView('batch')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${groupView === 'batch' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>Batch View</button>
-        <button onClick={() => setGroupView('course')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${groupView === 'course' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>Course View</button>
+        <div className="lg:w-px h-px lg:h-20 bg-slate-100" />
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Layout & Sort</p>
+            <div className="flex gap-2">
+              <div className="inline-flex gap-1 rounded-2xl bg-slate-100 p-1">
+                <button onClick={() => setLayoutMode('table')} className={`p-2.5 rounded-xl transition-all ${layoutMode === 'table' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-gray-600'}`} title="Table View"><Table2 className="w-4 h-4" /></button>
+                <button onClick={() => setLayoutMode('grid')} className={`p-2.5 rounded-xl transition-all ${layoutMode === 'grid' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-gray-600'}`} title="Grid View"><Grid3X3 className="w-4 h-4" /></button>
+              </div>
+              <button onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))} className="p-3.5 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all shadow-sm" title={sortOrder === 'desc' ? 'Sort Ascending' : 'Sort Descending'}>
+                <ArrowUpDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="lg:w-px h-px lg:h-20 bg-slate-100 mx-2" />
+
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Report Export</p>
+            <div className="flex gap-2">
+              <button
+                onClick={exportCSV}
+                className="flex items-center gap-2 px-6 py-3.5 bg-emerald-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 group"
+              >
+                <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" /> CSV
+              </button>
+              <button
+                onClick={exportPDF}
+                className="flex items-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95 group"
+              >
+                <Download className="w-4 h-4 group-hover:scale-110 transition-transform" /> PDF
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-3 text-sm text-gray-500">
@@ -486,34 +421,36 @@ const AllAlumniRecords: React.FC = () => {
                     <table className="w-full text-left text-sm">
                       <thead className="bg-gray-50 border-t border-b border-gray-100">
                         <tr>
-                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Name</th>
                           <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Student ID</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Last Name</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">First Name</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Middle Name</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Suffix</th>
                           <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Course</th>
-                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Section</th>
-                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Contact</th>
-                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Status</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Batch</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Mobile</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Email</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Address</th>
+                          <th className="px-5 py-2.5 font-semibold text-gray-500 text-xs uppercase tracking-wider">Adviser</th>
                           <th className="px-5 py-2.5 w-16" />
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {groupRecords.map((rec) => {
-                          const section = parseSection(rec.verification_answer);
-                          const adviser = parseAdviser(rec.verification_answer);
                           return (
                             <tr key={rec.id} className="hover:bg-blue-50/30 transition-colors">
-                              <td className="px-5 py-3 font-bold text-gray-900">{rec.last_name}, {rec.first_name} {rec.middle_name ? `${rec.middle_name.charAt(0)}.` : ''} {rec.suffix || ''}</td>
                               <td className="px-5 py-3"><span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded">{rec.student_id || 'N/A'}</span></td>
-                              <td className="px-5 py-3"><span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-bold"><BookOpen className="w-3 h-3" />{rec.course || 'N/A'}</span></td>
-                              <td className="px-5 py-3">{section ? <div><span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full text-xs font-bold"><Hash className="w-3 h-3" />{section}</span>{adviser && <div className="text-[10px] text-gray-400 mt-0.5">Adviser: {adviser}</div>}</div> : <span className="text-xs text-gray-300">—</span>}</td>
-                              <td className="px-5 py-3">{rec.email?.includes('unregistered_') ? <span className="text-gray-400 italic text-xs">Not registered</span> : <span className="flex items-center gap-1 text-xs"><Mail className="w-3 h-3 text-gray-400" />{rec.email}</span>}{rec.mobile_number && <span className="flex items-center gap-1 text-xs text-gray-400 mt-0.5"><Phone className="w-3 h-3" />{rec.mobile_number}</span>}</td>
-                              <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${rec.status === 'verified' ? 'bg-green-100 text-green-700' : rec.status === 'pending_approval' ? 'bg-orange-100 text-orange-700' : rec.status === 'master_list' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{rec.status === 'master_list' ? 'UNCLAIMED' : rec.status?.replace('_', ' ')}</span></td>
-                              <td className="px-5 py-3">
-                                {!isStaff && (
-                                  <button onClick={() => handleEditRecord(rec)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all" title="Edit Record">
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </td>
+                              <td className="px-5 py-3 font-bold text-gray-900">{rec.last_name || '—'}</td>
+                              <td className="px-5 py-3 font-bold text-gray-900">{rec.first_name || '—'}</td>
+                              <td className="px-5 py-3 text-gray-700">{rec.middle_name || '—'}</td>
+                              <td className="px-5 py-3 text-red-600 font-bold">{rec.suffix || '—'}</td>
+                              <td className="px-5 py-3"><span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"><BookOpen className="w-3 h-3" />{rec.course || 'N/A'}</span></td>
+                              <td className="px-5 py-3"><span className="text-xs font-bold text-slate-500">Class of {rec.batch_year || '—'}</span></td>
+                              <td className="px-5 py-3 text-[10px] font-medium text-slate-500">{rec.mobile_number || '—'}</td>
+                              <td className="px-5 py-3 text-[10px] font-medium text-slate-500">{rec.email?.includes('unregistered_') ? '—' : rec.email}</td>
+                              <td className="px-5 py-3 text-[10px] text-gray-700 max-w-[150px] truncate" title={rec.address}>{rec.address || '—'}</td>
+                              <td className="px-5 py-3 text-[10px] text-purple-600 font-bold">{parseAdviser(rec.verification_answer) || '—'}</td>
+                              <td className="px-5 py-3" />
                             </tr>
                           );
                         })}
@@ -529,30 +466,41 @@ const AllAlumniRecords: React.FC = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {paginatedRecords.map((rec) => {
-              const section = parseSection(rec.verification_answer);
+              const adviser = parseAdviser(rec.verification_answer);
               return (
                 <AdminResourceCard
                   key={rec.id}
-                  title={`${rec.last_name}, ${rec.first_name}`}
-                  subtitle={`ID: ${rec.student_id || 'N/A'}`}
-                  status={rec.status === 'master_list' ? 'unclaimed' : rec.status}
+                  title={`${rec.last_name}, ${rec.first_name} ${rec.suffix || ''}`}
+                  subtitle={`Student ID: ${rec.student_id || 'N/A'}`}
                   category={rec.course}
-                  onEdit={!isStaff ? () => handleEditRecord(rec) : undefined}
+                  status={rec.batch_year ? `Batch ${rec.batch_year}` : undefined}
                 >
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                      <span className="font-bold">Batch {rec.batch_year}</span>
-                    </div>
-                    {section && (
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Hash className="w-3.5 h-3.5 text-purple-500" />
-                        <span>Section {section}</span>
+                  <div className="space-y-3 pt-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Middle Name</p>
+                        <p className="text-[10px] font-bold text-slate-700 truncate">{rec.middle_name || '—'}</p>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-gray-400 truncate">
-                      <Mail className="w-3.5 h-3.5" />
-                      <span className="line-clamp-1">{rec.email?.includes('unregistered_') ? 'Not registered' : rec.email}</span>
+                      <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Adviser</p>
+                        <p className="text-[10px] font-bold text-purple-600 truncate">{adviser || '—'}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/50 space-y-1.5">
+                      <div className="flex items-center gap-2 text-[10px] text-slate-600">
+                        <Mail className="w-3 h-3 text-blue-500" />
+                        <span className="line-clamp-1 font-medium">{rec.email?.includes('unregistered_') ? 'Not registered' : rec.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-600">
+                        <Phone className="w-3 h-3 text-emerald-500" />
+                        <span className="font-medium">{rec.mobile_number || '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                      <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Address</p>
+                      <p className="text-[10px] font-medium text-slate-600 line-clamp-2 leading-relaxed">{rec.address || '—'}</p>
                     </div>
                   </div>
                 </AdminResourceCard>
@@ -570,209 +518,9 @@ const AllAlumniRecords: React.FC = () => {
       )}
 
       {/* Modal for adding Alumni (UI/UX based on CreateUserModal) */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in overflow-y-auto">
-          <div className="bg-white p-10 rounded-[3rem] w-full max-w-2xl shadow-2xl relative my-auto">
-            {created ? (
-              <div className="text-center animate-in zoom-in-95">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-10 h-10 text-green-600" />
-                </div>
-                <h3 className="text-3xl font-black tracking-tighter text-slate-900 uppercase">Alumni Registered!</h3>
-                <p className="text-sm text-slate-400 mt-1 mb-8">The alumni record has been successfully created and verified.</p>
 
-                <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-slate-100">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Account Summary</p>
-                  <p className="text-xl font-black text-slate-900">{addForm.first_name} {addForm.last_name}</p>
-                  <p className="text-sm font-bold text-blue-600">{addForm.course} · Batch {addForm.batch_year}</p>
-                  <div className="mt-4 pt-4 border-t border-slate-200/50 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-black text-slate-600">{addForm.email}</span>
-                  </div>
-                </div>
 
-                <button
-                  onClick={() => { setShowAddModal(false); fetchRecords(); }}
-                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all uppercase tracking-widest"
-                >
-                  Done
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h3 className="text-3xl font-black tracking-tighter text-slate-900 uppercase italic">Add Alumni</h3>
-                    <p className="text-sm text-slate-400 mt-1">Manual registration for individual alumni records.</p>
-                  </div>
-                  <button onClick={() => setShowAddModal(false)} className="p-3 bg-slate-100 rounded-full hover:rotate-90 transition-transform"><X className="w-5 h-5 text-slate-400" /></button>
-                </div>
 
-                <div className="space-y-6">
-                  {/* Role Overlay (Fixed to Alumni) */}
-                  <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Account Type</p>
-                      <p className="text-sm font-black text-blue-900 uppercase">Alumni Account (Verified)</p>
-                    </div>
-                  </div>
-
-                  {/* Name Row */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
-                        <User className="w-3.5 h-3.5" /> First Name <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={addForm.first_name}
-                        onChange={e => handleNameInput(e.target.value, 'first')}
-                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                        placeholder="Juan"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
-                        <User className="w-3.5 h-3.5" /> Last Name <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={addForm.last_name}
-                        onChange={e => handleNameInput(e.target.value, 'last')}
-                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                        placeholder="Dela Cruz"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
-                      <Mail className="w-3.5 h-3.5" /> Email Address <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={addForm.email}
-                      onChange={e => setAddForm({ ...addForm, email: e.target.value })}
-                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                      placeholder="juan.cruz@email.com"
-                      required
-                    />
-                  </div>
-
-                  {/* Student ID + Course */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
-                        <Hash className="w-3.5 h-3.5" /> Student ID
-                      </label>
-                      <input
-                        type="text"
-                        value={addForm.student_id}
-                        onChange={e => handleNumberInput(e.target.value, 'student_id')}
-                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                        placeholder="202X-XXXX"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
-                        <GraduationCap className="w-3.5 h-3.5" /> Course <span className="text-rose-400">*</span>
-                      </label>
-                      <select
-                        value={addForm.course}
-                        onChange={e => setAddForm({ ...addForm, course: e.target.value })}
-                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black text-blue-600 focus:ring-2 focus:ring-blue-200 outline-none transition-all cursor-pointer appearance-none"
-                      >
-                        {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Batch Year */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-2 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> Batch Year <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={addForm.batch_year}
-                      onChange={e => handleNumberInput(e.target.value, 'batch_year')}
-                      maxLength={4}
-                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-black focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                      placeholder="2024"
-                      required
-                    />
-                  </div>
-
-                  <div className="pt-4 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddModal(false)}
-                      className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all uppercase tracking-widest"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddAlumni}
-                      disabled={addingRecord}
-                      className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 transition-all uppercase tracking-widest"
-                    >
-                      {addingRecord ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus className="w-5 h-5" /> Register Alumni</>}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {editingRecord && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Edit Record</h3>
-                <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-4 h-4" /></button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">ID: {editingRecord.id?.slice(0, 8)}... | Student: {editingRecord.student_id || 'N/A'}</p>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">First Name</label>
-                  <input value={editForm.first_name} onChange={(e) => handleEditNameInput(e.target.value, 'first')} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Last Name</label>
-                  <input value={editForm.last_name} onChange={(e) => handleEditNameInput(e.target.value, 'last')} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Course</label>
-                  <select value={editForm.course} onChange={(e) => setEditForm({ ...editForm, course: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200">
-                    <option value="">— None —</option>
-                    {COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Batch Year</label>
-                  <input value={editForm.batch_year} onChange={(e) => handleEditNumberInput(e.target.value, 'batch_year')} placeholder="e.g. 2024" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-200" />
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-              <button onClick={() => setEditingRecord(null)} className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
-              <button onClick={handleSaveEdit} disabled={savingEdit} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50">{savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminPageLayout>
   );
 };

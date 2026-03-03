@@ -6,7 +6,8 @@ import {
   ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
   PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
   MessageSquare, List, Layers,
-  Bot, Settings, MoreVertical, AlertTriangle, Loader2, RefreshCw
+  Bot, Settings, MoreVertical, AlertTriangle, Loader2, RefreshCw,
+  ShieldCheck
 } from "lucide-react";
 import RoleSwitcherModal from "../modals/RoleSwitcherModal";
 
@@ -32,13 +33,13 @@ const AdminSidebar: React.FC = () => {
       name: "Alumni & Records", icon: Users, subItems: [
         // { name: "Manage Users", path: "/admin/users", icon: Users },
         { name: "Alumni Records", path: "/admin/records", icon: Database },
-        { name: "Master List", path: "/admin/upload", icon: UploadCloud },
-       // { name: "Alumni Resources", path: "/admin/resources", icon: FileText },
+        { name: "CSV Upload", path: "/admin/upload", icon: UploadCloud },
+        { name: "Verification", path: "/admin/verification", icon: ShieldCheck },
       ]
     },
     {
       name: "Career & Jobs", icon: Briefcase, subItems: [
-        { name: "Manage Jobs", path: "/admin/jobs/board", icon: ListPlus },
+        { name: "Job Manager", path: "/admin/jobs/board", icon: ListPlus },
         { name: "Status Tracker", path: "/admin/tracking/career", icon: Briefcase },
       ]
     },
@@ -50,6 +51,7 @@ const AdminSidebar: React.FC = () => {
     {
       name: "Communication & Updates", icon: Mail, subItems: [
         { name: "News Feed", path: "/admin/news/manage", icon: Newspaper },
+        { name: "Alumni Community", path: "/admin/community", icon: Users },
         { name: "Partner Inquiries", path: "/admin/partner-inquiries", icon: Briefcase },
       ]
     },
@@ -70,6 +72,14 @@ const AdminSidebar: React.FC = () => {
         { name: "Tracer Survey", path: "/admin/tracer-survey", icon: Mail },
         { name: "Train AI", path: "/admin/train-ai", icon: Bot },
         { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
+      ]
+    },
+    {
+      name: "Role Dashboards", icon: LayoutDashboard, subItems: [
+        { name: "Alumni Manager", path: "/admin/dashboard/alumni", icon: Users },
+        { name: "Event Officer", path: "/admin/dashboard/events", icon: CalendarDays },
+        { name: "Finance Manager", path: "/admin/dashboard/finance", icon: DollarSign },
+        { name: "Job Officer", path: "/admin/dashboard/jobs", icon: Briefcase },
       ]
     },
     { name: "Settings", icon: Settings, path: "/admin/settings" },

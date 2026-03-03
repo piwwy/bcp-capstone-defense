@@ -9,7 +9,7 @@ import PageTransition from '../../components/ui/PageTransition';
 import {
   Calendar, MapPin, Clock, Image as ImageIcon,
   Users, CheckCircle2, CalendarPlus, Share2,
-  Loader2, Timer, Plus, X
+  Loader2, Timer, Plus, X, Star, Send
 } from 'lucide-react';
 
 const AlumniEvents = () => {
@@ -21,6 +21,9 @@ const AlumniEvents = () => {
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [addEventLoading, setAddEventLoading] = useState(false);
+  const [feedbackEvent, setFeedbackEvent] = useState<any>(null);
+  const [feedbackForm, setFeedbackForm] = useState({ rating: 5, message: '', subject: 'Event Feedback' });
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const now = useMemo(() => new Date(), []);
   const upcomingEvents = useMemo(() => events.filter((e: any) => new Date(e.date) >= now), [events, now]);
   const dynamicPastEvents = useMemo(() => events.filter((e: any) => new Date(e.date) < now), [events, now]);
@@ -108,6 +111,31 @@ const AlumniEvents = () => {
       showToast({ title: 'RSVP Failed', message: 'You might already be registered.', type: 'info' });
     } finally {
       setRsvpLoading(null);
+    }
+  };
+
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackEvent || !feedbackForm.message.trim()) return;
+    setFeedbackLoading(true);
+    try {
+      const { error } = await supabase.from('alumni_feedback').insert([{
+        alumni_id: user?.id,
+        alumni_name: user?.name || 'Alumni',
+        event_id: feedbackEvent.id,
+        subject: feedbackForm.subject,
+        message: feedbackForm.message,
+        rating: feedbackForm.rating,
+        status: 'pending'
+      }]);
+      if (error) throw error;
+      showToast({ title: 'Feedback Sent', message: 'Thank you for your feedback!', type: 'success' });
+      setFeedbackEvent(null);
+      setFeedbackForm({ rating: 5, message: '', subject: 'Event Feedback' });
+    } catch (err: any) {
+      showToast({ title: 'Error', message: err.message, type: 'error' });
+    } finally {
+      setFeedbackLoading(false);
     }
   };
 
@@ -306,8 +334,14 @@ const AlumniEvents = () => {
                   <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
                     <span className="inline-block bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2">{p.category}</span>
                     <p className="text-white text-sm font-black leading-tight">{p.title}</p>
-                    <div className="flex items-center gap-3 mt-2 text-white/70 text-[10px] font-bold">
+                    <div className="flex items-center justify-between mt-2 text-white/70 text-[10px] font-bold">
                       <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(p.date).toLocaleDateString()}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setFeedbackEvent(p); }}
+                        className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl border border-white/20 backdrop-blur transition-all"
+                      >
+                        Give Feedback
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -425,6 +459,80 @@ const AlumniEvents = () => {
             </div>
           </div>
         )}
+        {/* FEEDBACK MODAL */}
+        {feedbackEvent && (
+          <div className="fixed inset-0 z-[101] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+            <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">Event Feedback</h3>
+                  <p className="text-slate-400 text-sm font-medium mt-1">{feedbackEvent.title}</p>
+                </div>
+                <button onClick={() => setFeedbackEvent(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitFeedback} className="p-8 space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 text-center">How was your experience?</label>
+                  <div className="flex justify-center gap-2">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFeedbackForm({ ...feedbackForm, rating: s })}
+                        className={`p-2 transition-all transform hover:scale-125 ${s <= feedbackForm.rating ? 'text-yellow-400' : 'text-slate-200'}`}
+                      >
+                        <Star key={s} className={`w-10 h-10 ${s <= feedbackForm.rating ? 'fill-current' : ''}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Subject</label>
+                  <input
+                    required
+                    value={feedbackForm.subject}
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-bold text-slate-900"
+                    onChange={e => setFeedbackForm({ ...feedbackForm, subject: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Your Message</label>
+                  <textarea
+                    required
+                    value={feedbackForm.message}
+                    placeholder="Share your thoughts about the event..."
+                    rows={4}
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-bold text-slate-900 resize-none"
+                    onChange={e => setFeedbackForm({ ...feedbackForm, message: e.target.value })}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackEvent(null)}
+                    className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={feedbackLoading}
+                    className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    {feedbackLoading ? <Loader2 className="animate-spin w-5 h-5" /> : <><Send className="w-5 h-5" /> Submit Feedback</>}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     </PageTransition>
   );

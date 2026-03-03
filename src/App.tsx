@@ -22,6 +22,7 @@ import { PageSkeleton } from './components/ui/Skeleton';
 // --- PUBLIC PAGES (keep eager — needed on first paint) ---
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import AuthCallback from './pages/AuthCallback';
 
 // --- LAZY-LOADED PAGES (split into separate chunks) ---
@@ -49,6 +50,8 @@ const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
 const TracerSurvey = React.lazy(() => import('./pages/admin/TracerSurvey'));
 const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries'));
 const ManageResources = React.lazy(() => import('./pages/admin/ManageResources'));
+const ManageCommunity = React.lazy(() => import('./pages/admin/ManageCommunity'));
+const VerificationSubmodule = React.lazy(() => import('./pages/admin/VerificationSubmodule'));
 
 // Alumni pages
 const AlumniDashboard = React.lazy(() => import('./components/dashboard/AlumniDashboard'));
@@ -69,6 +72,12 @@ const AlumniMessages = React.lazy(() => import('./pages/alumni/AlumniMessages'))
 const DashboardAdmin = React.lazy(() => import('./components/dashboard/DashboardAdmin'));
 const DashboardSuperAdmin = React.lazy(() => import('./components/dashboard/DashboardSuperAdmin'));
 const StaffDashboard = React.lazy(() => import('./pages/staff/StaffDashboard'));
+
+// Specialized Dashboards
+const JobOfficerDashboard = React.lazy(() => import('./pages/dashboards/JobOfficerDashboard'));
+const FinanceManagerDashboard = React.lazy(() => import('./pages/dashboards/FinanceManagerDashboard'));
+const AlumniManagerDashboard = React.lazy(() => import('./pages/dashboards/AlumniManagerDashboard'));
+const EventOfficerDashboard = React.lazy(() => import('./pages/dashboards/EventOfficerDashboard'));
 
 // --- LAYOUTS (keep eager — they wrap everything) ---
 import DashboardLayout from './layouts/DashboardLayout';
@@ -178,6 +187,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       case 'admin': return <Navigate to="/admin/dashboard" replace />;
       case 'registrar': return <Navigate to="/admin/dashboard" replace />;
       case 'staff': return <Navigate to="/staff/dashboard" replace />;
+      case 'job_officer': return <Navigate to="/job-officer/dashboard" replace />;
+      case 'finance_manager': return <Navigate to="/finance-manager/dashboard" replace />;
+      case 'alumni_manager': return <Navigate to="/alumni-manager/dashboard" replace />;
+      case 'event_officer': return <Navigate to="/event-officer/dashboard" replace />;
       case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
       default: return <Navigate to="/login" replace />;
     }
@@ -197,16 +210,21 @@ function AppRoutes() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="donate" element={<PublicDonationPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/register" element={<Register />} />
 
         {/* =========================================================
       ADMIN PORTAL
      ========================================================= */}
         <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['admin', 'staff']}>
+          <ProtectedRoute allowedRoles={['admin', 'staff', 'job_officer', 'finance_manager', 'alumni_manager', 'event_officer']}>
             <DashboardLayout>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="dashboard" element={<DashboardAdmin />} />
+                  <Route path="dashboard/alumni" element={<AlumniManagerDashboard />} />
+                  <Route path="dashboard/events" element={<EventOfficerDashboard />} />
+                  <Route path="dashboard/finance" element={<FinanceManagerDashboard />} />
+                  <Route path="dashboard/jobs" element={<JobOfficerDashboard />} />
 
                   {/* MATCHING SIDEBAR PATHS: */}
 
@@ -215,6 +233,9 @@ function AppRoutes() {
 
                   {/* Sidebar: /admin/upload */}
                   <Route path="upload" element={<MasterListUpload />} />
+
+                  {/* Sidebar: /admin/verification */}
+                  <Route path="verification" element={<VerificationSubmodule />} />
 
                   {/* Sidebar: /admin/users - View all registered users */}
                   <Route path="users" element={<AdminUsers />} />
@@ -233,6 +254,7 @@ function AppRoutes() {
                   {/* Announcements removed — consolidated into News Feed */}
                   <Route path="events/calendar" element={<ManageEvents />} />
                   <Route path="news/manage" element={<ManageNews />} />
+                  <Route path="community" element={<ManageCommunity />} />
 
                   {/* Advanced Tools */}
                   <Route path="reports" element={<ReportsAnalytics />} />
@@ -284,6 +306,7 @@ function AppRoutes() {
 
                   {/* Communication */}
                   <Route path="news" element={<ManageNews />} />
+                  <Route path="community" element={<ManageCommunity />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
 
                   {/* Engagement */}
@@ -316,7 +339,7 @@ function AppRoutes() {
             STAFF PORTAL (Limited Access)
            ========================================================= */}
         <Route path="/staff/*" element={
-          <ProtectedRoute allowedRoles={['staff']}>
+          <ProtectedRoute allowedRoles={['staff', 'job_officer', 'finance_manager', 'alumni_manager', 'event_officer']}>
             <DashboardLayout>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
@@ -324,12 +347,69 @@ function AppRoutes() {
                   <Route path="records" element={<AllAlumniRecords />} />
                   <Route path="events/calendar" element={<ManageEvents />} />
                   <Route path="news/manage" element={<ManageNews />} />
+                  <Route path="community" element={<ManageCommunity />} />
                   <Route path="feedback" element={<ManageFeedback />} />
                   <Route path="batch-reunions" element={<ManageBatchReunions />} />
                   <Route path="jobs/board" element={<ManageJobs />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
                   <Route path="collections" element={<DonationCollections />} />
                   <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* =========================================================
+            SPECIALIZED ROLES PORTALS
+           ========================================================= */}
+        <Route path="/job-officer/*" element={
+          <ProtectedRoute allowedRoles={['job_officer']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<JobOfficerDashboard />} />
+                  <Route path="*" element={<Navigate to="/admin" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/finance-manager/*" element={
+          <ProtectedRoute allowedRoles={['finance_manager']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<FinanceManagerDashboard />} />
+                  <Route path="*" element={<Navigate to="/admin" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/alumni-manager/*" element={
+          <ProtectedRoute allowedRoles={['alumni_manager']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<AlumniManagerDashboard />} />
+                  <Route path="*" element={<Navigate to="/admin" replace />} />
+                </Routes>
+              </Suspense>
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/event-officer/*" element={
+          <ProtectedRoute allowedRoles={['event_officer']}>
+            <DashboardLayout>
+              <Suspense fallback={<PageSkeleton />}>
+                <Routes>
+                  <Route path="dashboard" element={<EventOfficerDashboard />} />
+                  <Route path="feedback" element={<ManageFeedback />} />
+                  <Route path="*" element={<Navigate to="/admin" replace />} />
                 </Routes>
               </Suspense>
             </DashboardLayout>

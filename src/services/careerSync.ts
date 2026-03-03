@@ -16,6 +16,7 @@ export const syncHiredAlumni = async (
                 employment_status: 'employed',
                 current_position: jobTitle,
                 current_company: companyName,
+                industry: jobData.category || 'Other',
                 headline: `Hired as ${jobTitle} at ${companyName}`,
                 location: jobData.location || '',
                 updated_at: new Date().toISOString()

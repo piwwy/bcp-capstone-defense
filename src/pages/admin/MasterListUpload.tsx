@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { supabase } from '../../services/supabaseClient';
 import AdminPageLayout from './AdminPageLayout';
 import { useToast } from '../../context/ToastContext';
 import { logMasterListUpload } from '../../services/auditLogger';
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Search, Download, Users, GraduationCap, Key, Mail, Shield, Eye, EyeOff, CloudUpload, Table2, X } from 'lucide-react';
+import {
+  Upload, FileText, CheckCircle, AlertCircle, Loader2, Search, Download,
+  Users, GraduationCap, Key, Mail, Shield, Eye, EyeOff, CloudUpload, Table2, X
+} from 'lucide-react';
 
 interface MasterRecord {
   id?: string;
@@ -21,7 +26,7 @@ interface CreatedCredential {
   name: string;
   email: string;
   password: string;
-  status: 'created' | 'exists' | 'error';
+  status: 'pending' | 'processing' | 'created' | 'exists' | 'error';
   error?: string;
 }
 
@@ -56,7 +61,6 @@ const MasterListUpload = () => {
 
   // Drag and drop
   const [isDragging, setIsDragging] = useState(false);
-  const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
   // Credential generation state
   const [credentials, setCredentials] = useState<CreatedCredential[]>([]);
@@ -73,13 +77,26 @@ const MasterListUpload = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, student_id, first_name, last_name, course, batch_year, status, email')
-        .eq('status', 'master_list')
+        .eq('role', 'alumni')
+        .neq('status', 'rejected')
         .order('course', { ascending: true });
       if (error) throw error;
       setRecords(data || []);
     } catch (err) {
       console.error('Fetch error:', err);
     } finally { setLoading(false); }
+  };
+
+  const downloadTemplate = () => {
+    const headers = 'student_id,last_name,first_name,course,batch_year,email\n';
+    const sample = '2023-0001,Dela Cruz,Juan,BSIT,2023,juan.delacruz@alumni.com\n';
+    const blob = new Blob([headers + sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'alumni_masterlist_template.csv';
+    a.click();
+    showToast({ type: 'info', title: 'Template Downloaded', message: 'Use this format for accurate uploads.' });
   };
 
   const processFile = useCallback(async (file: File) => {
@@ -96,21 +113,66 @@ const MasterListUpload = () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target?.result as string;
-      const rows = text.split('\n').slice(1);
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      if (lines.length < 2) {
+        setMessage({ type: 'error', text: 'CSV is empty or missing data.' });
+        setUploading(false);
+        return;
+      }
 
+      const headerLine = lines[0].toLowerCase();
+      const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
+
+      // Find indices by name
+      const findIdx = (names: string[]) => headers.findIndex(h => names.some(n => h.includes(n)));
+
+      const idx = {
+        student_id: findIdx(['student_id', 'id', 'student id', 'sid']),
+        last_name: findIdx(['last_name', 'last name', 'surname', 'family name']),
+        first_name: findIdx(['first_name', 'first name', 'given name']),
+        course: findIdx(['course', 'program', 'degree', 'track']),
+        batch_year: findIdx(['batch_year', 'batch', 'year', 'graduated']),
+        email: findIdx(['email', 'mail', 'contact']),
+      };
+
+      // Fallback for strict order if headers are missing/not recognized
+      if (idx.student_id === -1) idx.student_id = 0;
+      if (idx.last_name === -1) idx.last_name = 1;
+      if (idx.first_name === -1) idx.first_name = 2;
+      if (idx.course === -1) idx.course = 3;
+      if (idx.batch_year === -1) idx.batch_year = 4;
+      if (idx.email === -1) idx.email = 5;
+
+      const rows = lines.slice(1);
       const parsed: { student_id: string; last_name: string; first_name: string; course: string; batch_year: string; email: string }[] = [];
+      const csvRegex = /(?:"([^"]*(?:""[^"]*)*)"|([^,]*))(?:,|$)/g;
+
       for (const row of rows) {
-        const cols = row.split(',');
-        if (cols.length < 5 || !cols[0]?.trim() || !cols[1]?.trim()) continue;
+        if (!row.trim()) continue;
+        const cols: string[] = [];
+        let match;
+        csvRegex.lastIndex = 0;
+        while ((match = csvRegex.exec(row)) !== null) {
+          let value = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+          cols.push(value?.trim() || '');
+          if (match.index === csvRegex.lastIndex) csvRegex.lastIndex++;
+          if (row[csvRegex.lastIndex - 1] !== ',') break;
+        }
 
-        const student_id = cols[0].trim();
-        const last_name = cols[1].trim();
-        const first_name = cols[2]?.trim() || '';
-        const course = cols[3]?.trim() || '';
-        const batch_year = cols[4]?.trim() || '';
-        const email = cols[5]?.trim() || `${student_id.toLowerCase()}@bcp.edu.ph`;
+        const student_id = cols[idx.student_id] || '';
+        const last_name = cols[idx.last_name] || '';
+        const first_name = cols[idx.first_name] || '';
+        const course = cols[idx.course] || 'BSIT';
+        const batch_year = cols[idx.batch_year] || new Date().getFullYear().toString();
 
-        parsed.push({ student_id, last_name, first_name, course, batch_year, email });
+        if (!student_id || !last_name || !first_name) continue;
+
+        let email = cols[idx.email]?.trim();
+        if (!email || !email.includes('@')) {
+          email = `${first_name.toLowerCase().replace(/[^a-z0-9]/g, '')}.${last_name.toLowerCase().replace(/[^a-z0-9]/g, '')}${student_id.slice(-4)}@alumni.bcp.edu.ph`;
+        }
+
+        parsed.push({ student_id, last_name, first_name, course, batch_year: String(batch_year), email });
       }
 
       if (parsed.length === 0) {
@@ -126,7 +188,7 @@ const MasterListUpload = () => {
           name: `${p.first_name} ${p.last_name}`,
           email: p.email,
           password: generateTempPassword(),
-          status: 'created' as const,
+          status: 'pending' as const,
         }));
         setCredentials(newCreds);
         setShowCredentials(true);
@@ -140,11 +202,14 @@ const MasterListUpload = () => {
         let failCount = 0;
 
         for (let i = 0; i < processedCreds.length; i++) {
+          processedCreds[i].status = 'processing';
+          setCredentials([...processedCreds]);
+          setProgress({ current: i, total: processedCreds.length });
+
           const cred = processedCreds[i];
           const p = parsed[i];
 
           try {
-            // Call the database RPC function directly
             const { data, error } = await supabase.rpc('admin_create_user', {
               email: cred.email,
               password: cred.password,
@@ -158,15 +223,20 @@ const MasterListUpload = () => {
               }
             });
 
-            if (error) throw error;
-            if (data && !data.success) {
-              // Check if it's an "already exists" case
+            if (error) {
+              console.error('RPC Error:', error);
+              processedCreds[i].status = 'error';
+              processedCreds[i].error = error.message;
+              failCount++;
+            } else if (data && !data.success) {
               if (data.message === 'User already exists') {
                 processedCreds[i].status = 'exists';
                 processedCreds[i].error = 'Already registered';
-                failCount++; // Count as "fail" in terms of new creation, or handle as "skipped"
+                failCount++;
               } else {
-                throw new Error(data.error || 'Unknown RPC error');
+                processedCreds[i].status = 'error';
+                processedCreds[i].error = data.error || 'Unknown RPC error';
+                failCount++;
               }
             } else {
               processedCreds[i].status = 'created';
@@ -188,7 +258,7 @@ const MasterListUpload = () => {
         const existsCount = failCount;
 
         setMessage({ type: 'success', text: `Processed ${parsed.length} records. ${insertedCount} new accounts created.` });
-        showToast({ type: 'success', title: 'Master List Processed', message: `${insertedCount} accounts created, ${existsCount} skipped/failed.` });
+        showToast({ type: 'success', title: 'CSV Uploaded', message: `${insertedCount} accounts created, ${existsCount} skipped/failed.` });
         logMasterListUpload(newCreds.length, insertedCount);
 
         // AUTO-DOWNLOAD RESULTS FOR SECURITY
@@ -209,13 +279,12 @@ const MasterListUpload = () => {
         setActiveTab('records');
 
       } catch (err: any) {
-        console.error('Master list upload error:', err);
+        console.error('CSV upload error:', err);
         setMessage({ type: 'error', text: 'Upload error: ' + err.message });
         showToast({ type: 'error', title: 'Upload Failed', message: err.message || 'Unable to process CSV.' });
       } finally {
         setUploading(false);
         setGeneratingAccounts(false);
-        setDroppedFile(null);
         if (fileRef.current) fileRef.current.value = '';
       }
     };
@@ -233,18 +302,10 @@ const MasterListUpload = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) { setDroppedFile(file); processFile(file); }
+    if (file) { processFile(file); }
   };
 
-  const downloadSample = () => {
-    const header = 'Student ID,Last Name,First Name,Course,Batch Year,Email\n';
-    const sample = '2024-0001,Dela Cruz,Juan,BSIT,2024,juan.dc@bcp.edu.ph\n2024-0002,Santos,Maria,BSBA,2024,maria.santos@bcp.edu.ph';
-    const blob = new Blob([header + sample], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'alumni_master_list_sample.csv'; a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   const downloadCredentials = () => {
     if (credentials.length === 0) return;
@@ -257,9 +318,48 @@ const MasterListUpload = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportPDF = () => {
+    const doc = new jsPDF('landscape');
+    const title = 'BCP Alumni Master List';
+    const subtitle = `Generated on ${new Date().toLocaleString()} | Filter: ${filterCourse} Program`;
+
+    doc.setFontSize(22);
+    doc.setTextColor(30, 64, 175);
+    doc.text(title, 14, 22);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(subtitle, 14, 30);
+
+    const tableData = filteredRecords.map((r, i) => [
+      i + 1,
+      r.student_id || 'N/A',
+      `${r.last_name}, ${r.first_name}`,
+      r.email || 'N/A',
+      r.course || 'N/A',
+      r.batch_year || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['#', 'Student ID', 'Full Name', 'Email', 'Course', 'Batch']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+      styles: { fontSize: 9 },
+      margin: { top: 40 }
+    });
+
+    doc.save(`alumni_masterlist_${filterCourse}_${new Date().getTime()}.pdf`);
+    showToast({ type: 'success', title: 'PDF Exported', message: `${filteredRecords.length} records exported in PDF format.` });
+  };
+
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
-      const matchSearch = !searchTerm || `${r.first_name} ${r.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) || r.student_id?.includes(searchTerm) || r.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = !searchTerm ||
+        `${r.first_name} ${r.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.student_id?.includes(searchTerm) ||
+        r.email?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCourse = filterCourse === 'All' || r.course === filterCourse;
       return matchSearch && matchCourse;
     });
@@ -272,7 +372,7 @@ const MasterListUpload = () => {
   }, [records]);
 
   return (
-    <AdminPageLayout title="Master List" subtitle="Official list of graduates — Upload CSV to auto-generate alumni accounts" icon={Upload}>
+    <AdminPageLayout title=" " subtitle="" icon={Upload}>
 
       {/* Hero Banner */}
       <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-violet-700 via-purple-600 to-indigo-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
@@ -284,7 +384,7 @@ const MasterListUpload = () => {
             <div className="flex items-center gap-2 mb-2">
               <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Database</span>
             </div>
-            <h2 className="text-3xl font-black text-white tracking-tighter">Master List</h2>
+            <h2 className="text-3xl font-black text-white tracking-tighter">CSV Upload</h2>
             <p className="text-violet-100 text-sm font-medium mt-1">Upload CSV to auto-generate alumni accounts</p>
           </div>
           <div className="hidden md:flex items-center gap-3">
@@ -385,22 +485,25 @@ const MasterListUpload = () => {
                 <p className="text-lg font-bold text-slate-700 mb-1">
                   {isDragging ? 'Drop your CSV file here!' : 'Drag & drop your CSV file here'}
                 </p>
-                <p className="text-sm text-slate-400 mb-4">or click to browse files</p>
-                <div className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-lg">
-                  <FileText className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs text-slate-500 font-mono">StudentID, LastName, FirstName, Course, BatchYear, Email (optional)</span>
+                <p className="text-sm text-slate-400 mb-6">or click to browse files</p>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="inline-flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-lg">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <span className="text-xs text-slate-500 font-mono">StudentID, LastName, FirstName, Course, BatchYear, Email (optional)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); downloadTemplate(); }}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download Sample CSV Template
+                  </button>
                 </div>
               </>
             )}
           </div>
 
-          {/* Download Sample */}
-          <div className="flex items-center gap-3">
-            <button onClick={downloadSample} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">
-              <Download className="w-4 h-4" /> Download Sample CSV
-            </button>
-            <p className="text-xs text-slate-400">Use this template to format your master list correctly.</p>
-          </div>
+
 
           {/* Message */}
           {message.text && (
@@ -448,8 +551,13 @@ const MasterListUpload = () => {
                         <td className="px-3 py-2 text-slate-500 font-mono">{c.email}</td>
                         <td className="px-3 py-2 font-mono text-slate-600">{showPasswords ? c.password : '••••••••'}</td>
                         <td className="px-3 py-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'created' ? 'bg-green-100 text-green-700' : c.status === 'exists' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                            {c.status === 'created' ? 'Created' : c.status === 'exists' ? 'Exists' : 'Error'}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'created' ? 'bg-green-100 text-green-700' :
+                            c.status === 'exists' ? 'bg-amber-100 text-amber-700' :
+                              c.status === 'processing' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                                c.status === 'pending' ? 'bg-gray-100 text-gray-500' :
+                                  'bg-red-100 text-red-700'
+                            }`}>
+                            {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                           </span>
                         </td>
                       </tr>
@@ -481,6 +589,12 @@ const MasterListUpload = () => {
               {COURSES.map(c => <option key={c} value={c}>{c} ({courseStats[c] || 0})</option>)}
             </select>
             <div className="flex-1" />
+            <button
+              onClick={exportPDF}
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95 group"
+            >
+              <Download className="w-4 h-4 group-hover:scale-110 transition-transform" /> Export PDF
+            </button>
             <span className="text-xs font-bold text-slate-400">{filteredRecords.length} of {records.length} records</span>
           </div>
 
@@ -506,7 +620,7 @@ const MasterListUpload = () => {
                     {filteredRecords.length === 0 ? (
                       <tr><td colSpan={7} className="px-4 py-12 text-center">
                         <FileText className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                        <p className="font-bold text-slate-400">No master list records found</p>
+                        <p className="font-bold text-slate-400">No csv records found</p>
                         <p className="text-sm text-slate-300 mt-1">Upload a CSV to populate this table.</p>
                       </td></tr>
                     ) : (

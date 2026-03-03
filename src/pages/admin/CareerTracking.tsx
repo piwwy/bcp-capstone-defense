@@ -5,12 +5,14 @@ import { useToast } from '../../context/ToastContext';
 import {
     Briefcase, Users, Building2, TrendingUp, Search, Loader2,
     BarChart3, GraduationCap, RefreshCw, MapPin, Phone, Linkedin,
-    Edit, Save, X
+    Edit, Save, X, Download
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface AlumniProfile {
     id: string;
@@ -29,6 +31,7 @@ interface AlumniProfile {
     phone: string;
     headline: string;
     linkedin_url: string;
+    years_experience: number;
     skills: string[];
 }
 
@@ -39,6 +42,35 @@ const EMPLOYMENT_STATUSES = [
     { value: 'student', label: 'Further Studies', color: '#06B6D4', bgColor: 'bg-cyan-100 text-cyan-700' },
     { value: 'other', label: 'Other', color: '#6B7280', bgColor: 'bg-gray-100 text-gray-700' },
 ];
+
+const INDUSTRIES = [
+    'Information Technology',
+    'Healthcare / Medical',
+    'Education / Academia',
+    'Finance / Banking',
+    'Engineering',
+    'Manufacturing',
+    'Retail / E-commerce',
+    'Government / Public Sector',
+    'Media / Entertainment',
+    'Real Estate',
+    'Hospitality / Tourism',
+    'Legal',
+    'Agriculture',
+    'Non-Profit / NGO',
+    'Other',
+];
+
+// Normalize employment status helper
+const normalizeStatus = (status: string) => {
+    if (!status) return 'other';
+    const s = status.toLowerCase().trim();
+    if (s === 'self_employed' || s === 'freelance' || s === 'self-employed') return 'self-employed';
+    if (s === 'employed') return 'employed';
+    if (s === 'unemployed') return 'unemployed';
+    if (s === 'student') return 'student';
+    return 'other';
+};
 
 const CareerTracking = () => {
     const { showToast } = useToast();
@@ -66,7 +98,6 @@ const CareerTracking = () => {
 
     const fetchAlumni = async () => {
         try {
-            // Fetch from profiles table (basic info)
             const { data: profilesData, error: profilesError } = await supabase
                 .from('profiles')
                 .select('id, first_name, last_name, email, batch_year, course, avatar_url, status')
@@ -77,27 +108,26 @@ const CareerTracking = () => {
 
             if (profilesError) throw profilesError;
 
-            // Fetch from alumni_profiles table (career data set by alumni)
             const { data: alumniData } = await supabase
                 .from('alumni_profiles')
-                .select('id, employment_status, current_position, current_company, headline, location, phone, linkedin_url, skills');
+                .select('id, employment_status, current_position, current_company, industry, years_experience, headline, location, phone, linkedin_url, skills');
 
-            // Merge the two datasets
             const alumniMap = new Map((alumniData || []).map(a => [a.id, a]));
             const merged = (profilesData || []).map(p => {
                 const ap = alumniMap.get(p.id);
                 return {
                     ...p,
-                    employment_status: ap?.employment_status || '',
+                    employment_status: ap?.employment_status || 'unemployed',
                     job_title: ap?.current_position || '',
                     company: ap?.current_company || '',
-                    industry: '',
+                    industry: ap?.industry || 'Other',
+                    years_experience: ap?.years_experience || 0,
                     location: ap?.location || '',
                     phone: ap?.phone || '',
                     headline: ap?.headline || '',
                     linkedin_url: ap?.linkedin_url || '',
                     skills: ap?.skills || [],
-                };
+                } as AlumniProfile;
             });
 
             setAlumni(merged);
@@ -117,6 +147,8 @@ const CareerTracking = () => {
                 employment_status: selectedAlumni.employment_status,
                 job_title: selectedAlumni.job_title,
                 company: selectedAlumni.company,
+                industry: selectedAlumni.industry,
+                years_experience: selectedAlumni.years_experience,
                 location: selectedAlumni.location,
                 phone: selectedAlumni.phone,
                 linkedin_url: selectedAlumni.linkedin_url
@@ -129,7 +161,6 @@ const CareerTracking = () => {
         if (!selectedAlumni || !editForm) return;
         setLoading(true);
         try {
-            // 1. Update profiles table (Core Info)
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
@@ -140,8 +171,6 @@ const CareerTracking = () => {
 
             if (profileError) throw profileError;
 
-            // 2. Upsert alumni_profiles table (Career Info)
-            // Check if record exists first to decide insert vs update, or just upsert
             const { error: alumniProfileError } = await supabase
                 .from('alumni_profiles')
                 .upsert({
@@ -149,6 +178,8 @@ const CareerTracking = () => {
                     employment_status: editForm.employment_status,
                     current_position: editForm.job_title,
                     current_company: editForm.company,
+                    industry: editForm.industry,
+                    years_experience: Number(editForm.years_experience) || 0,
                     location: editForm.location,
                     phone: editForm.phone,
                     linkedin_url: editForm.linkedin_url,
@@ -160,7 +191,7 @@ const CareerTracking = () => {
             showToast({ title: 'Success', message: 'Alumni record updated successfully.', type: 'success' });
             setIsEditing(false);
             setSelectedAlumni(null);
-            fetchAlumni(); // Refresh list
+            fetchAlumni();
         } catch (error: any) {
             console.error('Update error:', error);
             showToast({ title: 'Update Failed', message: error.message || 'Could not update record.', type: 'error' });
@@ -182,7 +213,9 @@ const CareerTracking = () => {
                 `${a.first_name} ${a.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (a.company || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (a.job_title || '').toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesStatus = filterStatus === 'all' || a.employment_status === filterStatus;
+
+            const normalized = normalizeStatus(a.employment_status);
+            const matchesStatus = filterStatus === 'all' || normalized === filterStatus;
             const matchesBatch = filterBatch === 'all' || a.batch_year === filterBatch;
             return matchesSearch && matchesStatus && matchesBatch;
         });
@@ -193,8 +226,7 @@ const CareerTracking = () => {
         const stats: Record<string, number> = {};
         EMPLOYMENT_STATUSES.forEach(s => stats[s.value] = 0);
         alumni.forEach(a => {
-            const status = a.employment_status || 'other';
-            const normalized = status === 'self_employed' || status === 'freelance' ? 'self-employed' : status;
+            const normalized = normalizeStatus(a.employment_status);
             if (stats[normalized] !== undefined) stats[normalized]++; else stats['other']++;
         });
         return EMPLOYMENT_STATUSES.map(s => ({
@@ -217,14 +249,97 @@ const CareerTracking = () => {
             .slice(0, 8);
     }, [alumni]);
 
-    // Employment rate
+    // Employment rate — use more precise calculation
     const employmentRate = useMemo(() => {
-        const employed = alumni.filter(a => {
-            const st = a.employment_status;
-            return st === 'employed' || st === 'self-employed' || st === 'self_employed' || st === 'freelance';
+        const verifiedAlumni = alumni.filter(a => a.status === 'verified');
+        const total = verifiedAlumni.length;
+        if (total === 0) return "0.0";
+
+        const employed = verifiedAlumni.filter(a => {
+            const normalized = normalizeStatus(a.employment_status);
+            return normalized === 'employed' || normalized === 'self-employed';
         }).length;
-        return alumni.length > 0 ? ((employed / alumni.length) * 100).toFixed(1) : '0';
+
+        return ((employed / total) * 100).toFixed(1);
     }, [alumni]);
+
+    // CSV Export function
+    const exportCSV = () => {
+        const headers = ['Full Name', 'Email', 'Course', 'Batch Year', 'Employment Status', 'Job Title', 'Company', 'Location', 'Phone', 'LinkedIn', 'Status'];
+        const rows = filteredAlumni.map(a => [
+            `${a.last_name}, ${a.first_name}`,
+            a.email || 'N/A',
+            a.course || 'N/A',
+            a.batch_year || 'N/A',
+            normalizeStatus(a.employment_status).toUpperCase(),
+            a.job_title || 'N/A',
+            a.company || 'N/A',
+            a.location || 'N/A',
+            a.phone || 'N/A',
+            a.linkedin_url || 'N/A',
+            (a.status || 'master_list').toUpperCase()
+        ]);
+
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(','))
+            .join('\n');
+
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `career_tracking_report_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast({ title: 'CSV Exported', message: `${filteredAlumni.length} records exported successfully.`, type: 'success' });
+    };
+
+    // PDF Export function
+    const exportPDF = () => {
+        const doc = new jsPDF('l', 'mm', 'a4');
+
+        // Add Header
+        doc.setFillColor(30, 41, 59); // Slate 800
+        doc.rect(0, 0, 297, 40, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ALUMNI CAREER TRACKING REPORT', 14, 20);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+        doc.text(`Total Records: ${filteredAlumni.length} | Employment Rate: ${employmentRate}%`, 14, 35);
+
+        const tableData = filteredAlumni.map((a, index) => [
+            index + 1,
+            `${a.first_name} ${a.last_name}`,
+            a.course || '-',
+            a.batch_year || '-',
+            getStatusLabel(a.employment_status),
+            a.job_title || '-',
+            a.company || '-',
+            a.location || '-'
+        ]);
+
+        autoTable(doc, {
+            head: [['#', 'Name', 'Course', 'Batch', 'Status', 'Position', 'Company', 'Location']],
+            body: tableData,
+            startY: 45,
+            theme: 'striped',
+            headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontStyle: 'bold' },
+            styles: { fontSize: 8, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 10 },
+                1: { cellWidth: 40 },
+                4: { cellWidth: 30, fontStyle: 'bold' }
+            }
+        });
+
+        doc.save(`alumni_career_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+        showToast({ title: 'PDF Exported', message: 'Report has been downloaded.', type: 'success' });
+    };
 
     const getStatusStyle = (status: string) => {
         return EMPLOYMENT_STATUSES.find(s => s.value === status)?.bgColor || 'bg-gray-100 text-gray-700';
@@ -327,7 +442,6 @@ const CareerTracking = () => {
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Employment Status Pie Chart */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -364,7 +478,6 @@ const CareerTracking = () => {
                         </div>
                     </div>
 
-                    {/* Industry Bar Chart */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Building2 className="w-5 h-5 text-purple-600" />
@@ -422,12 +535,27 @@ const CareerTracking = () => {
                                     <option key={b} value={b}>{b}</option>
                                 ))}
                             </select>
+                            <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-200">
+                                <button
+                                    onClick={exportCSV}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white hover:shadow-sm rounded-lg transition-all text-emerald-700 text-xs font-black uppercase tracking-wider"
+                                >
+                                    <Download className="w-3.5 h-3.5" /> CSV
+                                </button>
+                                <div className="w-[1px] bg-gray-200 mx-1" />
+                                <button
+                                    onClick={exportPDF}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-white hover:shadow-sm rounded-lg transition-all text-rose-700 text-xs font-black uppercase tracking-wider"
+                                >
+                                    <BarChart3 className="w-3.5 h-3.5" /> PDF
+                                </button>
+                            </div>
                             <button
                                 onClick={fetchAlumni}
-                                className="p-2 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                                className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors shadow-sm"
                                 title="Refresh"
                             >
-                                <RefreshCw className="w-5 h-5 text-gray-600" />
+                                <RefreshCw className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
                     </div>
@@ -569,7 +697,6 @@ const CareerTracking = () => {
                                                     <option value="BSCrim">BSCrim</option>
                                                     <option value="BSEd">BSEd</option>
                                                     <option value="BSPsych">BSPsych</option>
-                                                    {/* Add other courses as needed */}
                                                 </select>
                                             </div>
                                         </div>
@@ -607,6 +734,31 @@ const CareerTracking = () => {
                                                     onChange={e => setEditForm({ ...editForm, company: e.target.value })}
                                                     className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
                                                     placeholder="Company Name"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Industry</label>
+                                                <select
+                                                    value={editForm.industry || 'Other'}
+                                                    onChange={e => setEditForm({ ...editForm, industry: e.target.value })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none appearance-none"
+                                                >
+                                                    {INDUSTRIES.map(ind => (
+                                                        <option key={ind} value={ind}>{ind}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-gray-400 pl-1">Experience (Yrs)</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={editForm.years_experience || 0}
+                                                    onChange={e => setEditForm({ ...editForm, years_experience: parseInt(e.target.value) || 0 })}
+                                                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 border border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none"
                                                 />
                                             </div>
                                         </div>

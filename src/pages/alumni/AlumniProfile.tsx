@@ -6,7 +6,7 @@ import {
   MapPin, Briefcase, GraduationCap, Mail, Phone,
   Edit2, Save, X, Globe, Camera, Plus, Trash2,
   Building2, Calendar, Users, ChevronRight, Clock,
-  Share2, CheckCircle, ExternalLink, Lock, Eye, EyeOff, Shield, Loader2
+  Share2, CheckCircle, ExternalLink, Lock, Eye, EyeOff, Shield, Loader2, TrendingUp
 } from 'lucide-react';
 
 const EMPLOYMENT_STATUS_OPTIONS = [
@@ -14,6 +14,24 @@ const EMPLOYMENT_STATUS_OPTIONS = [
   { value: 'self-employed', label: 'Self-Employed', color: 'text-blue-700 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', dot: 'bg-blue-500' },
   { value: 'unemployed', label: 'Unemployed', color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', dot: 'bg-orange-500' },
   { value: 'student', label: 'Student', color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', dot: 'bg-purple-500' },
+];
+
+const INDUSTRIES = [
+  'Information Technology',
+  'Healthcare / Medical',
+  'Education / Academia',
+  'Finance / Banking',
+  'Engineering',
+  'Manufacturing',
+  'Retail / E-commerce',
+  'Government / Public Sector',
+  'Media / Entertainment',
+  'Real Estate',
+  'Hospitality / Tourism',
+  'Legal',
+  'Agriculture',
+  'Non-Profit / NGO',
+  'Other',
 ];
 
 const AlumniProfile = () => {
@@ -55,7 +73,9 @@ const AlumniProfile = () => {
     batch_year: '',
     employment_status: 'employed',
     current_company: '',
-    current_position: ''
+    current_position: '',
+    industry: 'Other',
+    years_experience: 0
   });
 
   const [experiences, setExperiences] = useState<any[]>([]);
@@ -143,6 +163,8 @@ const AlumniProfile = () => {
         employment_status: profile.employment_status || 'employed',
         current_company: profile.current_company || null,
         current_position: profile.current_position || null,
+        industry: profile.industry || 'Other',
+        years_experience: Number(profile.years_experience) || 0,
         updated_at: new Date().toISOString(),
       };
 
@@ -553,6 +575,32 @@ const AlumniProfile = () => {
                           ))}
                         </div>
                       </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Industry</label>
+                          <select
+                            value={profile.industry || 'Other'}
+                            onChange={(e) => setProfile({ ...profile, industry: e.target.value })}
+                            className="w-full p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
+                          >
+                            {INDUSTRIES.map(ind => (
+                              <option key={ind} value={ind} className="dark:bg-dark-800">{ind}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Years of Experience</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={profile.years_experience || 0}
+                            onChange={(e) => setProfile({ ...profile, years_experience: e.target.value })}
+                            className="w-full p-3 bg-gray-50 dark:bg-dark-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
+                            placeholder="e.g. 5"
+                          />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -577,6 +625,16 @@ const AlumniProfile = () => {
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusCfg.bg} ${statusCfg.border} ${statusCfg.color}`}>
                             <span className={`w-2 h-2 rounded-full ${statusCfg.dot}`}></span>
                             {statusCfg.label}
+                          </span>
+                        )}
+                        {profile.industry && (
+                          <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+                            <Briefcase className="w-3.5 h-3.5" />{profile.industry}
+                          </span>
+                        )}
+                        {profile.years_experience > 0 && (
+                          <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-3 py-1 rounded-full text-xs font-bold">
+                            <TrendingUp className="w-3.5 h-3.5" />{profile.years_experience} Yrs Exp.
                           </span>
                         )}
                       </div>

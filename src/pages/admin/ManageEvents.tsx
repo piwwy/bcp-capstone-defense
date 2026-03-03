@@ -13,8 +13,10 @@ import {
 import AdminPageLayout from './AdminPageLayout';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useNavigate } from 'react-router-dom';
 
 const ManageEvents = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { user } = useAuth();
   const isStaff = user?.role === 'staff';
@@ -573,7 +575,7 @@ const ManageEvents = () => {
 
         {canManage && (
           <button onClick={openCreateModal} className="bg-blue-600 text-white px-8 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-100 active:scale-95 transition-all">
-            <Plus className="w-5 h-5" /> Launch New Event
+            <Plus className="w-5 h-5" /> Propose Event
           </button>
         )}
       </div>
@@ -742,7 +744,7 @@ const ManageEvents = () => {
               </p>
               {canManage && filterTab === 'active' && !searchQuery && (
                 <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">
-                  <Plus className="w-4 h-4" /> Launch New Event
+                  <Plus className="w-4 h-4" /> Propose Event
                 </button>
               )}
             </div>
@@ -778,14 +780,23 @@ const ManageEvents = () => {
                         <MapPin className="w-3 h-3" /> <span className="truncate">{event.location || 'TBA'}</span>
                       </div>
 
-                      {/* RSVP Button with Count */}
-                      <button
-                        onClick={() => openRSVPList(event.id, event.title)}
-                        className="w-full py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Users className="w-3 h-3" />
-                        {event.event_attendees?.[0]?.count || 0} Alumni Registered
-                      </button>
+                      {/* RSVP and Feedback Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openRSVPList(event.id, event.title)}
+                          className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <Users className="w-3 h-3" />
+                          {event.event_attendees?.[0]?.count || 0} Registered
+                        </button>
+                        <button
+                          onClick={() => navigate(isStaff ? `/staff/events/feedback?event=${event.id}` : `/admin/feedback?event=${event.id}`)}
+                          className="px-3 py-2 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-black uppercase hover:bg-purple-100 transition-colors flex items-center justify-center"
+                          title="View Event Feedback"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </AdminResourceCard>
                 );
@@ -1078,7 +1089,7 @@ const ManageEvents = () => {
             <div className="flex gap-4 mt-10">
               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 rounded-3xl font-bold text-slate-500 hover:bg-slate-200 transition-all">Discard</button>
               <button onClick={handleSubmit} disabled={loading} className="flex-[2] py-5 bg-blue-600 text-white rounded-3xl font-black shadow-2xl hover:bg-blue-700 active:scale-95 transition-all">
-                {loading ? <Loader2 className="animate-spin mx-auto" /> : (isEditing ? 'Update Schedule' : 'Launch Event')}
+                {loading ? <Loader2 className="animate-spin mx-auto" /> : (isEditing ? 'Update Schedule' : 'Propose Event')}
               </button>
             </div>
           </div>

@@ -13,23 +13,28 @@ interface AdminResourceCardProps {
   onView?: () => void;
 }
 
-const AdminResourceCard: React.FC<AdminResourceCardProps> = ({ 
-  title, subtitle, status, category, image, children, onEdit, onDelete, onView 
+const AdminResourceCard: React.FC<AdminResourceCardProps> = ({
+  title, subtitle, status, category, image, children, onEdit, onDelete, onView
 }) => {
-  
+
   // Status Color Logic
   const getStatusStyle = (s?: string) => {
-    switch(s?.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-700 border-green-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'closed': return 'bg-gray-100 text-gray-600 border-gray-200';
+    switch (s?.toLowerCase()) {
+      case 'active':
+      case 'verified': return 'bg-green-100 text-green-700 border-green-200';
+      case 'pending':
+      case 'pending_approval': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'unclaimed': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'inactive':
+      case 'closed':
+      case 'archived': return 'bg-gray-100 text-gray-600 border-gray-200';
       default: return 'bg-blue-50 text-blue-600 border-blue-100';
     }
   };
 
   return (
     <div className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden h-full">
-      
+
       {/* 1. Header Section */}
       <div className="p-5 flex justify-between items-start">
         <div className="flex gap-4">
@@ -43,11 +48,11 @@ const AdminResourceCard: React.FC<AdminResourceCardProps> = ({
               </div>
             )}
           </div>
-          
+
           <div>
             <h3 className="font-bold text-gray-900 line-clamp-1" title={title}>{title}</h3>
             {subtitle && <p className="text-xs text-gray-500 line-clamp-1">{subtitle}</p>}
-            
+
             <div className="flex gap-2 mt-2">
               {category && (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
@@ -68,7 +73,7 @@ const AdminResourceCard: React.FC<AdminResourceCardProps> = ({
           <button className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50">
             <MoreVertical className="w-5 h-5" />
           </button>
-          
+
           {/* Dropdown */}
           <div className="absolute right-0 mt-1 w-32 bg-white rounded-xl shadow-xl border border-gray-100 p-1 opacity-0 group-hover/menu:opacity-100 invisible group-hover/menu:visible transition-all z-10">
             {onView && (
@@ -82,14 +87,14 @@ const AdminResourceCard: React.FC<AdminResourceCardProps> = ({
               </button>
             )}
             {onDelete && (
-  <button onClick={onDelete} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-left ${status === 'archived' ? 'text-blue-600 hover:bg-blue-50' : 'text-red-600 hover:bg-red-50'}`}>
-    {status === 'archived' ? (
-      <><TrendingUp className="w-3 h-3" /> Restore</> // Label kapag archived
-    ) : (
-      <><X className="w-3 h-3" /> Archive</> // Label kapag active
-    )}
-  </button>
-)}
+              <button onClick={onDelete} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg text-left ${status === 'archived' ? 'text-blue-600 hover:bg-blue-50' : 'text-red-600 hover:bg-red-50'}`}>
+                {status === 'archived' ? (
+                  <><TrendingUp className="w-3 h-3" /> Restore</> // Label kapag archived
+                ) : (
+                  <><X className="w-3 h-3" /> Archive</> // Label kapag active
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
