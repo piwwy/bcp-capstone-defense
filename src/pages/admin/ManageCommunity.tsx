@@ -7,7 +7,7 @@ import {
     Users, MessageSquare, Trash2, Search,
     RefreshCw, Loader2, X, Clock, Heart,
     MessageCircle, ShieldAlert, Filter,
-    Plus, Image as ImageIcon, Send, Edit
+    Plus, Image as ImageIcon, Send
 } from 'lucide-react';
 
 interface Post {
@@ -47,7 +47,6 @@ const ManageCommunity = () => {
     const [deleting, setDeleting] = useState(false);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [postForm, setPostForm] = useState({ content: '', category: 'general', image_url: '' });
     const [postFile, setPostFile] = useState<File | null>(null);
@@ -143,48 +142,27 @@ const ManageCommunity = () => {
                 finalImageUrl = publicUrl;
             }
 
-            if (isEditing && selectedPost) {
-                const { error } = await supabase
-                    .from('forum_posts')
-                    .update({
-                        content: postForm.content,
-                        category: postForm.category,
-                        image_url: finalImageUrl,
-                    })
-                    .eq('id', selectedPost.id);
 
-                if (error) throw error;
+            const { error } = await supabase
+                .from('forum_posts')
+                .insert([{
+                    content: postForm.content,
+                    category: postForm.category,
+                    image_url: finalImageUrl,
+                    user_id: user.id,
+                }]);
 
-                await logAudit(AUDIT_ACTIONS.FORUM_POST_UPDATED, {
-                    module: 'Alumni Community',
-                    message: `Admin updated community post: ${postForm.content.substring(0, 50)}...`,
-                    postId: selectedPost.id
-                });
+            if (error) throw error;
 
-                showToast({ title: 'Updated', message: 'Post has been updated.', type: 'success' });
-            } else {
-                const { error } = await supabase
-                    .from('forum_posts')
-                    .insert([{
-                        content: postForm.content,
-                        category: postForm.category,
-                        image_url: finalImageUrl,
-                        user_id: user.id,
-                    }]);
+            await logAudit(AUDIT_ACTIONS.FORUM_POST_CREATED, {
+                module: 'Alumni Community',
+                message: `Admin created a new community post: ${postForm.content.substring(0, 50)}...`,
+                category: postForm.category
+            });
 
-                if (error) throw error;
-
-                await logAudit(AUDIT_ACTIONS.FORUM_POST_CREATED, {
-                    module: 'Alumni Community',
-                    message: `Admin created a new community post: ${postForm.content.substring(0, 50)}...`,
-                    category: postForm.category
-                });
-
-                showToast({ title: 'Posted', message: 'Your message has been shared with the community.', type: 'success' });
-            }
+            showToast({ title: 'Posted', message: 'Your message has been shared with the community.', type: 'success' });
 
             setIsCreateModalOpen(false);
-            setIsEditing(false);
             setSelectedPost(null);
             setPostForm({ content: '', category: 'general', image_url: '' });
             setPostFile(null);
@@ -197,17 +175,6 @@ const ManageCommunity = () => {
         setSubmitting(false);
     };
 
-    const handleEditPost = (post: Post) => {
-        setSelectedPost(post);
-        setPostForm({
-            content: post.content,
-            category: post.category,
-            image_url: post.image_url || ''
-        });
-        setPostPreview(post.image_url);
-        setIsEditing(true);
-        setIsCreateModalOpen(true);
-    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -337,13 +304,6 @@ const ManageCommunity = () => {
                                         {post.category}
                                     </span>
                                     <button
-                                        onClick={() => handleEditPost(post)}
-                                        className="p-3 text-blue-500 bg-blue-50 rounded-2xl hover:bg-blue-500 hover:text-white transition-all shadow-sm active:scale-95"
-                                        title="Edit Post"
-                                    >
-                                        <Edit className="w-5 h-5" />
-                                    </button>
-                                    <button
                                         onClick={() => {
                                             setSelectedPost(post);
                                             setIsDeleteModalOpen(true);
@@ -391,10 +351,10 @@ const ManageCommunity = () => {
                     <div className="bg-white p-10 rounded-[4rem] w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95 my-auto overflow-y-auto max-h-[90vh] custom-scrollbar">
                         <div className="flex justify-between items-center mb-8">
                             <div>
-                                <h3 className="text-3xl font-black tracking-tighter text-slate-900">{isEditing ? 'Edit Community Post' : 'Create Community Post'}</h3>
-                                <p className="text-sm text-slate-400 font-bold mt-1">{isEditing ? 'Update the content and category of this post.' : 'Your post will appear as an official admin message.'}</p>
+                                <h3 className="text-3xl font-black tracking-tighter text-slate-900">Create Community Post</h3>
+                                <p className="text-sm text-slate-400 font-bold mt-1">Your post will appear as an official admin message.</p>
                             </div>
-                            <button onClick={() => { setIsCreateModalOpen(false); setIsEditing(false); setSelectedPost(null); }} className="p-4 bg-slate-100 rounded-3xl hover:bg-slate-200 transition-all"><X className="w-6 h-6" /></button>
+                            <button onClick={() => { setIsCreateModalOpen(false); setSelectedPost(null); }} className="p-4 bg-slate-100 rounded-3xl hover:bg-slate-200 transition-all"><X className="w-6 h-6" /></button>
                         </div>
 
                         <div className="space-y-6">
@@ -461,8 +421,8 @@ const ManageCommunity = () => {
                                 disabled={submitting}
                                 className="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black text-sm tracking-widest uppercase shadow-2xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                             >
-                                {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : isEditing ? <Edit className="w-6 h-6" /> : <Send className="w-6 h-6" />}
-                                {isEditing ? 'Update Post' : 'Publish Post'}
+                                {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                                Publish Post
                             </button>
                         </div>
                     </div>

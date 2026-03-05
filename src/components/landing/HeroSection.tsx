@@ -140,7 +140,7 @@ const HeroSection: React.FC = () => {
 
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-              Not Sure What Comes After 
+              Not Sure What Comes After
               <span className="block mt-2 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Graduation?
               </span>
@@ -154,15 +154,15 @@ const HeroSection: React.FC = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
-                to="/login"
+                to="/register"
                 className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-blue-500/30 flex items-center justify-center gap-2"
               >
                 Get Started
                 <ChevronDown className="w-5 h-5 rotate-[-90deg] group-hover:translate-x-1 transition-transform" />
               </Link>
-              
+
               {/* UPDATED: Watch Video Button triggers Modal */}
-              <button 
+              <button
                 onClick={() => setShowVideo(true)}
                 className="px-8 py-4 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
               >
@@ -205,19 +205,18 @@ const HeroSection: React.FC = () => {
                 {heroImages.map((img, index) => {
                   const isActive = index === currentSlide;
                   const offset = (index - currentSlide + heroImages.length) % heroImages.length;
-                  
+
                   return (
                     <div
                       key={index}
-                      className={`absolute w-80 h-96 rounded-3xl overflow-hidden shadow-2xl transition-all duration-700 ease-out ${
-                        isActive
-                          ? 'z-30 scale-100 opacity-100'
-                          : offset === 1
+                      className={`absolute w-80 h-96 rounded-3xl overflow-hidden shadow-2xl transition-all duration-700 ease-out ${isActive
+                        ? 'z-30 scale-100 opacity-100'
+                        : offset === 1
                           ? 'z-20 scale-90 opacity-70 translate-x-20 -rotate-6'
                           : offset === heroImages.length - 1
-                          ? 'z-20 scale-90 opacity-70 -translate-x-20 rotate-6'
-                          : 'z-10 scale-75 opacity-0'
-                      }`}
+                            ? 'z-20 scale-90 opacity-70 -translate-x-20 rotate-6'
+                            : 'z-10 scale-75 opacity-0'
+                        }`}
                       style={{
                         background: `linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)`,
                       }}
@@ -255,11 +254,10 @@ const HeroSection: React.FC = () => {
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentSlide
-                      ? 'w-8 bg-blue-400'
-                      : 'bg-white/30 hover:bg-white/50'
-                  }`}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                    ? 'w-8 bg-blue-400'
+                    : 'bg-white/30 hover:bg-white/50'
+                    }`}
                 />
               ))}
             </div>
@@ -287,7 +285,7 @@ const HeroSection: React.FC = () => {
             >
               <X className="w-6 h-6" />
             </button>
-            
+
             {/* Video Player */}
             <video
               src="/videos/intro.mp4" // Make sure to save your generated video here!
@@ -298,10 +296,10 @@ const HeroSection: React.FC = () => {
               Your browser does not support the video tag.
             </video>
           </div>
-          
+
           {/* Close on background click */}
-          <div 
-            className="absolute inset-0 -z-10" 
+          <div
+            className="absolute inset-0 -z-10"
             onClick={() => setShowVideo(false)}
           />
         </div>

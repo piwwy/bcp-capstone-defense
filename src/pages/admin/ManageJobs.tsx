@@ -388,7 +388,7 @@ const ManageJobs = () => {
   };
 
   return (
-    <AdminPageLayout title="Job Manager" subtitle="Manage campus career paths" icon={Briefcase}>
+    <AdminPageLayout title="Job Posting" subtitle="Manage campus career paths" icon={Briefcase}>
 
       {/* 1. TOP ACTIONS */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">

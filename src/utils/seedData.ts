@@ -76,19 +76,60 @@ export async function seedAllModules(onProgress?: (msg: string) => void) {
   if (campErr) log(`Campaigns error: ${campErr.message}`);
   else log('Donation campaigns seeded: 5 entries');
 
-  // ========== 5. FEEDBACK (6 entries) ==========
-  log('Seeding feedback...');
-  const feedbacks = [
-    { alumni_id: adminId, category: 'Platform', subject: 'Great new dashboard design!', message: 'The new alumni portal looks amazing. Very modern and easy to navigate. Keep up the great work!', rating: 5, status: 'pending' },
-    { alumni_id: adminId, category: 'Events', subject: 'More networking events please', message: 'I would love to see more industry-specific networking events, especially for IT professionals. Maybe quarterly meetups?', rating: 4, status: 'pending' },
-    { alumni_id: adminId, category: 'Jobs', subject: 'Job board needs more filters', message: 'The job board is useful but it would be better if we could filter by salary range and work arrangement (remote/hybrid/onsite).', rating: 3, status: 'pending' },
-    { alumni_id: adminId, category: 'General', subject: 'Alumni ID card request', message: 'Is it possible to get a digital alumni ID card through the portal? It would be useful for discounts and verification.', rating: 4, status: 'pending' },
-    { alumni_id: adminId, category: 'Platform', subject: 'Mobile app suggestion', message: 'A mobile app version of this portal would be very convenient. I mostly browse on my phone during commute.', rating: 4, status: 'pending' },
-    { alumni_id: adminId, category: 'Donations', subject: 'GCash payment option', message: 'Please add GCash and Maya as payment options for donations. Bank transfer is inconvenient for small amounts.', rating: 3, status: 'pending' },
-  ];
-  const { error: fbErr } = await supabase.from('alumni_feedback').insert(feedbacks);
-  if (fbErr) log(`Feedback error: ${fbErr.message}`);
-  else log('Feedback seeded: 6 entries');
+  // ========== 5. FEEDBACK (10-15 per event) ==========
+  log('Seeding event-specific feedback...');
+  try {
+    const { data: allEvents } = await supabase.from('alumni_events').select('id, title');
+    const { data: allProfiles } = await supabase.from('profiles').select('id, first_name, last_name').limit(20);
+
+    if (allEvents && allEvents.length > 0 && allProfiles && allProfiles.length > 0) {
+      const eventFeedbacks: any[] = [];
+      const templates = [
+        "Great event! Learned a lot.",
+        "The speakers were amazing and very insightful.",
+        "Very well organized. Looking forward to the next one.",
+        "A bit short, but the content was dense and useful.",
+        "Excellent networking opportunity!",
+        "I enjoyed the workshop part the most.",
+        "The venue was perfect for this kind of gathering.",
+        "The Q&A session was the best part.",
+        "Could have been better if there were more handouts.",
+        "It was a life-changing experience for me.",
+      ];
+
+      for (const event of allEvents) {
+        const count = Math.floor(Math.random() * 6) + 10; // 10 to 15
+        for (let i = 0; i < count; i++) {
+          const profile = allProfiles[Math.floor(Math.random() * allProfiles.length)];
+          eventFeedbacks.push({
+            alumni_id: profile.id,
+            alumni_name: `${profile.first_name || 'Alumni'} ${profile.last_name || 'Member'}`,
+            category: 'Events',
+            subject: `Feedback for ${event.title}`,
+            message: templates[Math.floor(Math.random() * templates.length)],
+            rating: Math.floor(Math.random() * 2) + 4, // 4 or 5 stars
+            status: 'reviewed',
+            event_id: event.id,
+            created_at: new Date(Date.now() - Math.floor(Math.random() * 1000000000)).toISOString()
+          });
+        }
+      }
+
+      // Also add some general feedbacks
+      const generalFeedbacks = [
+        { alumni_id: adminId, category: 'Platform', subject: 'Great new dashboard design!', message: 'The new alumni portal looks amazing. Very modern and easy to navigate. Keep up the great work!', rating: 5, status: 'reviewed' },
+        { alumni_id: adminId, category: 'Jobs', subject: 'Job board needs more filters', message: 'The job board is useful but it would be better if we could filter by salary range and work arrangement (remote/hybrid/onsite).', rating: 3, status: 'reviewed' },
+      ];
+
+      const { error: fbErr } = await supabase.from('alumni_feedback').insert([...eventFeedbacks, ...generalFeedbacks]);
+      if (fbErr) log(`Feedback error: ${fbErr.message}`);
+      else log(`Feedback seeded: ${eventFeedbacks.length + generalFeedbacks.length} entries (${allEvents.length} events populated)`);
+    } else {
+      log('No events or profiles found for feedback seeding.');
+    }
+  } catch (err: any) {
+    log(`Feedback seeding catch error: ${err.message}`);
+  }
 
   // ========== 6. CONTACT INQUIRIES (5 entries) ==========
   log('Seeding contact inquiries...');

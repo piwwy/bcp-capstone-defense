@@ -26,6 +26,13 @@ const StaffSidebar: React.FC = () => {
         {
             name: "Alumni & Records", icon: Users, subItems: [
                 { name: "Records", path: "/staff/records", icon: Database },
+                { name: "Alumni Tracker", path: "/staff/career-tracking", icon: Briefcase },
+            ]
+        },
+        {
+            name: "Career & Jobs", icon: Briefcase, subItems: [
+                { name: "Job Posting", path: "/staff/jobs/board", icon: Briefcase },
+                { name: "New Inquiries", path: "/staff/partner-inquiries", icon: FileText },
             ]
         },
         {
@@ -38,7 +45,6 @@ const StaffSidebar: React.FC = () => {
             name: "Communication", icon: Mail, subItems: [
                 { name: "News Feed", path: "/staff/news/manage", icon: Newspaper },
                 { name: "Alumni Community", path: "/staff/community", icon: Users },
-                { name: "Partner Inquiries", path: "/staff/partner-inquiries", icon: FileText },
             ]
         },
         {
@@ -47,8 +53,7 @@ const StaffSidebar: React.FC = () => {
             ]
         },
         {
-            name: "Tools", icon: Briefcase, subItems: [
-                { name: "Job Manager", path: "/staff/jobs/board", icon: Briefcase },
+            name: "Donation & Finance", icon: DollarSign, subItems: [
                 { name: "Financial Collections", path: "/staff/collections", icon: DollarSign },
             ]
         },

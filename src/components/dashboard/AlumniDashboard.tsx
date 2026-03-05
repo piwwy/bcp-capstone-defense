@@ -8,7 +8,7 @@ import {
   Briefcase, Calendar, ChevronRight, MapPin,
   Users, TrendingUp, Loader2, Heart,
   MessageSquare, ClipboardList, User, GraduationCap, Settings,
-  BookOpen, Rocket,
+  BookOpen, Rocket, CheckCircle2
 } from 'lucide-react';
 
 const AlumniDashboard: React.FC = () => {
@@ -24,6 +24,8 @@ const AlumniDashboard: React.FC = () => {
   const [course, setCourse] = useState('');
   const [hasExperience, setHasExperience] = useState(false);
   const [hasEducation, setHasEducation] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [subTier, setSubTier] = useState('basic');
 
   // Real-time profile completeness calculation (aligned with AlumniProfile page)
   const getProfileProgress = () => {
@@ -45,10 +47,14 @@ const AlumniDashboard: React.FC = () => {
     const fetchExtras = async () => {
       const { data: mainProf } = await supabase
         .from('profiles')
-        .select('course')
+        .select('course, is_verified_alumni, subscription_tier')
         .eq('id', user.id)
         .single();
-      if (mainProf) setCourse(mainProf.course || '');
+      if (mainProf) {
+        setCourse(mainProf.course || '');
+        setIsVerified(!!mainProf.is_verified_alumni);
+        setSubTier(mainProf.subscription_tier || 'basic');
+      }
 
       const { count: expCount } = await supabase.from('alumni_experience').select('*', { count: 'exact', head: true }).eq('alumni_id', user.id);
       const { count: eduCount } = await supabase.from('alumni_education').select('*', { count: 'exact', head: true }).eq('alumni_id', user.id);
@@ -89,7 +95,31 @@ const AlumniDashboard: React.FC = () => {
               <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-sm text-white rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20">
                 <GraduationCap className="w-3.5 h-3.5" /> Alumni Portal
               </div>
-              <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Welcome Home, {user?.name?.split(' ')[0]}! 👋</h1>
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <h1 className="text-4xl font-black text-white tracking-tighter">Welcome Home, {user?.name?.split(' ')[0]}! 👋</h1>
+                {isVerified && (
+                  <div className="flex items-center gap-1 bg-green-500 text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase shadow-lg shadow-green-500/20">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                  </div>
+                )}
+                {subTier !== 'basic' && (
+                  <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase shadow-lg ${subTier === 'premium' ? 'bg-purple-500 text-white shadow-purple-500/20' : 'bg-amber-500 text-white shadow-amber-500/20'
+                    }`}>
+                    {subTier}
+                  </div>
+                )}
+              </div>
+
+              {subTier !== 'basic' && (
+                <div className="flex gap-4 mt-1 opacity-80 mb-3">
+                  <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
+                    Member Since: {alumniProfile?.subscription_started_at ? new Date(alumniProfile.subscription_started_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                  <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
+                    Expires: {alumniProfile?.subscription_expires_at ? new Date(alumniProfile.subscription_expires_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              )}
               <p className="text-blue-100 text-sm max-w-xl leading-relaxed">
                 Stay connected with your alma mater. Update your career status, explore job opportunities, and engage with the alumni community.
               </p>

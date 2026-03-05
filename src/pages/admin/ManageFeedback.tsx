@@ -4,9 +4,9 @@ import { useToast } from '../../context/ToastContext';
 import { useSearchParams } from 'react-router-dom';
 import AdminPageLayout from './AdminPageLayout';
 import {
-  MessageSquare, Star, Loader2, Search, X, Send,
+  MessageSquare, Loader2, Search, X, Send,
   CheckCircle2, Plus, ClipboardList, Trash2,
-  BarChart3
+  BarChart3, Star, Calendar
 } from 'lucide-react';
 
 interface Feedback {
@@ -21,6 +21,12 @@ interface Feedback {
   created_at: string;
   event_id?: string;
   alumni_events?: { title: string };
+  profiles?: {
+    first_name: string;
+    last_name: string;
+    batch_year: string;
+    course: string;
+  };
 }
 
 interface Survey {
@@ -75,10 +81,15 @@ const ManageFeedback: React.FC = () => {
   }, [searchParams]);
 
   const fetchFeedbacks = async () => {
+    setFeedbackLoading(true);
     try {
       const { data, error } = await supabase
         .from('alumni_feedback')
-        .select('*, alumni_events(title)')
+        .select(`
+          *,
+          alumni_events(title),
+          profiles:alumni_id (first_name, last_name, batch_year, course)
+        `)
         .order('created_at', { ascending: false });
       if (error) throw error;
       setFeedbacks(data || []);
@@ -90,11 +101,17 @@ const ManageFeedback: React.FC = () => {
   };
 
   const fetchEvents = async () => {
-    const { data } = await supabase.from('alumni_events').select('id, title').order('title');
+    const today = new Date().toISOString();
+    const { data } = await supabase
+      .from('alumni_events')
+      .select('id, title, date')
+      .lt('date', today)
+      .order('date', { ascending: false });
     if (data) setEvents(data);
   };
 
   const fetchSurveys = async () => {
+    setSurveyLoading(true);
     try {
       const { data, error } = await supabase
         .from('alumni_surveys')
@@ -119,7 +136,6 @@ const ManageFeedback: React.FC = () => {
         .eq('id', selectedFeedback.id);
       if (error) throw error;
 
-      // Send notification to the alumni who submitted the feedback
       if (selectedFeedback.alumni_id) {
         try {
           await supabase.from('notifications').insert({
@@ -229,7 +245,11 @@ const ManageFeedback: React.FC = () => {
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter(f => {
       const matchStatus = statusFilter === 'all' || f.status === statusFilter;
-      const matchEvent = selectedEventFilter === 'all' || f.event_id === selectedEventFilter;
+      const matchEvent = selectedEventFilter === 'all'
+        ? true
+        : selectedEventFilter === 'none'
+          ? !f.event_id
+          : f.event_id === selectedEventFilter;
       const matchSearch = !searchQuery ||
         f.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.alumni_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -238,237 +258,325 @@ const ManageFeedback: React.FC = () => {
     });
   }, [feedbacks, statusFilter, selectedEventFilter, searchQuery]);
 
-  const feedbackCounts = useMemo(() => ({
-    all: feedbacks.length,
-    pending: feedbacks.filter(f => f.status === 'pending').length,
-    reviewed: feedbacks.filter(f => f.status === 'reviewed').length,
-    resolved: feedbacks.filter(f => f.status === 'resolved').length,
-  }), [feedbacks]);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'reviewed': return 'bg-blue-100 text-blue-700';
-      case 'resolved': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-600';
-    }
-  };
+  const stats = useMemo(() => {
+    const total = feedbacks.length;
+    const avg = total > 0 ? (feedbacks.reduce((acc, f) => acc + f.rating, 0) / total).toFixed(1) : '0.0';
+    return { total, avg };
+  }, [feedbacks]);
 
   return (
-    <AdminPageLayout title="Feedback & Surveys" subtitle="Review alumni feedback and manage surveys" icon={MessageSquare}>
+    <AdminPageLayout title="Feedback & Surveys" subtitle="Review alumni feedback and manage satisfaction surveys" icon={MessageSquare}>
 
-      {/* Hero Banner */}
+      {/* 1. Hero Banner */}
       <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 overflow-hidden shadow-2xl flex items-center px-10 mb-8">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-white/5 rounded-full -mb-24" />
-        <div className="absolute top-1/2 right-20 w-32 h-32 bg-white/5 rounded-full -mt-16" />
         <div className="relative z-10 flex items-center justify-between w-full">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Engagement</span>
+              <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Impact</span>
             </div>
-            <h2 className="text-3xl font-black text-white tracking-tighter">Feedback & Surveys</h2>
-            <p className="text-amber-100 text-sm font-medium mt-1">Review alumni feedback and manage satisfaction surveys</p>
+            <h2 className="text-3xl font-black text-white tracking-tighter">Feedback Hub</h2>
+            <p className="text-amber-100 text-sm font-medium mt-1">Reviewing {feedbacks.length} community insights</p>
           </div>
           <div className="hidden md:flex items-center gap-4">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{feedbackCounts.all}</p>
-              <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Feedback</p>
+              <p className="text-2xl font-black text-white">{stats.total}</p>
+              <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Responses</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-center">
-              <p className="text-2xl font-black text-white">{surveys.length}</p>
-              <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Surveys</p>
+              <p className="text-2xl font-black text-white">{stats.avg}</p>
+              <p className="text-[10px] font-bold text-amber-200 uppercase tracking-widest">Avg Rating</p>
             </div>
           </div>
         </div>
         <MessageSquare className="absolute right-12 bottom-6 w-28 h-28 text-white/5" strokeWidth={1} />
       </div>
 
-      {/* Tab Switcher */}
+      {/* 2. Top Navigation & Actions */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div className="flex bg-slate-100 p-1 rounded-2xl">
+        <div className="flex bg-slate-100 dark:bg-dark-900 p-1 rounded-2xl">
           <button
             onClick={() => setActiveTab('feedback')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'feedback' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'feedback' ? 'bg-white dark:bg-dark-800 text-blue-600 shadow-sm' : 'text-slate-500'}`}
           >
-            <MessageSquare className="w-4 h-4" /> Feedback ({feedbackCounts.all})
+            <MessageSquare className="w-4 h-4" /> Feedback
           </button>
           <button
             onClick={() => setActiveTab('surveys')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'surveys' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${activeTab === 'surveys' ? 'bg-white dark:bg-dark-800 text-blue-600 shadow-sm' : 'text-slate-500'}`}
           >
-            <ClipboardList className="w-4 h-4" /> Surveys ({surveys.length})
+            <ClipboardList className="w-4 h-4" /> Surveys
           </button>
         </div>
 
         {activeTab === 'surveys' && (
           <button onClick={() => setIsSurveyModalOpen(true)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all">
-            <Plus className="w-5 h-5" /> Create Survey
+            <Plus className="w-5 h-5" /> Create New Survey
           </button>
         )}
       </div>
 
-      {/* FEEDBACK TAB */}
-      {activeTab === 'feedback' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Total', count: feedbackCounts.all, icon: MessageSquare, color: 'slate' },
-              { label: 'Pending', count: feedbackCounts.pending, icon: Star, color: 'amber' },
-              { label: 'Reviewed', count: feedbackCounts.reviewed, icon: CheckCircle2, color: 'blue' },
-              { label: 'Resolved', count: feedbackCounts.resolved, icon: CheckCircle2, color: 'emerald' },
-            ].map(s => {
-              const bgMap: Record<string, string> = { slate: 'bg-slate-100', amber: 'bg-amber-100', blue: 'bg-blue-100', emerald: 'bg-emerald-100' };
-              const textMap: Record<string, string> = { slate: 'text-slate-600', amber: 'text-amber-600', blue: 'text-blue-600', emerald: 'text-emerald-600' };
-              return (
-                <div key={s.label} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2.5 ${bgMap[s.color]} rounded-xl`}><s.icon className={`w-5 h-5 ${textMap[s.color]}`} /></div>
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{s.label}</span>
-                  </div>
-                  <p className="text-3xl font-black text-slate-900">{s.count}</p>
-                </div>
-              );
-            })}
-          </div>
+      {/* 3. Main Content Areas */}
+      {activeTab === 'feedback' ? (
+        <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in duration-500 translate-y-4">
 
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={selectedEventFilter}
-                onChange={e => setSelectedEventFilter(e.target.value)}
-                className="px-4 py-2.5 bg-white border border-slate-100 rounded-xl text-xs font-black uppercase outline-none shadow-sm focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="all">Any Event</option>
-                <option value="none">General Feedback</option>
-                {events.map(e => (
-                  <option key={e.id} value={e.id}>{e.title}</option>
-                ))}
-              </select>
-              {['all', 'pending', 'reviewed', 'resolved'].map(s => (
+          {/* LEFT: Event Selector Sidebar */}
+          <div className="w-full lg:w-80 shrink-0 space-y-6">
+            <div className="bg-white dark:bg-dark-800 rounded-[2.5rem] border border-slate-100 dark:border-gray-700 shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-6 px-2">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter">Event Archive</h3>
+              </div>
+
+              <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all ${statusFilter === s ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-100'}`}
+                  onClick={() => setSelectedEventFilter('all')}
+                  className={`w-full text-left px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedEventFilter === 'all'
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg'
+                    : 'text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-dark-900 border-transparent'
+                    }`}
                 >
-                  {s}
+                  All Feedback Entries
                 </button>
-              ))}
-            </div>
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search feedback..."
-                className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-200 outline-none shadow-sm"
-              />
-            </div>
-          </div>
-
-          {/* Feedback List */}
-          {feedbackLoading ? (
-            <div className="flex justify-center py-16"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>
-          ) : filteredFeedbacks.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-              <MessageSquare className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 font-bold">No feedback found</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredFeedbacks.map(fb => (
-                <div key={fb.id} className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-black text-slate-900 truncate">{fb.subject}</h3>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${getStatusBadge(fb.status)}`}>{fb.status}</span>
-                        {fb.alumni_events?.title && (
-                          <span className="px-2.5 py-0.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-black uppercase border border-purple-100">
-                            Event: {fb.alumni_events.title}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-500 line-clamp-2 mb-2">{fb.message}</p>
-                      <div className="flex items-center gap-4 text-[10px] font-bold text-slate-300">
-                        <span>By: {fb.alumni_name || 'Anonymous'}</span>
-                        <span>{new Date(fb.created_at).toLocaleDateString()}</span>
-                        {fb.rating > 0 && (
-                          <span className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map(s => <Star key={s} className={`w-3 h-3 ${s <= fb.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />)}
-                          </span>
-                        )}
-                      </div>
-                      {fb.admin_reply && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700">
-                          <strong>Reply:</strong> {fb.admin_reply}
-                        </div>
-                      )}
+                <div className="h-px bg-slate-100 dark:bg-gray-700 my-2 mx-4" />
+                {events.map((evt) => (
+                  <button
+                    key={evt.id}
+                    onClick={() => setSelectedEventFilter(evt.id)}
+                    className={`w-full text-left px-5 py-3.5 rounded-2xl text-[11px] font-bold transition-all border ${selectedEventFilter === evt.id
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
+                      : 'text-slate-600 dark:text-gray-400 border-transparent hover:border-slate-100 dark:hover:border-gray-700'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${selectedEventFilter === evt.id ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`} />
+                      <span className="line-clamp-2 leading-snug">{evt.title}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setSelectedFeedback(fb); setReplyText(fb.admin_reply || ''); }}
-                        className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all"
-                        title="Reply"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                      {fb.status !== 'resolved' && (
-                        <button
-                          onClick={() => handleUpdateStatus(fb.id, 'resolved')}
-                          className="p-2.5 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all"
-                          title="Mark Resolved"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                      )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Selection Info */}
+            {selectedEventFilter !== 'all' && (
+              <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden">
+                <div className="relative z-10">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">Selected Event</p>
+                  <h4 className="text-xl font-black leading-tight mb-4">
+                    {events.find(e => e.id === selectedEventFilter)?.title}
+                  </h4>
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-2xl font-black">{filteredFeedbacks.length}</p>
+                      <p className="text-[9px] font-bold uppercase opacity-70">Reviews</p>
+                    </div>
+                    <div className="w-px h-8 bg-white/20 my-auto" />
+                    <div>
+                      <p className="text-2xl font-black">
+                        {filteredFeedbacks.length > 0
+                          ? (filteredFeedbacks.reduce((acc, f) => acc + f.rating, 0) / filteredFeedbacks.length).toFixed(1)
+                          : '0.0'}
+                      </p>
+                      <p className="text-[9px] font-bold uppercase opacity-70">Avg Stars</p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                <BarChart3 className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10" />
+              </div>
+            )}
+          </div>
 
-      {/* SURVEYS TAB */}
-      {activeTab === 'surveys' && (
+          {/* RIGHT: Feedback Feed */}
+          <div className="flex-1 space-y-6">
+            {/* Search Strip */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-dark-800 p-6 rounded-[2.5rem] border border-slate-100 dark:border-gray-700 shadow-sm transition-colors">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Filter feedback content, alumni name, or subject..."
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-dark-900 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 outline-none border-none dark:text-white"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <select
+                className="w-full sm:w-auto px-6 py-3 bg-slate-50 dark:bg-dark-900 border-none rounded-2xl text-xs font-black uppercase tracking-widest text-slate-600 dark:text-gray-400 outline-none"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+              </select>
+            </div>
+
+            {/* Cards Feed */}
+            {feedbackLoading ? (
+              <div className="flex flex-col items-center justify-center h-80 bg-white dark:bg-dark-800 rounded-[3rem] border border-slate-100 dark:border-gray-700 shadow-sm border-dashed">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Synchronizing Archive...</p>
+              </div>
+            ) : filteredFeedbacks.length > 0 ? (
+              <div className="space-y-6">
+                {filteredFeedbacks.map((fb) => (
+                  <div
+                    key={fb.id}
+                    className="group bg-white dark:bg-dark-800 rounded-[2.5rem] border border-slate-100 dark:border-gray-700 p-8 shadow-sm hover:shadow-2xl dark:hover:shadow-blue-900/10 transition-all duration-300 relative overflow-hidden"
+                  >
+                    {/* Event Ribbon */}
+                    {fb.alumni_events && (
+                      <div className="absolute top-0 right-10 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-widest rounded-b-xl border-x border-b border-blue-100 dark:border-blue-800/20 shadow-sm">
+                        {fb.alumni_events.title}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-start justify-between gap-6 mb-6">
+                      <div className="flex gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-dark-900 flex items-center justify-center font-black text-xl text-blue-600 border border-blue-100 dark:border-gray-700 shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                          {fb.profiles?.first_name?.[0] || fb.alumni_name?.[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-black text-slate-900 dark:text-white text-lg tracking-tight">
+                              {fb.profiles?.first_name ? `${fb.profiles.first_name} ${fb.profiles.last_name}` : fb.alumni_name}
+                            </h4>
+                            {fb.profiles?.batch_year && (
+                              <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full uppercase">Batch {fb.profiles.batch_year}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-3.5 h-3.5 ${s <= fb.rating ? 'text-amber-400 fill-current' : 'text-slate-200 dark:text-gray-700'}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-300">•</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(fb.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${fb.status === 'pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                          fb.status === 'reviewed' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                            'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          }`}>
+                          {fb.status}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => { setSelectedFeedback(fb); setReplyText(fb.admin_reply || ''); }}
+                            className="p-3 bg-slate-50 dark:bg-dark-900 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl transition-all border border-slate-200 dark:border-gray-700 shadow-sm"
+                            title="Reply"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(fb.id, 'resolved')}
+                            className="p-3 bg-slate-50 dark:bg-dark-900 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 rounded-xl transition-all border border-slate-200 dark:border-gray-700 shadow-sm"
+                            title="Mark Resolved"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-dark-900/50 p-6 rounded-[1.5rem] border border-slate-100 dark:border-gray-800 shadow-inner">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        Subject: <span className="text-slate-600 dark:text-gray-300 normal-case">{fb.subject}</span>
+                      </p>
+                      <p className="text-sm font-medium text-slate-700 dark:text-gray-300 leading-relaxed italic">
+                        "{fb.message}"
+                      </p>
+                    </div>
+
+                    {fb.admin_reply && (
+                      <div className="mt-5 ml-4 sm:ml-10 p-6 bg-blue-50/50 dark:bg-blue-900/5 border-l-4 border-blue-500 rounded-r-2xl flex gap-4">
+                        <div className="p-2 bg-blue-600 rounded-lg shrink-0 h-fit shadow-lg shadow-blue-200 dark:shadow-none"><Send className="w-3 h-3 text-white" /></div>
+                        <div>
+                          <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Official Response</p>
+                          <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 leading-relaxed">{fb.admin_reply}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-dark-800 rounded-[3rem] border border-dashed border-slate-200 dark:border-gray-700 shadow-sm">
+                <div className="w-20 h-20 bg-slate-50 dark:bg-dark-900 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquare className="w-10 h-10 text-slate-200 dark:text-gray-800" />
+                </div>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No selective feedback found</p>
+                <button onClick={() => { setSelectedEventFilter('all'); setSearchQuery(''); }} className="mt-4 text-blue-600 text-xs font-black uppercase hover:underline">Clear all filters</button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* SURVEYS TAB */
         <div className="space-y-6 animate-in fade-in duration-500">
           {surveyLoading ? (
-            <div className="flex justify-center py-16"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-dark-800 rounded-[3rem] border border-slate-100 dark:border-gray-700 shadow-sm border-dashed">
+              <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+              <p className="text-slate-400 font-bold">Fetching Survey Data...</p>
+            </div>
           ) : surveys.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-              <ClipboardList className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 font-bold">No surveys created yet</p>
+            <div className="text-center py-24 bg-white dark:bg-dark-800 rounded-[3rem] border border-slate-100 dark:border-gray-700 shadow-sm border-dashed">
+              <ClipboardList className="w-16 h-16 text-slate-100 dark:text-gray-800 mx-auto mb-4" />
+              <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No active surveys published</p>
+              <button onClick={() => setIsSurveyModalOpen(true)} className="mt-6 bg-slate-900 dark:bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl">Create Initial Survey</button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {surveys.map(survey => (
-                <div key={survey.id} className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-black text-slate-900">{survey.title}</h3>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">{survey.description}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${survey.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                <div key={survey.id} className="group bg-white dark:bg-dark-800 rounded-[2.5rem] border border-slate-100 dark:border-gray-700 p-8 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl"><ClipboardList className="w-6 h-6 text-blue-600 dark:text-blue-400 transition-transform group-hover:scale-110" /></div>
+                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${survey.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
                       {survey.status}
                     </span>
                   </div>
-                  <p className="text-[10px] font-bold text-slate-300 mb-4">{survey.questions?.length || 0} questions</p>
-                  <div className="flex gap-2">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 leading-tight">{survey.title}</h3>
+                  <p className="text-xs text-slate-400 dark:text-gray-500 font-medium line-clamp-2 mb-6 h-8">{survey.description}</p>
+
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <span className="text-[10px] font-black text-slate-500 dark:text-gray-400 uppercase">{survey.questions?.length || 0} Questions</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto flex gap-2">
                     <button
                       onClick={() => fetchResponses(survey.id)}
-                      className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black hover:bg-blue-100 transition-all flex items-center justify-center gap-1"
+                      className="flex-1 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-blue-600 shadow-lg flex items-center justify-center gap-1.5"
                     >
-                      <BarChart3 className="w-3.5 h-3.5" /> Responses
+                      <BarChart3 className="w-3.5 h-3.5" /> Results
                     </button>
                     <button
                       onClick={() => handleToggleSurvey(survey.id, survey.status)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${survey.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                      className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${survey.status === 'active' ? 'bg-white text-rose-500 border-rose-100 hover:bg-rose-50' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}
+                      title={survey.status === 'active' ? 'Close Survey' : 'Reopen Survey'}
                     >
-                      {survey.status === 'active' ? 'Close' : 'Reopen'}
+                      {survey.status === 'active' ? 'Close' : 'Open'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('Are you sure you want to permanently delete this survey? All responses will be lost.')) {
+                          const { error } = await supabase.from('alumni_surveys').delete().eq('id', survey.id);
+                          if (!error) {
+                            showToast({ title: 'Success', message: 'Survey deleted', type: 'success' });
+                            fetchSurveys();
+                          }
+                        }
+                      }}
+                      className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -478,178 +586,236 @@ const ManageFeedback: React.FC = () => {
         </div>
       )}
 
-      {/* REPLY MODAL */}
+      {/* MODALS */}
+
+      {/* 1. Reply Modal */}
       {selectedFeedback && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in">
-          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-lg shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-slate-900">Reply to Feedback</h3>
-              <button onClick={() => setSelectedFeedback(null)} className="p-2 bg-slate-100 rounded-full"><X className="w-4 h-4" /></button>
+          <div className="bg-white dark:bg-dark-800 p-10 rounded-[3rem] w-full max-w-lg shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 dark:bg-blue-900/5 rounded-bl-full" />
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Draft Response</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Replying to: {selectedFeedback.alumni_name}</p>
+                </div>
+                <button onClick={() => setSelectedFeedback(null)} className="p-3 bg-slate-50 dark:bg-dark-900 rounded-full hover:bg-slate-100 transition-all"><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+
+              <div className="bg-blue-50/50 dark:bg-dark-900 p-6 rounded-2xl mb-8 border border-blue-100 dark:border-gray-700 shadow-inner">
+                <p className="font-black text-blue-600 dark:text-blue-400 text-xs mb-2 uppercase tracking-widest">{selectedFeedback.subject}</p>
+                <p className="text-sm text-slate-600 dark:text-gray-300 font-medium italic">"{selectedFeedback.message}"</p>
+              </div>
+
+              <textarea
+                rows={5}
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder="Share your response or resolution details..."
+                className="w-full p-6 bg-slate-50 dark:bg-dark-900 dark:text-white rounded-3xl border-none font-bold text-sm focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/30 outline-none resize-none mb-6 shadow-inner"
+              />
+
+              <div className="flex gap-4">
+                <button onClick={() => setSelectedFeedback(null)} className="flex-1 py-4 bg-slate-100 dark:bg-dark-900 text-slate-500 dark:text-gray-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
+                <button
+                  onClick={handleReply}
+                  disabled={replying}
+                  className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group"
+                >
+                  {replying ? <Loader2 className="animate-spin w-5 h-5" /> : <><Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> Send Response</>}
+                </button>
+              </div>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-4 mb-6">
-              <p className="font-bold text-slate-700 text-sm mb-1">{selectedFeedback.subject}</p>
-              <p className="text-xs text-slate-500">{selectedFeedback.message}</p>
-              <p className="text-[10px] text-slate-400 mt-2">From: {selectedFeedback.alumni_name}</p>
-            </div>
-            <textarea
-              rows={4}
-              value={replyText}
-              onChange={e => setReplyText(e.target.value)}
-              placeholder="Type your reply..."
-              className="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium focus:ring-2 focus:ring-blue-200 outline-none resize-none mb-4"
-            />
-            <div className="flex gap-3">
-              <button onClick={() => setSelectedFeedback(null)} className="flex-1 py-3 bg-slate-100 rounded-2xl font-black text-sm">Cancel</button>
-              <button onClick={handleReply} disabled={replying} className="flex-[2] py-3 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-blue-700 flex items-center justify-center gap-2">
-                {replying ? <Loader2 className="animate-spin w-4 h-4" /> : <><Send className="w-4 h-4" /> Send Reply</>}
+          </div>
+        </div>
+      )}
+
+      {/* 2. Responses Modal */}
+      {viewingResponses && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in">
+          <div className="bg-white dark:bg-dark-800 p-10 rounded-[3rem] w-full max-w-3xl shadow-2xl my-auto max-h-[90vh] flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-50/50 dark:bg-emerald-900/5 rounded-bl-full" />
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex justify-between items-center mb-8 shrink-0">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Survey Insights</h3>
+                  <p className="text-xs text-slate-400 font-black uppercase tracking-widest mt-1">{responses.length} Verified Submissions</p>
+                </div>
+                <button onClick={() => setViewingResponses(null)} className="p-3 bg-slate-50 dark:bg-dark-900 rounded-full hover:bg-slate-100 transition-all"><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+
+              {responsesLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-20">
+                  <Loader2 className="animate-spin w-10 h-10 text-emerald-500 mb-4" />
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Processing Results...</p>
+                </div>
+              ) : responses.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-20 italic text-slate-400">
+                  <ClipboardList className="w-16 h-16 opacity-10 mb-4" />
+                  <p>No recorded responses for this survey archive.</p>
+                </div>
+              ) : (
+                <div className="flex-1 space-y-4 overflow-y-auto pr-4 custom-scrollbar mb-6">
+                  {responses.map((r, idx) => (
+                    <div key={r.id || idx} className="bg-slate-50 dark:bg-dark-900 rounded-[2rem] p-8 border border-slate-100 dark:border-gray-700 shadow-sm relative group">
+                      <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-200/50 dark:border-gray-800">
+                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-dark-800 flex items-center justify-center font-black text-sm text-emerald-600 shadow-sm">
+                          {r.profiles?.first_name?.[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-900 dark:text-white">
+                            {r.profiles?.first_name} {r.profiles?.last_name}
+                          </p>
+                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Submitted on {new Date(r.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Object.entries(r.answers || {}).map(([q, a]) => (
+                          <div key={q} className="bg-white dark:bg-dark-800 p-4 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm">
+                            <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 leading-none">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {q}
+                            </p>
+                            <p className="text-xs font-semibold text-slate-600 dark:text-gray-300 leading-relaxed">{String(a)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setViewingResponses(null)}
+                className="w-full py-4 bg-slate-900 dark:bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all shrink-0"
+              >
+                Dismiss Results
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* RESPONSES MODAL */}
-      {viewingResponses && (
+      {/* 3. Create Survey Modal */}
+      {isSurveyModalOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in overflow-y-auto">
-          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-2xl shadow-2xl my-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-slate-900">Survey Responses ({responses.length})</h3>
-              <button onClick={() => setViewingResponses(null)} className="p-2 bg-slate-100 rounded-full"><X className="w-4 h-4" /></button>
-            </div>
-            {responsesLoading ? (
-              <div className="flex justify-center py-12"><Loader2 className="animate-spin w-6 h-6 text-blue-600" /></div>
-            ) : responses.length === 0 ? (
-              <p className="text-center text-slate-400 py-12">No responses yet.</p>
-            ) : (
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                {responses.map((r, idx) => (
-                  <div key={r.id || idx} className="bg-slate-50 rounded-2xl p-4">
-                    <p className="text-xs font-bold text-slate-500 mb-2">
-                      {r.profiles?.first_name} {r.profiles?.last_name} • {new Date(r.created_at).toLocaleDateString()}
-                    </p>
-                    {Object.entries(r.answers || {}).map(([q, a]) => (
-                      <div key={q} className="mb-2">
-                        <p className="text-[10px] font-black text-slate-400 uppercase">{q}</p>
-                        <p className="text-sm text-slate-700">{String(a)}</p>
+          <div className="bg-white dark:bg-dark-800 p-10 rounded-[3rem] w-full max-w-2xl shadow-2xl my-auto relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 dark:bg-blue-900/5 rounded-bl-full" />
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-10">
+                <div>
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Architect Survey</h3>
+                  <p className="text-sm text-slate-400 font-semibold mt-1">Design a new feedback instrument for the community.</p>
+                </div>
+                <button onClick={() => setIsSurveyModalOpen(false)} className="p-3 bg-slate-50 dark:bg-dark-900 rounded-full hover:bg-slate-100 transition-all"><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar mb-10">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 px-1">Survey Title *</label>
+                    <input
+                      value={surveyForm.title}
+                      onChange={e => setSurveyForm({ ...surveyForm, title: e.target.value })}
+                      placeholder="e.g. BCP Career Outcomes 2026"
+                      className="w-full p-5 bg-slate-50 dark:bg-dark-900 dark:text-white rounded-[1.5rem] border-none font-black text-lg outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/30 shadow-inner"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 px-1">Rationale / Description</label>
+                    <textarea
+                      rows={2}
+                      value={surveyForm.description}
+                      onChange={e => setSurveyForm({ ...surveyForm, description: e.target.value })}
+                      placeholder="Explain the purpose of this survey..."
+                      className="w-full p-5 bg-slate-50 dark:bg-dark-900 dark:text-white rounded-[1.5rem] border-none font-semibold text-sm outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/30 resize-none shadow-inner"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Questions & Field Logic</label>
+                    <button onClick={addQuestion} className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full hover:bg-blue-100 transition-all shadow-sm">
+                      <Plus className="w-3.5 h-3.5" /> Append Question
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {surveyForm.questions.map((q, idx) => (
+                      <div key={idx} className="bg-white dark:bg-dark-900 rounded-[2rem] p-6 border border-slate-100 dark:border-gray-700 shadow-xl relative group/q transition-all hover:border-blue-200">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shadow-lg">#{idx + 1}</div>
+                          <select
+                            value={q.type}
+                            onChange={e => updateQuestion(idx, 'type', e.target.value)}
+                            className="bg-slate-50 dark:bg-dark-800 rounded-xl px-4 py-2 border-none text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-100"
+                          >
+                            <option value="text">Open Text</option>
+                            <option value="choice">Selection</option>
+                            <option value="rating">Numeric Rating</option>
+                          </select>
+                          {surveyForm.questions.length > 1 && (
+                            <button onClick={() => removeQuestion(idx)} className="ml-auto p-2 hover:bg-rose-50 rounded-xl text-rose-300 hover:text-rose-500 transition-all">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          value={q.question}
+                          onChange={e => updateQuestion(idx, 'question', e.target.value)}
+                          placeholder="What would you like to ask?"
+                          className="w-full p-4 bg-slate-50 dark:bg-dark-800 dark:text-white rounded-2xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-blue-100 shadow-inner"
+                        />
+                        {q.type === 'choice' && (
+                          <div className="mt-4 space-y-3 bg-slate-100/50 dark:bg-dark-800 p-4 rounded-2xl">
+                            {(q.options || ['']).map((opt: string, oIdx: number) => (
+                              <div key={oIdx} className="flex gap-2">
+                                <input
+                                  value={opt}
+                                  onChange={e => {
+                                    const opts = [...(q.options || [''])];
+                                    opts[oIdx] = e.target.value;
+                                    updateQuestion(idx, 'options', opts);
+                                  }}
+                                  placeholder={`Option ${oIdx + 1}`}
+                                  className="flex-1 p-3 bg-white dark:bg-dark-900 rounded-xl border border-slate-100 dark:border-gray-700 text-xs font-bold outline-none shadow-sm focus:border-blue-300"
+                                />
+                                {(q.options || []).length > 1 && (
+                                  <button onClick={() => {
+                                    const opts = (q.options || []).filter((_: any, i: number) => i !== oIdx);
+                                    updateQuestion(idx, 'options', opts);
+                                  }} className="text-slate-300 hover:text-rose-500 transition-all"><X className="w-4 h-4" /></button>
+                                )}
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => updateQuestion(idx, 'options', [...(q.options || ['']), ''])}
+                              className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase flex items-center justify-center gap-1.5 hover:border-blue-400 hover:text-blue-500 transition-all"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Add New Option
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* CREATE SURVEY MODAL */}
-      {isSurveyModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in overflow-y-auto">
-          <div className="bg-white p-8 rounded-[3rem] w-full max-w-2xl shadow-2xl my-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900">Create Survey</h3>
-                <p className="text-sm text-slate-400 mt-1">Build a survey for alumni to answer.</p>
-              </div>
-              <button onClick={() => setIsSurveyModalOpen(false)} className="p-3 bg-slate-100 rounded-full"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Survey Title *</label>
-                <input
-                  value={surveyForm.title}
-                  onChange={e => setSurveyForm({ ...surveyForm, title: e.target.value })}
-                  placeholder="e.g. Alumni Satisfaction Survey 2026"
-                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Description</label>
-                <textarea
-                  rows={2}
-                  value={surveyForm.description}
-                  onChange={e => setSurveyForm({ ...surveyForm, description: e.target.value })}
-                  placeholder="Brief description of the survey..."
-                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium outline-none focus:ring-2 focus:ring-blue-200 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-3">Questions</label>
-                <div className="space-y-4 max-h-[40vh] overflow-y-auto">
-                  {surveyForm.questions.map((q, idx) => (
-                    <div key={idx} className="bg-slate-50 rounded-2xl p-4 relative">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xs font-black text-slate-300">Q{idx + 1}</span>
-                        <select
-                          value={q.type}
-                          onChange={e => updateQuestion(idx, 'type', e.target.value)}
-                          className="text-xs font-bold bg-white rounded-lg px-3 py-1.5 border border-slate-200 outline-none"
-                        >
-                          <option value="text">Text Answer</option>
-                          <option value="choice">Multiple Choice</option>
-                          <option value="rating">Rating (1-5)</option>
-                        </select>
-                        {surveyForm.questions.length > 1 && (
-                          <button onClick={() => removeQuestion(idx)} className="ml-auto p-1 hover:bg-red-50 rounded-lg">
-                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        value={q.question}
-                        onChange={e => updateQuestion(idx, 'question', e.target.value)}
-                        placeholder="Enter your question..."
-                        className="w-full p-3 bg-white rounded-xl border border-slate-100 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                      />
-                      {q.type === 'choice' && (
-                        <div className="mt-3 space-y-2">
-                          {(q.options || ['']).map((opt: string, oIdx: number) => (
-                            <div key={oIdx} className="flex gap-2">
-                              <input
-                                value={opt}
-                                onChange={e => {
-                                  const opts = [...(q.options || [''])];
-                                  opts[oIdx] = e.target.value;
-                                  updateQuestion(idx, 'options', opts);
-                                }}
-                                placeholder={`Option ${oIdx + 1}`}
-                                className="flex-1 p-2.5 bg-white rounded-lg border border-slate-100 text-xs font-medium outline-none"
-                              />
-                              {(q.options || []).length > 1 && (
-                                <button onClick={() => {
-                                  const opts = (q.options || []).filter((_: any, i: number) => i !== oIdx);
-                                  updateQuestion(idx, 'options', opts);
-                                }} className="text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
-                              )}
-                            </div>
-                          ))}
-                          <button
-                            onClick={() => updateQuestion(idx, 'options', [...(q.options || ['']), ''])}
-                            className="text-[10px] font-black text-blue-600 uppercase"
-                          >
-                            + Add Option
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
                 </div>
-                <button onClick={addQuestion} className="mt-3 text-xs font-black text-blue-600 flex items-center gap-1 hover:underline">
-                  <Plus className="w-4 h-4" /> Add Question
-                </button>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setIsSurveyModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm">Cancel</button>
-                <button onClick={handleCreateSurvey} disabled={surveySubmitting} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-blue-700 flex items-center justify-center gap-2">
-                  {surveySubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <><Plus className="w-5 h-5" /> Publish Survey</>}
+              <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-gray-700 relative z-20">
+                <button onClick={() => setIsSurveyModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-dark-900 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Discard Draft</button>
+                <button
+                  onClick={handleCreateSurvey}
+                  disabled={surveySubmitting}
+                  className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-100 dark:shadow-none hover:bg-blue-700 transition-all flex items-center justify-center gap-3 group"
+                >
+                  {surveySubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <><CheckCircle2 className="w-5 h-5 group-hover:scale-110 transition-transform" /> Publish Survey System</>}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
     </AdminPageLayout>
   );
 };

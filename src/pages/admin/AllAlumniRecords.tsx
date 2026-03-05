@@ -60,8 +60,23 @@ const AllAlumniRecords: React.FC = () => {
   const [layoutMode, setLayoutMode] = useState<'table' | 'grid'>('table');
   const [groupView, setGroupView] = useState<'batch' | 'course'>('batch');
   const [currentPage, setCurrentPage] = useState(0);
+  const [batchColors, setBatchColors] = useState<Record<string, string>>({});
 
   const itemsPerPage = 12;
+
+  const BATCH_COLOR_OPTIONS = [
+    { name: 'Blue', color: 'blue', ring: 'ring-blue-500', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: 'text-blue-600', gradient: 'from-blue-50 to-white hover:from-blue-100' },
+    { name: 'Purple', color: 'purple', ring: 'ring-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', icon: 'text-purple-600', gradient: 'from-purple-50 to-white hover:from-purple-100' },
+    { name: 'Emerald', color: 'emerald', ring: 'ring-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'text-emerald-600', gradient: 'from-emerald-50 to-white hover:from-emerald-100' },
+    { name: 'Rose', color: 'rose', ring: 'ring-rose-500', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', icon: 'text-rose-600', gradient: 'from-rose-50 to-white hover:from-rose-100' },
+    { name: 'Amber', color: 'amber', ring: 'ring-amber-500', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: 'text-amber-600', gradient: 'from-amber-50 to-white hover:from-amber-100' },
+    { name: 'Indigo', color: 'indigo', ring: 'ring-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', icon: 'text-indigo-600', gradient: 'from-indigo-50 to-white hover:from-indigo-100' },
+  ];
+
+  const getBatchStyle = (key: string) => {
+    const colorName = batchColors[key] || 'Blue';
+    return BATCH_COLOR_OPTIONS.find(c => c.name === colorName) || BATCH_COLOR_OPTIONS[0];
+  };
 
   useEffect(() => {
     fetchRecords();
@@ -142,7 +157,7 @@ const AllAlumniRecords: React.FC = () => {
       groups[key].push(rec);
     });
 
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
+    const sortedKeys = Object.keys(groups).filter(k => k !== 'Unknown').sort((a, b) => {
       if (a === 'Unknown') return 1;
       if (b === 'Unknown') return -1;
       if (groupView === 'batch') return sortOrder === 'desc' ? Number(b) - Number(a) : Number(a) - Number(b);
@@ -404,17 +419,34 @@ const AllAlumniRecords: React.FC = () => {
             const groupRecords = groupedData.groups[groupKey];
             const isCollapsed = collapsedGroups.has(groupKey);
             const sections = [...new Set(groupRecords.map((r) => parseSection(r.verification_answer)).filter(Boolean))].sort();
+            const style = getBatchStyle(groupKey);
+
             return (
-              <div key={groupKey} className="border border-gray-200 rounded-xl overflow-hidden">
-                <button onClick={() => toggleGroup(groupKey)} className="w-full flex items-center justify-between px-5 py-3 bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 transition-all">
-                  <div className="flex items-center gap-3">
-                    {isCollapsed ? <ChevronRight className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-blue-600" />}
-                    <Calendar className="w-4 h-4 text-blue-600" />
+              <div key={groupKey} className={`border ${style.border} rounded-xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md`}>
+                <div className={`w-full flex items-center justify-between px-5 py-3 bg-gradient-to-r ${style.gradient}`}>
+                  <button onClick={() => toggleGroup(groupKey)} className="flex items-center gap-3 flex-1 text-left">
+                    {isCollapsed ? <ChevronRight className={`w-5 h-5 ${style.icon}`} /> : <ChevronDown className={`w-5 h-5 ${style.icon}`} />}
+                    <Calendar className={`w-4 h-4 ${style.icon}`} />
                     <span className="font-bold text-gray-900 text-base">{groupView === 'batch' ? `Batch ${groupKey}` : groupKey}</span>
-                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">{groupRecords.length} alumni</span>
-                    {sections.length > 0 && <span className="text-xs text-gray-400">{sections.length} section(s): {sections.join(', ')}</span>}
+                    <span className={`${style.bg} ${style.text} px-2 py-0.5 rounded-full text-xs font-bold ring-1 ring-inset ${style.border}`}>{groupRecords.length} alumni</span>
+                    {sections.length > 0 && <span className="text-xs text-gray-400 hidden sm:inline-block italic md:ml-4">{sections.length} section(s): {sections.join(', ')}</span>}
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mr-2">Batch Color</p>
+                    <div className="flex gap-1 bg-white/50 p-1 rounded-full border border-slate-100">
+                      {BATCH_COLOR_OPTIONS.map(opt => (
+                        <button
+                          key={opt.name}
+                          onClick={(e) => { e.stopPropagation(); setBatchColors(prev => ({ ...prev, [groupKey]: opt.name })); }}
+                          className={`w-4 h-4 rounded-full ring-offset-1 transition-all ${opt.bg === style.bg ? 'ring-2 ' + opt.ring : 'hover:scale-110 opacity-60 hover:opacity-100'} bg-${opt.color}-500`}
+                          style={{ backgroundColor: opt.color === 'emerald' ? '#10b981' : opt.color === 'rose' ? '#f43f5e' : opt.color === 'amber' ? '#f59e0b' : opt.color === 'indigo' ? '#6366f1' : opt.color === 'purple' ? '#a855f7' : '#3b82f6' }}
+                          title={opt.name}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </button>
+                </div>
 
                 {!isCollapsed && (
                   <div className="overflow-x-auto">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCircle, UploadCloud, Eye, EyeOff, Heart, DollarSign, Users } from 'lucide-react';
+import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCircle, UploadCloud, Eye, EyeOff, Heart, DollarSign, Users, Info } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 import AdminResourceCard from './AdminResourceCard';
 import { useToast } from '../../context/ToastContext';
@@ -80,6 +80,11 @@ const DonationManager = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [activeDonationId, setActiveDonationId] = useState<string | null>(null);
 
+  // NEW: Campaign Details State
+  const [selectedCampaignForDetails, setSelectedCampaignForDetails] = useState<any>(null);
+  const [campaignDonors, setCampaignDonors] = useState<any[]>([]);
+  const [loadingDonors, setLoadingDonors] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     target_amount: '',
@@ -118,15 +123,16 @@ const DonationManager = () => {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    // Limit to 50 recent donations for performance
-    const { data: donData } = await supabase
-      .from('donations')
-      .select('id, amount, status, payment_method, proof_image_url, guest_name, guest_email, campaign_id, profile_id, created_at, profiles(first_name, last_name, email)')
-      .order('created_at', { ascending: false })
-      .limit(50);
-
     if (campData) setCampaigns(campData);
-    if (donData) setDonations(donData);
+
+    // Fetch detailed donations with campaign info for the collections table
+    const { data: fullDonations } = await supabase
+      .from('donations')
+      .select('*, campaigns:campaign_id(title), profiles:profile_id(first_name, last_name)')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (fullDonations) setDonations(fullDonations);
   };
 
   const openCreateModal = () => {
@@ -346,6 +352,24 @@ const DonationManager = () => {
     setIsRejectModalOpen(true);
   };
 
+  const fetchCampaignDonors = async (campaign: any) => {
+    setSelectedCampaignForDetails(campaign);
+    setLoadingDonors(true);
+    try {
+      const { data } = await supabase
+        .from('donations')
+        .select('*, profiles:profile_id(first_name, last_name, email)')
+        .eq('campaign_id', campaign.id)
+        .eq('status', 'verified')
+        .order('created_at', { ascending: false });
+      setCampaignDonors(data || []);
+    } catch (err) {
+      console.error('Error fetching donors:', err);
+    } finally {
+      setLoadingDonors(false);
+    }
+  };
+
   return (
     <AdminPageLayout title="Donation & Campaigns" subtitle="Verify transactions and track fundraising impact" icon={TrendingUp}>
 
@@ -541,10 +565,91 @@ const DonationManager = () => {
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
+                  <button
+                    onClick={() => fetchCampaignDonors(camp)}
+                    className="w-full mt-4 flex items-center justify-center gap-2 py-2 px-4 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-black transition-all border border-slate-200"
+                  >
+                    <Info className="w-3.5 h-3.5" /> View Collections
+                  </button>
                 </div>
               </AdminResourceCard>
             );
           })}
+      </div>
+
+      {/* 3. Detailed Collections Table — NEW */}
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-12 mt-12 animate-in slide-in-from-bottom duration-500">
+        <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-black text-slate-800 text-lg">Verified Collections History</h3>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Total Detailed Impact: {maskAmount(donations.filter(d => d.status === 'verified').reduce((acc, curr) => acc + (curr.amount || 0), 0))}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+              {donations.filter(d => d.status === 'verified').length} Donations
+            </span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-slate-400 font-black uppercase text-[10px] tracking-widest">
+              <tr>
+                <th className="p-5">Donor</th>
+                <th className="p-5">Campaign</th>
+                <th className="p-5 text-right">Amount</th>
+                <th className="p-5">Method</th>
+                <th className="p-5">Date Verified</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {donations.filter(d => d.status === 'verified').length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-10 text-center text-gray-400 font-bold italic">No verified collections yet.</td>
+                </tr>
+              ) : (
+                donations.filter(d => d.status === 'verified').map(don => (
+                  <tr key={don.id} className="hover:bg-emerald-50/10 transition-colors group">
+                    <td className="p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 font-bold text-xs uppercase shadow-sm">
+                          {(don.profiles?.first_name || don.guest_name)?.charAt(0) || 'A'}
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-700">{don.profiles?.first_name ? `${don.first_name} ${don.last_name}` : (don.guest_name || 'Alumni Member')}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{don.profiles?.email || don.guest_email || 'Verified Contribution'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-5">
+                      <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-blue-100 max-w-[200px] truncate block">
+                        {don.campaigns?.title || 'General Fund'}
+                      </span>
+                    </td>
+                    <td className="p-5 text-right">
+                      <p className="text-emerald-600 font-black text-base">{maskAmount(don.amount)}</p>
+                    </td>
+                    <td className="p-5">
+                      <p className="text-slate-500 font-bold text-xs flex items-center gap-1 uppercase tracking-tight">
+                        <TrendingUp className="w-3 h-3 opacity-50" /> {don.payment_method}
+                      </p>
+                    </td>
+                    <td className="p-5">
+                      <p className="text-slate-400 text-xs font-bold italic">{don.verified_at ? new Date(don.verified_at).toLocaleDateString() : new Date(don.created_at).toLocaleDateString()}</p>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="p-6 bg-slate-50/50 border-t border-slate-50">
+          <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">End of verified collections list</p>
+        </div>
       </div>
 
       {/* --- MODAL: IMAGE PROOF PREVIEW (The "Wow" Factor) --- */}
@@ -763,6 +868,91 @@ const DonationManager = () => {
         </div>
       )}
 
+      {/* --- MODAL: CAMPAIGN DETAILS --- */}
+      {selectedCampaignForDetails && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[130] animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200 relative my-8 overflow-hidden">
+            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                  <Info className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{selectedCampaignForDetails.title}</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Detailed Collection Report</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedCampaignForDetails(null)}
+                className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 rounded-full transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-8">
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Goal</p>
+                  <p className="text-2xl font-black text-blue-700">₱{selectedCampaignForDetails.target_amount.toLocaleString()}</p>
+                </div>
+                <div className="p-6 bg-emerald-50/50 rounded-3xl border border-emerald-100">
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Currently Raised</p>
+                  <p className="text-2xl font-black text-emerald-700">₱{selectedCampaignForDetails.current_amount.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Users className="w-4 h-4" /> Verified Contributors
+                </h4>
+
+                {loadingDonors ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Fetching records...</p>
+                  </div>
+                ) : campaignDonors.length === 0 ? (
+                  <div className="text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
+                    <p className="text-sm font-bold text-slate-400">No verified donations recorded yet.</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-3">
+                      {campaignDonors.map((don, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-blue-200 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl flex items-center justify-center text-slate-700 font-black text-sm uppercase">
+                              {(don.profiles?.first_name || don.guest_name)?.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-800">{don.profiles?.first_name ? `${don.first_name} ${don.last_name}` : (don.guest_name || 'Alumni Member')}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic">{new Date(don.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-black text-emerald-600">₱{don.amount.toLocaleString()}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{don.payment_method}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-center">
+              <button
+                onClick={() => setSelectedCampaignForDetails(null)}
+                className="px-10 py-3 bg-white border border-slate-200 text-slate-600 font-black rounded-2xl hover:bg-slate-100 transition-all shadow-sm text-xs uppercase tracking-widest"
+              >
+                Close Detailed View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminPageLayout>
   );
 };

@@ -231,13 +231,6 @@ const PartnerInquiries: React.FC = () => {
               <button onClick={() => setTab('all')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === 'all' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>All</button>
             </div>
 
-            <button
-              onClick={clearTestData}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-100 text-red-600 hover:bg-red-50 text-[10px] font-black uppercase transition-all shadow-sm active:scale-95"
-              title="Quickly Delete Test Records"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Clear Test Data
-            </button>
           </div>
 
           <div className="relative w-full md:w-80">

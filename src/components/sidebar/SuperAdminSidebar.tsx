@@ -33,14 +33,15 @@ const SuperAdminSidebar: React.FC = () => {
       name: "Alumni & Records", icon: Users, subItems: [
         { name: "Manage Users", path: "/superadmin/users", icon: Users },
         { name: "Alumni Records", path: "/superadmin/records", icon: Database },
+        { name: "Alumni Tracker", path: "/superadmin/career-tracking", icon: Briefcase },
         { name: "Master List", path: "/superadmin/upload", icon: UploadCloud },
         //  { name: "Alumni Resources", path: "/superadmin/resources", icon: FileText },
       ]
     },
     {
       name: "Career & Jobs", icon: Briefcase, subItems: [
-        { name: "Job Manager", path: "/superadmin/jobs", icon: ListPlus },
-        { name: "Status Tracker", path: "/superadmin/career-tracking", icon: Briefcase },
+        { name: "Job Posting", path: "/superadmin/jobs", icon: ListPlus },
+        { name: "New Inquiries", path: "/superadmin/partner-inquiries", icon: ClipboardCheck },
       ]
     },
     {
@@ -52,7 +53,6 @@ const SuperAdminSidebar: React.FC = () => {
       name: "Communication & Updates", icon: Mail, subItems: [
         { name: "News Feed", path: "/superadmin/news", icon: Newspaper },
         { name: "Community Manager", path: "/superadmin/community", icon: Users },
-        { name: "Partner Inquiries", path: "/superadmin/partner-inquiries", icon: Briefcase },
       ]
     },
     {

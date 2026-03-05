@@ -26,26 +26,26 @@ const ContactSection: React.FC = () => {
     try {
       const payload = formTab === 'company'
         ? {
-            inquiry_type: 'company',
-            company_name: formData.companyName,
-            contact_person: formData.contactPerson,
-            company_email: formData.companyEmail,
-            company_phone: formData.companyPhone || null,
-            position_offered: formData.positionOffered,
-            company_message: formData.companyMessage || null,
-            status: 'pending',
-            routed_to_osa: false,
-            routed_to_hr: false,
-          }
+          inquiry_type: 'company',
+          company_name: formData.companyName,
+          contact_person: formData.contactPerson,
+          company_email: formData.companyEmail,
+          company_phone: formData.companyPhone || null,
+          position_offered: formData.positionOffered,
+          company_message: formData.companyMessage || null,
+          status: 'pending',
+          routed_to_osa: false,
+          routed_to_hr: false,
+        }
         : {
-            inquiry_type: 'general',
-            name: formData.name,
-            email: formData.email,
-            message: formData.message,
-            status: 'pending',
-            routed_to_osa: false,
-            routed_to_hr: false,
-          };
+          inquiry_type: 'general',
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          status: 'pending',
+          routed_to_osa: false,
+          routed_to_hr: false,
+        };
 
       const { error } = await supabase.from('contact_inquiries').insert([payload]);
       if (error) throw error;
@@ -109,16 +109,16 @@ const ContactSection: React.FC = () => {
             <Mail className="w-4 h-4 text-blue-300" />
             <span className="text-sm text-blue-300 font-medium">Get in Touch</span>
           </div>
-          
+
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Connect With
             <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               {' '}Our Team
             </span>
           </h2>
-          
+
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            Whether you're an alumni, a partner company, or an employer looking to hire — 
+            Whether you're an alumni, a partner company, or an employer looking to hire —
             reach out to us. All inquiries are verified by our admin team.
           </p>
         </div>
@@ -216,7 +216,7 @@ const ContactSection: React.FC = () => {
             {/* Office Info Card */}
             <div className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
               <h3 className="text-lg font-semibold text-white mb-4">LCP Main Campus</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -288,7 +288,7 @@ const ContactSection: React.FC = () => {
             {/* Social Links Card */}
             <div className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
               <h3 className="text-lg font-semibold text-white mb-4">Follow Us</h3>
-              
+
               <div className="flex gap-3">
                 <a href="https://www.facebook.com/lcpofficialpage" target="_blank" rel="noreferrer" className="w-12 h-12 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl flex items-center justify-center transition-all duration-300 group">
                   <Facebook className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
@@ -305,13 +305,13 @@ const ContactSection: React.FC = () => {
             {/* Map Card */}
             <div className="p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
               <div className="aspect-video bg-dark-600 rounded-xl overflow-hidden relative">
-                <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.2292398435343!2d121.0423183143216!3d14.700140989736868!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397b0d8a1c5d369%3A0x66c729b760255309!2sBestlink%20College%20of%20the%20Philippines!5e0!3m2!1sen!2sph!4v1675234567890!5m2!1sen!2sph" 
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 0 }} 
-                  allowFullScreen 
-                  loading="lazy" 
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.2292398435343!2d121.0423183143216!3d14.700140989736868!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397b0d8a1c5d369%3A0x66c729b760255309!2sBestlink%20College%20of%20the%20Philippines!5e0!3m2!1sen!2sph!4v1675234567890!5m2!1sen!2sph"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="LCP Location"
                   className="grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-500"
@@ -334,7 +334,7 @@ const ContactSection: React.FC = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {partners.map((partner, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="group p-6 bg-white/5 rounded-2xl border border-white/5 hover:border-blue-500/30 hover:bg-white/10 transition-all duration-300"
               >

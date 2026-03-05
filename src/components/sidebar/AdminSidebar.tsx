@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, BarChart3, Briefcase, Calendar, Mail,
-  ChevronRight, User2, LogOut, ClipboardCheck, Database, UploadCloud,
-  PieChart, ListPlus, CalendarDays, Newspaper, FileText, DollarSign,
+  ChevronRight, User2, LogOut, ClipboardCheck, Database,
+  PieChart, ListPlus, CalendarDays, Newspaper, DollarSign,
   MessageSquare, List, Layers,
   Bot, Settings, MoreVertical, AlertTriangle, Loader2, RefreshCw,
   ShieldCheck
@@ -15,7 +15,7 @@ interface SubMenuItem { name: string; path: string; icon: React.ElementType; }
 interface MenuItem { name: string; icon: React.ElementType; path?: string; subItems?: SubMenuItem[]; }
 
 const AdminSidebar: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,16 +31,15 @@ const AdminSidebar: React.FC = () => {
     { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     {
       name: "Alumni & Records", icon: Users, subItems: [
-        // { name: "Manage Users", path: "/admin/users", icon: Users },
         { name: "Alumni Records", path: "/admin/records", icon: Database },
-        { name: "CSV Upload", path: "/admin/upload", icon: UploadCloud },
+        { name: "Alumni Tracker", path: "/admin/tracking/career", icon: Briefcase },
         { name: "Verification", path: "/admin/verification", icon: ShieldCheck },
       ]
     },
     {
       name: "Career & Jobs", icon: Briefcase, subItems: [
-        { name: "Job Manager", path: "/admin/jobs/board", icon: ListPlus },
-        { name: "Status Tracker", path: "/admin/tracking/career", icon: Briefcase },
+        { name: "Job Posting", path: "/admin/jobs/board", icon: ListPlus },
+        { name: "New Inquiries", path: "/admin/partner-inquiries", icon: ClipboardCheck },
       ]
     },
     {
@@ -52,7 +51,6 @@ const AdminSidebar: React.FC = () => {
       name: "Communication & Updates", icon: Mail, subItems: [
         { name: "News Feed", path: "/admin/news/manage", icon: Newspaper },
         { name: "Alumni Community", path: "/admin/community", icon: Users },
-        { name: "Partner Inquiries", path: "/admin/partner-inquiries", icon: Briefcase },
       ]
     },
     {
@@ -74,16 +72,35 @@ const AdminSidebar: React.FC = () => {
         { name: "Audit Trail", path: "/admin/audit-trail", icon: ClipboardCheck },
       ]
     },
-    {
-      name: "Role Dashboards", icon: LayoutDashboard, subItems: [
-        { name: "Alumni Manager", path: "/admin/dashboard/alumni", icon: Users },
-        { name: "Event Officer", path: "/admin/dashboard/events", icon: CalendarDays },
-        { name: "Finance Manager", path: "/admin/dashboard/finance", icon: DollarSign },
-        { name: "Job Officer", path: "/admin/dashboard/jobs", icon: Briefcase },
-      ]
-    },
     { name: "Settings", icon: Settings, path: "/admin/settings" },
   ];
+
+  const filteredMenuItems = useMemo(() => {
+    const role = user?.role || 'staff';
+
+    if (['super_admin', 'admin'].includes(role)) return menuItems;
+
+    return menuItems.filter(item => {
+      // Role-based filtering logic
+      if (item.name === "Dashboard" || item.name === "Settings") return true;
+
+      if (role === 'event_officer') {
+        return ["Events", "Communication & Updates"].includes(item.name);
+      }
+      if (role === 'finance_officer') {
+        return ["Donation & Campaign Tools", "Advanced Tools"].includes(item.name);
+      }
+      if (role === 'job_officer') {
+        return ["Career & Jobs"].includes(item.name);
+      }
+      if (role === 'alumni_officer') {
+        return ["Alumni & Records", "Engagement", "Communication & Updates"].includes(item.name);
+      }
+
+      // Default staff view
+      return ["Alumni & Records", "Career & Jobs", "Events"].includes(item.name);
+    });
+  }, [user?.role]);
 
   useEffect(() => {
     if (!collapsed) {
@@ -136,7 +153,7 @@ const AdminSidebar: React.FC = () => {
           {flatView ? (
             // FLAT VIEW - All items in single list
             <>
-              {menuItems.map((item) => {
+              {filteredMenuItems.map((item: MenuItem) => {
                 if (item.path) {
                   const isActive = item.path === location.pathname;
                   return (
@@ -147,12 +164,12 @@ const AdminSidebar: React.FC = () => {
                     </Link>
                   );
                 }
-                return item.subItems?.map((sub) => {
+                return item.subItems?.map((sub: SubMenuItem) => {
                   const isActive = location.pathname === sub.path;
                   return (
                     <Link key={sub.path} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-300 group ${isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-200 translate-x-1" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}>
                       {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2"><span className="h-8 w-1 rounded-r-full bg-white/95 shadow-[0_0_14px_rgba(59,130,246,0.6)]" style={{ animation: 'adminBarGlow 2s ease-in-out infinite' }} /></div>}
-                      <sub.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
+                      <sub.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600"}`} />
                       <span className={`text-sm font-semibold ${collapsed ? "hidden" : "block"}`}>{sub.name}</span>
                     </Link>
                   );
@@ -162,9 +179,9 @@ const AdminSidebar: React.FC = () => {
           ) : (
             // GROUPED VIEW - Original with dropdowns
             <>
-              {menuItems.map((item) => {
+              {filteredMenuItems.map((item: MenuItem) => {
                 const isDirectActive = item.path === location.pathname;
-                const hasActiveSub = item.subItems?.some(sub => location.pathname.includes(sub.path));
+                const hasActiveSub = item.subItems?.some((sub: SubMenuItem) => location.pathname.includes(sub.path));
                 const isActive = isDirectActive || hasActiveSub;
                 const isExp = expanded === item.name;
                 return (
@@ -189,7 +206,7 @@ const AdminSidebar: React.FC = () => {
                     </div>
                     <div className={`overflow-hidden transition-all duration-300 ease-in-out ${!collapsed && isExp && item.subItems ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
                       <div className="ml-4 pl-4 border-l-2 border-gray-100 space-y-1">
-                        {item.subItems?.map((sub, idx) => {
+                        {item.subItems?.map((sub: SubMenuItem, idx: number) => {
                           const isSubActive = location.pathname === sub.path;
                           return (
                             <Link key={idx} to={sub.path} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 group ${isSubActive ? "text-blue-700 bg-blue-50 font-bold translate-x-1" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"}`}>
@@ -233,8 +250,8 @@ const AdminSidebar: React.FC = () => {
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
             </div>
             <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${collapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-              <p className="text-sm font-bold text-gray-900 truncate">Administrator</p>
-              <p className="text-xs text-gray-500 truncate">System Admin</p>
+              <p className="text-sm font-bold text-gray-900 truncate">{user?.name || 'Administrator'}</p>
+              <p className="text-xs text-gray-500 truncate capitalize">{(user?.role || 'staff').replace('_', ' ')}</p>
             </div>
             {!collapsed && <MoreVertical className="w-4 h-4 text-gray-400" />}
           </div>

@@ -352,9 +352,9 @@ export function useAdminDashboardStats() {
         { count: news },
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'master_list'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'verified'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'rejected'),
         // Align module counts to active/live by default to match UI lists
         supabase.from('alumni_events').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'active'),

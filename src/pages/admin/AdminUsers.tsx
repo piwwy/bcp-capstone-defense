@@ -26,6 +26,10 @@ interface User {
     avatar_url?: string;
     created_at: string;
     phone?: string;
+    subscription_tier?: string;
+    is_verified_alumni?: boolean;
+    subscription_started_at?: string;
+    subscription_expires_at?: string;
 }
 
 type StatusFilter = 'all' | 'active' | 'archived';
@@ -64,7 +68,7 @@ const AdminUsers: React.FC = () => {
         try {
             let query = supabase
                 .from('profiles')
-                .select('id, first_name, last_name, middle_name, email, batch_year, course, student_id, status, role, avatar_url, created_at, phone')
+                .select('id, first_name, last_name, middle_name, email, batch_year, course, student_id, status, role, avatar_url, created_at, phone, subscription_tier, is_verified_alumni, subscription_started_at, subscription_expires_at')
                 .order('created_at', { ascending: false })
                 .limit(50);
 
@@ -414,6 +418,7 @@ const AdminUsers: React.FC = () => {
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Student ID</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Course & Batch</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Role</th>
+                                    <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Verification</th>
                                     <th className="px-5 py-4 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Joined</th>
                                     <th className="px-5 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">Actions</th>
                                 </tr>
@@ -447,6 +452,23 @@ const AdminUsers: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-5 py-4">{getRoleBadge(user.role)}</td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                {user.is_verified_alumni ? (
+                                                    <span className="flex items-center gap-1 text-[10px] font-black text-green-600 uppercase">
+                                                        <CheckCircle className="w-3 h-3" /> Verified
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase">Unverified</span>
+                                                )}
+                                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase w-fit ${user.subscription_tier === 'verified' ? 'bg-amber-100 text-amber-700' :
+                                                    user.subscription_tier === 'premium' ? 'bg-purple-100 text-purple-700' :
+                                                        'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                    {user.subscription_tier || 'Basic'}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold">
                                                 <Clock className="w-3 h-3" />
@@ -541,7 +563,21 @@ const AdminUsers: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Phone</p>
-                                    <p className="text-slate-800 font-bold">{selectedUser.phone || 'N/A'}</p>
+                                    <p className="text-slate-800 font-bold">{selectedUser.phone || '—'}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subscription Membership</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 mb-0.5">Start Date</p>
+                                        <p className="text-xs font-bold text-slate-700">{selectedUser.subscription_started_at ? formatDate(selectedUser.subscription_started_at) : 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 mb-0.5">End Date</p>
+                                        <p className="text-xs font-bold text-slate-700">{selectedUser.subscription_expires_at ? formatDate(selectedUser.subscription_expires_at) : 'N/A'}</p>
+                                    </div>
                                 </div>
                             </div>
                             <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2">

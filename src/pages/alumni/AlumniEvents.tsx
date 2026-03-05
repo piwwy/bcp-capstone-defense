@@ -9,7 +9,7 @@ import PageTransition from '../../components/ui/PageTransition';
 import {
   Calendar, MapPin, Clock, Image as ImageIcon,
   Users, CheckCircle2, CalendarPlus, Share2,
-  Loader2, Timer, Plus, X, Star, Send
+  Loader2, Timer, Plus, X, Star, Send, ChevronRight
 } from 'lucide-react';
 
 const AlumniEvents = () => {
@@ -17,6 +17,7 @@ const AlumniEvents = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { data: events = [], isLoading: loading } = useEvents();
+  const [submittedFeedbackIds, setSubmittedFeedbackIds] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
@@ -24,6 +25,18 @@ const AlumniEvents = () => {
   const [feedbackEvent, setFeedbackEvent] = useState<any>(null);
   const [feedbackForm, setFeedbackForm] = useState({ rating: 5, message: '', subject: 'Event Feedback' });
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (user?.id) fetchSubmittedFeedbacks();
+  }, [user]);
+
+  const fetchSubmittedFeedbacks = async () => {
+    const { data } = await supabase
+      .from('alumni_feedback')
+      .select('event_id')
+      .eq('alumni_id', user?.id);
+    if (data) setSubmittedFeedbackIds(data.map(f => f.event_id).filter(Boolean) as string[]);
+  };
   const now = useMemo(() => new Date(), []);
   const upcomingEvents = useMemo(() => events.filter((e: any) => new Date(e.date) >= now), [events, now]);
   const dynamicPastEvents = useMemo(() => events.filter((e: any) => new Date(e.date) < now), [events, now]);
@@ -132,6 +145,7 @@ const AlumniEvents = () => {
       showToast({ title: 'Feedback Sent', message: 'Thank you for your feedback!', type: 'success' });
       setFeedbackEvent(null);
       setFeedbackForm({ rating: 5, message: '', subject: 'Event Feedback' });
+      fetchSubmittedFeedbacks(); // Refresh the markers
     } catch (err: any) {
       showToast({ title: 'Error', message: err.message, type: 'error' });
     } finally {
@@ -314,44 +328,99 @@ const AlumniEvents = () => {
             })}
         </div>
 
-        {/* 4. PAST EVENTS GALLERY */}
-        <div className="bg-slate-50 rounded-[2.5rem] p-10 border border-slate-100">
-          <div className="flex justify-between items-end mb-8">
+        {/* 4. PAST EVENTS GALLERY (Polished UI) */}
+        <div className="bg-slate-50 dark:bg-dark-900/50 rounded-[3rem] p-8 md:p-12 border border-slate-100 dark:border-gray-800 shadow-inner">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
             <div>
-              <h3 className="text-2xl font-black text-slate-900">Past Events Gallery</h3>
-              <p className="text-slate-400 text-sm font-medium">Relive the memories from our community events.</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-3">
+                <ImageIcon className="w-3 h-3" /> Historical Archive
+              </div>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Past Events Gallery</h3>
+              <p className="text-slate-500 dark:text-gray-400 text-sm font-medium max-w-lg mt-2">Relive the memories and check out feedback from our previous community gatherings.</p>
             </div>
-            <button className="hidden md:flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline">
-              View All <ImageIcon className="w-4 h-4" />
+            <button className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest">
+              Explore All Memories <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {dynamicPastEvents.length > 0 ? (
-              dynamicPastEvents.map(p => (
-                <div key={p.id} className="group relative aspect-[4/3] bg-slate-200 rounded-3xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-500">
-                  <img src={p.image_url || `https://picsum.photos/seed/${p.id}/400/300`} onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" alt={p.title} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
-                  <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
-                    <span className="inline-block bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-2">{p.category}</span>
-                    <p className="text-white text-sm font-black leading-tight">{p.title}</p>
-                    <div className="flex items-center justify-between mt-2 text-white/70 text-[10px] font-bold">
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(p.date).toLocaleDateString()}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setFeedbackEvent(p); }}
-                        className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl border border-white/20 backdrop-blur transition-all"
-                      >
-                        Give Feedback
-                      </button>
+              dynamicPastEvents.map(p => {
+                const isSubmitted = submittedFeedbackIds.includes(p.id);
+                const eventDate = new Date(p.date);
+                return (
+                  <div key={p.id} className="group relative bg-white dark:bg-dark-800 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-slate-100 dark:border-gray-700 flex flex-col">
+                    <div className="h-56 relative overflow-hidden">
+                      <img
+                        src={p.image_url || `https://picsum.photos/seed/${p.id}/400/300`}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/bcpbackground.jpg'; }}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                        alt={p.title}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+
+                      {/* Status Badges */}
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
+                        <span className="bg-white/90 dark:bg-dark-900/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter shadow-sm w-fit">
+                          {p.category}
+                        </span>
+                        {isSubmitted && (
+                          <div className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1.5 w-fit">
+                            <CheckCircle2 className="w-3 h-3" /> Feedback Sent
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Date Bubble */}
+                      <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-2xl text-center">
+                        <p className="text-[10px] font-black uppercase leading-none opacity-80">{eventDate.toLocaleString('default', { month: 'short' })}</p>
+                        <p className="text-xl font-black leading-none mt-1">{eventDate.getFullYear()}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-8 flex-1 flex flex-col">
+                      <h4 className="text-xl font-black text-slate-900 dark:text-white mb-4 leading-tight">
+                        {p.title}
+                      </h4>
+
+                      <div className="space-y-3 mb-8">
+                        <div className="flex items-center gap-3 text-xs font-bold text-slate-400 dark:text-gray-500">
+                          <div className="p-1.5 bg-blue-50 dark:bg-blue-900/10 rounded-lg"><Calendar className="w-3.5 h-3.5 text-blue-500" /></div>
+                          {eventDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs font-bold text-slate-400 dark:text-gray-500">
+                          <div className="p-1.5 bg-rose-50 dark:bg-rose-900/10 rounded-lg"><MapPin className="w-3.5 h-3.5 text-rose-500" /></div>
+                          <span className="truncate">{p.location}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto">
+                        {!isSubmitted ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setFeedbackEvent(p); }}
+                            className="w-full bg-slate-900 dark:bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group/btn"
+                          >
+                            Share Your Feedback <Send className="w-3.5 h-3.5 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2 py-4 px-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/20 rounded-2xl text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest text-[10px]">
+                            <Star className="w-3.5 h-3.5 fill-current" /> Thank You for your feedback
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="col-span-3 py-10 text-center text-slate-400 italic">No past events recorded yet.</div>
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 py-20 text-center bg-white dark:bg-dark-800 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-gray-700">
+                <ImageIcon className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No past events found in the archive</p>
+              </div>
             )}
-
           </div>
         </div>
+
 
         {/* ADD EVENT MODAL */}
         {isAddEventOpen && (

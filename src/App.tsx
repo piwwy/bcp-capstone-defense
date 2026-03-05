@@ -24,6 +24,7 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AuthCallback from './pages/AuthCallback';
+import PendingApproval from './pages/PendingApproval';
 
 // --- LAZY-LOADED PAGES (split into separate chunks) ---
 // Public
@@ -45,7 +46,6 @@ const ManageNews = React.lazy(() => import('./pages/admin/ManageNews'));
 const CareerTracking = React.lazy(() => import('./pages/admin/CareerTracking'));
 // DataAnalytics merged into ReportsAnalytics
 const ManageFeedback = React.lazy(() => import('./pages/admin/ManageFeedback'));
-const ManageBatchReunions = React.lazy(() => import('./pages/admin/ManageBatchReunions'));
 const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
 const TracerSurvey = React.lazy(() => import('./pages/admin/TracerSurvey'));
 const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries'));
@@ -93,6 +93,20 @@ const normalizeRole = (role?: string) => {
   const value = (role || '').toLowerCase().trim();
   if (value === 'super_admin') return 'superadmin';
   return value;
+};
+
+const DashboardSwitcher = () => {
+  const { user } = useAuth();
+  const role = (user?.role || 'staff').toLowerCase();
+
+  if (role === 'super_admin') return <DashboardSuperAdmin />;
+  if (role === 'admin') return <DashboardAdmin />;
+  if (role === 'job_officer') return <JobOfficerDashboard />;
+  if (role === 'finance_manager' || role === 'finance') return <FinanceManagerDashboard />;
+  if (role === 'alumni_manager' || role === 'alumni_officer') return <AlumniManagerDashboard />;
+  if (role === 'event_officer') return <EventOfficerDashboard />;
+
+  return <StaffDashboard />;
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
@@ -183,14 +197,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   if (allowedRoles && !normalizedAllowedRoles.includes(normalizedRole)) {
     // Redirect sa tamang dashboard base sa role ng user
     switch (normalizedRole) {
-      case 'superadmin': return <Navigate to="/superadmin/dashboard" replace />;
-      case 'admin': return <Navigate to="/admin/dashboard" replace />;
-      case 'registrar': return <Navigate to="/admin/dashboard" replace />;
-      case 'staff': return <Navigate to="/staff/dashboard" replace />;
-      case 'job_officer': return <Navigate to="/job-officer/dashboard" replace />;
-      case 'finance_manager': return <Navigate to="/finance-manager/dashboard" replace />;
-      case 'alumni_manager': return <Navigate to="/alumni-manager/dashboard" replace />;
-      case 'event_officer': return <Navigate to="/event-officer/dashboard" replace />;
+      case 'superadmin':
+      case 'super_admin':
+      case 'admin':
+        return <Navigate to="/admin/dashboard" replace />;
+      case 'staff':
+      case 'job_officer':
+      case 'alumni_officer':
+      case 'alumni_manager':
+      case 'event_officer':
+      case 'finance_manager':
+      case 'finance':
+        return <Navigate to="/admin/dashboard" replace />;
       case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
       default: return <Navigate to="/login" replace />;
     }
@@ -211,6 +229,7 @@ function AppRoutes() {
         <Route path="donate" element={<PublicDonationPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/pending-approval" element={<PendingApproval />} />
 
         {/* =========================================================
       ADMIN PORTAL
@@ -220,7 +239,7 @@ function AppRoutes() {
             <DashboardLayout>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
-                  <Route path="dashboard" element={<DashboardAdmin />} />
+                  <Route path="dashboard" element={<DashboardSwitcher />} />
                   <Route path="dashboard/alumni" element={<AlumniManagerDashboard />} />
                   <Route path="dashboard/events" element={<EventOfficerDashboard />} />
                   <Route path="dashboard/finance" element={<FinanceManagerDashboard />} />
@@ -230,9 +249,6 @@ function AppRoutes() {
 
                   {/* Sidebar: /admin/records */}
                   <Route path="records" element={<AllAlumniRecords />} />
-
-                  {/* Sidebar: /admin/upload */}
-                  <Route path="upload" element={<MasterListUpload />} />
 
                   {/* Sidebar: /admin/verification */}
                   <Route path="verification" element={<VerificationSubmodule />} />
@@ -335,86 +351,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
 
-        {/* =========================================================
-            STAFF PORTAL (Limited Access)
-           ========================================================= */}
-        <Route path="/staff/*" element={
-          <ProtectedRoute allowedRoles={['staff', 'job_officer', 'finance_manager', 'alumni_manager', 'event_officer']}>
-            <DashboardLayout>
-              <Suspense fallback={<PageSkeleton />}>
-                <Routes>
-                  <Route path="dashboard" element={<StaffDashboard />} />
-                  <Route path="records" element={<AllAlumniRecords />} />
-                  <Route path="events/calendar" element={<ManageEvents />} />
-                  <Route path="news/manage" element={<ManageNews />} />
-                  <Route path="community" element={<ManageCommunity />} />
-                  <Route path="feedback" element={<ManageFeedback />} />
-                  <Route path="batch-reunions" element={<ManageBatchReunions />} />
-                  <Route path="jobs/board" element={<ManageJobs />} />
-                  <Route path="partner-inquiries" element={<PartnerInquiries />} />
-                  <Route path="collections" element={<DonationCollections />} />
-                  <Route path="*" element={<Navigate to="/staff/dashboard" replace />} />
-                </Routes>
-              </Suspense>
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
-
-        {/* =========================================================
-            SPECIALIZED ROLES PORTALS
-           ========================================================= */}
-        <Route path="/job-officer/*" element={
-          <ProtectedRoute allowedRoles={['job_officer']}>
-            <DashboardLayout>
-              <Suspense fallback={<PageSkeleton />}>
-                <Routes>
-                  <Route path="dashboard" element={<JobOfficerDashboard />} />
-                  <Route path="*" element={<Navigate to="/admin" replace />} />
-                </Routes>
-              </Suspense>
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/finance-manager/*" element={
-          <ProtectedRoute allowedRoles={['finance_manager']}>
-            <DashboardLayout>
-              <Suspense fallback={<PageSkeleton />}>
-                <Routes>
-                  <Route path="dashboard" element={<FinanceManagerDashboard />} />
-                  <Route path="*" element={<Navigate to="/admin" replace />} />
-                </Routes>
-              </Suspense>
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/alumni-manager/*" element={
-          <ProtectedRoute allowedRoles={['alumni_manager']}>
-            <DashboardLayout>
-              <Suspense fallback={<PageSkeleton />}>
-                <Routes>
-                  <Route path="dashboard" element={<AlumniManagerDashboard />} />
-                  <Route path="*" element={<Navigate to="/admin" replace />} />
-                </Routes>
-              </Suspense>
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/event-officer/*" element={
-          <ProtectedRoute allowedRoles={['event_officer']}>
-            <DashboardLayout>
-              <Suspense fallback={<PageSkeleton />}>
-                <Routes>
-                  <Route path="dashboard" element={<EventOfficerDashboard />} />
-                  <Route path="feedback" element={<ManageFeedback />} />
-                  <Route path="*" element={<Navigate to="/admin" replace />} />
-                </Routes>
-              </Suspense>
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+        {/* Redundant specialized portals removed — everything is now routed via /admin/dashboard */}
 
         {/* =========================================================
       ALUMNI PORTAL (Using New Upwork-Style Layout)
