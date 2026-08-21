@@ -22,54 +22,61 @@ const Alumni2FA: React.FC = () => {
     ? storedEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     : '***@***.com';
 
-  // Redirect if no OTP session exists AND no auth session
+// HARD BYPASS FOR ADMIN: Auto-redirect immediately without checking OTP
   useEffect(() => {
     const checkSession = async () => {
-      const otpCode = sessionStorage.getItem('otp_code');
-      if (!otpCode) {
-        // Check if user has a valid Supabase session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // User is authenticated but OTP is missing (page refresh or email failed)
-          // Auto-generate new OTP and try to send
-          const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-          const newExpiry = Date.now() + 90 * 1000;
-          sessionStorage.setItem('otp_code', newOtp);
-          sessionStorage.setItem('otp_expiry', newExpiry.toString());
-          sessionStorage.setItem('otp_email', session.user.email || '');
-          sessionStorage.setItem('otp_user_id', session.user.id);
+      const { data: { session } } = await supabase.auth.getSession();
 
-          // Try to send OTP email only for alumni accounts
-          if (session.user.email) {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-              if (profile?.role === 'alumni') {
-                const { success } = await EmailService.sendOTPEmail(
-                  session.user.email,
-                  'Alumni',
-                  newOtp
-                );
-                if (!success) {
-                  setError('Could not send verification code. Please click "Resend Code" below.');
-                }
-              }
-            } catch {
-              /* no-op */
-            }
+      if (!session?.user) {
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      // Kapag admin, i-clear ang storage at ilipat agad sa /admin
+      if (profile?.role === 'admin') {
+        sessionStorage.removeItem('otp_code');
+        sessionStorage.removeItem('otp_expiry');
+        sessionStorage.removeItem('otp_email');
+        sessionStorage.removeItem('otp_user_id');
+        navigate('/admin', { replace: true });
+        return;
+      }
+
+      // Pag alumni, dito papasok ang lumang logic
+      const otpCode = sessionStorage.getItem('otp_code');
+      if (!otpCode && profile?.role === 'alumni' && session.user.email) {
+        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const newExpiry = Date.now() + 90 * 1000;
+        sessionStorage.setItem('otp_code', newOtp);
+        sessionStorage.setItem('otp_expiry', newExpiry.toString());
+        sessionStorage.setItem('otp_email', session.user.email);
+        sessionStorage.setItem('otp_user_id', session.user.id);
+
+        try {
+          const { success } = await EmailService.sendOTPEmail(
+            session.user.email,
+            'Alumni',
+            newOtp
+          );
+          if (!success) {
+            setError('Could not send verification code. Please click "Resend Code" below.');
           }
-        } else {
-          // No session at all — redirect to login
-          navigate('/login', { replace: true });
+        } catch {
+          /* no-op */
         }
       }
     };
+
     checkSession();
   }, [navigate]);
-
+  
+  
   // Focus management
   const handleChange = (index: number, value: string) => {
     if (value.length > 1) return;
