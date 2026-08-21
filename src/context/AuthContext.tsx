@@ -127,8 +127,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!isSilent && !hasInitializedRef.current) {
         setStatus('loading');
       }
-      const currentUser = sessionUser ?? (await supabase.auth.getSession()).data.session?.user;
-
+      
+let sessionData = (await supabase.auth.getSession()).data.session;
+if (!sessionData) {
+  const refreshRes = await supabase.auth.refreshSession();
+  sessionData = refreshRes.data.session;
+}
+const currentUser = sessionUser ?? sessionData?.user;
       if (currentUser?.id && currentUser.email) {
         const nextUser = await fetchProfile(currentUser.id, currentUser.email);
         if (requestId !== requestIdRef.current) return;
@@ -227,8 +232,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleBackOnline);
-    window.addEventListener('offline', handleOffline);
-
+window.addEventListener('offline', handleOffline);
+// Auto refresh token every 10 minutes to avoid idle expiry
+const tokenRefreshInterval = setInterval(async () => {
+  if (document.visibilityState === 'visible' && userRef.current) {
+    await supabase.auth.refreshSession();
+  }
+}, 10 * 60 * 1000);
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -236,6 +246,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleBackOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(tokenRefreshInterval);
     };
   }, []);
 
