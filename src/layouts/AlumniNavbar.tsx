@@ -248,8 +248,8 @@ const AlumniNavbar: React.FC = () => {
   return (
     <>
       <nav className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 gap-4">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-5 lg:px-6">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 gap-4 xl:gap-5">
 
             {/* LEFT: Logo */}
             <div className="flex-shrink-0">
@@ -262,7 +262,7 @@ const AlumniNavbar: React.FC = () => {
             </div>
 
             {/* CENTER: Search & Navigation (Combined for better spacing) */}
-            <div className="hidden lg:flex items-center justify-center flex-1 gap-4 xl:gap-8">
+            <div className="hidden lg:flex items-center justify-center min-w-0 gap-3 xl:gap-5">
               {/* Search Bar - Now moved to center group for better layout */}
               <div className="relative search-container" ref={searchRef}>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -273,7 +273,7 @@ const AlumniNavbar: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="bg-gray-100 dark:bg-gray-800 border-none text-gray-900 dark:text-white text-sm rounded-full focus:ring-2 focus:ring-blue-500 block w-32 xl:w-48 pl-9 p-2 transition-all focus:w-56"
+                  className="bg-gray-100 dark:bg-gray-800 border-none text-gray-900 dark:text-white text-sm rounded-full focus:ring-2 focus:ring-blue-500 block w-36 xl:w-48 pl-9 p-2 transition-all focus:w-52"
                 />
 
                 {/* Search Results Dropdown */}
@@ -308,7 +308,7 @@ const AlumniNavbar: React.FC = () => {
               </div>
 
               {/* Main Navigation Items - Wrapped in a single pill container (Family Outline) */}
-              <div className="flex items-center p-1 bg-gray-100/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-full">
+              <div className="flex items-center p-1 bg-gray-100/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-full min-w-0">
                 {navItems.map((item) => {
                   const active = isItemActive(item);
 
@@ -319,11 +319,11 @@ const AlumniNavbar: React.FC = () => {
                         key={item.name}
                         to={item.path}
                         className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full transition-all ${active
-                          ? 'text-blue-700 bg-white dark:bg-blue-600 dark:text-white shadow-sm'
+                          ? 'text-white bg-slate-800 dark:bg-blue-600 dark:text-white shadow-sm'
                           : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
                           }`}
                       >
-                        <item.icon className={`w-4 h-4 ${active ? 'text-blue-600 dark:text-white' : 'text-gray-400'}`} />
+                        <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-gray-400'}`} />
                         {item.name}
                       </Link>
                     );
@@ -338,14 +338,14 @@ const AlumniNavbar: React.FC = () => {
                       onMouseLeave={handleMouseLeave}
                     >
                       <button
-                        className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full transition-all ${active
-                          ? 'text-blue-700 bg-white dark:bg-blue-600 dark:text-white shadow-sm'
+                        className={`flex items-center gap-1.5 px-3 xl:px-4 py-1.5 text-sm font-semibold rounded-full transition-all whitespace-nowrap ${active
+                          ? 'text-white bg-slate-800 dark:bg-blue-600 dark:text-white shadow-sm'
                           : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
                           }`}
                       >
-                        <item.icon className={`w-4 h-4 ${active ? 'text-blue-600 dark:text-white' : 'text-gray-400'}`} />
+                        <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-gray-400'}`} />
                         {item.name}
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''} ${active ? 'text-blue-500 dark:text-white' : 'text-gray-400'}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''} ${active ? 'text-white' : 'text-gray-400'}`} />
                       </button>
 
                       {/* Dropdown Panel */}
@@ -357,11 +357,11 @@ const AlumniNavbar: React.FC = () => {
                               to={child.path}
                               onClick={() => setOpenDropdown(null)}
                               className={`flex items-start gap-3 px-4 py-3 transition-all ${isChildActive(child.path)
-                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                                ? 'bg-slate-100 dark:bg-blue-900/20 text-slate-900 dark:text-blue-400'
                                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                 }`}
                             >
-                              <div className={`p-1.5 rounded-lg mt-0.5 ${isChildActive(child.path) ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                              <div className={`p-1.5 rounded-lg mt-0.5 ${isChildActive(child.path) ? 'bg-slate-800 dark:bg-blue-900/50 text-white dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
                                 }`}>
                                 <child.icon className="w-4 h-4" />
                               </div>
@@ -372,7 +372,7 @@ const AlumniNavbar: React.FC = () => {
                                 )}
                               </div>
                               {isChildActive(child.path) && (
-                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
+                                <div className="w-1.5 h-1.5 bg-slate-800 dark:bg-blue-600 rounded-full mt-2 flex-shrink-0" />
                               )}
                             </Link>
                           ))}
@@ -385,7 +385,7 @@ const AlumniNavbar: React.FC = () => {
             </div>
 
             {/* RIGHT: Notifications, Profile, Theme, Mobile Toggle */}
-            <div className="flex-shrink-0 flex items-center gap-2 md:gap-3">
+            <div className="flex-shrink-0 flex items-center justify-end gap-2 md:gap-3 min-w-0">
 
               {/* Notification Bell */}
               <div className="relative notif-dropdown">
@@ -583,10 +583,10 @@ const AlumniNavbar: React.FC = () => {
                     <Link
                       key={item.name}
                       to={item.path}
-                      className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-slate-800 dark:bg-blue-900/20 text-white dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                     >
-                      <item.icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <item.icon className={`w-5 h-5 ${active ? 'text-white dark:text-blue-400' : 'text-gray-400'}`} />
                       {item.name}
                     </Link>
                   );
@@ -597,15 +597,15 @@ const AlumniNavbar: React.FC = () => {
                   <div key={item.name}>
                     <button
                       onClick={() => setMobileExpanded(isExpanded ? null : item.name)}
-                      className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-slate-800 dark:bg-blue-900/20 text-white dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+                        <item.icon className={`w-5 h-5 ${active ? 'text-white dark:text-blue-400' : 'text-gray-400'}`} />
                         {item.name}
                       </div>
                       <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
-                        } ${active ? 'text-blue-500' : 'text-gray-400'}`} />
+                        } ${active ? 'text-white dark:text-blue-400' : 'text-gray-400'}`} />
                     </button>
 
                     {/* Accordion Content */}
@@ -619,11 +619,11 @@ const AlumniNavbar: React.FC = () => {
                               key={child.path}
                               to={child.path}
                               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${childActive
-                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-semibold'
+                                ? 'bg-slate-100 dark:bg-blue-900/20 text-slate-900 dark:text-blue-400 font-semibold'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
-                              <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                              <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-slate-700 dark:text-blue-400' : 'text-gray-400'}`} />
                               <div>
                                 <p className="leading-tight">{child.name}</p>
                                 {child.description && (
