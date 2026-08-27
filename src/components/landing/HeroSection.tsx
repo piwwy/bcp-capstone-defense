@@ -122,8 +122,8 @@ const HeroSection: React.FC = () => {
       />
 
       {/* Gradient Overlays */}
-      <div className="absolute inset-0 hero-overlay z-1" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-dark-900/50 z-1" />
+      <div className="absolute inset-0 hero-overlay z-1 pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-dark-900 via-dark-900/60 to-transparent z-[2] pointer-events-none" />
 
       {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -132,7 +132,7 @@ const HeroSection: React.FC = () => {
           <div className="text-center lg:text-left animate-slide-up">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-6">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_4px_rgba(96,165,250,0.4)]" />
               <span className="text-sm text-blue-200">
                 Join 30,000+ Connected Alumni
               </span>
@@ -141,21 +141,21 @@ const HeroSection: React.FC = () => {
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
               Not Sure What Comes After
-              <span className="block mt-2 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="block mt-2 bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
                 Graduation?
               </span>
             </h1>
 
             {/* Subtext */}
             <p className="text-lg sm:text-xl text-blue-100/80 mb-8 max-w-xl mx-auto lg:mx-0">
-              Learn from Linker alumni and build your own career path.
+              Learn from Bestlink alumni and build your own career path.
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 to="/register"
-                className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-blue-500/30 flex items-center justify-center gap-2"
+                className="group px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-blue-500/20 flex items-center justify-center gap-2"
               >
                 Get Started
                 <ChevronDown className="w-5 h-5 rotate-[-90deg] group-hover:translate-x-1 transition-transform" />
@@ -164,9 +164,9 @@ const HeroSection: React.FC = () => {
               {/* UPDATED: Watch Video Button triggers Modal */}
               <button
                 onClick={() => setShowVideo(true)}
-                className="px-8 py-4 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                className="px-8 py-3.5 border border-blue-400/40 text-blue-300 font-semibold rounded-lg hover:bg-blue-400/10 hover:border-blue-400 hover:text-blue-200 transition-all duration-200 flex items-center justify-center gap-2"
               >
-                <Play className="w-5 h-5" />
+                <Play className="w-5 h-5 text-blue-400" />
                 Watch Video
               </button>
             </div>
@@ -182,14 +182,14 @@ const HeroSection: React.FC = () => {
               </div>
               <div className="text-center lg:text-left">
                 <div className="flex items-center justify-center lg:justify-start gap-2 mb-1">
-                  <Briefcase className="w-5 h-5 text-purple-400" />
+                  <Briefcase className="w-5 h-5 text-blue-400" />
                   <span className="text-2xl font-bold text-white">500+</span>
                 </div>
                 <p className="text-sm text-blue-200/70">Job Opportunities</p>
               </div>
               <div className="text-center lg:text-left">
                 <div className="flex items-center justify-center lg:justify-start gap-2 mb-1">
-                  <Calendar className="w-5 h-5 text-pink-400" />
+                  <Calendar className="w-5 h-5 text-blue-400" />
                   <span className="text-2xl font-bold text-white">50+</span>
                 </div>
                 <p className="text-sm text-blue-200/70">Events Yearly</p>
@@ -218,10 +218,10 @@ const HeroSection: React.FC = () => {
                             : 'z-10 scale-75 opacity-0'
                         }`}
                       style={{
-                        background: `linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%)`,
+                        background: `linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)`,
                       }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-dark-900/50 via-transparent to-transparent z-10" />
                       <img
                         src={img}
                         alt={`BCP Campus ${index + 1}`}
@@ -232,7 +232,7 @@ const HeroSection: React.FC = () => {
                       />
                       <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
                         <h3 className="text-white font-semibold text-lg">
-                          LCP Campus Life
+                          BCP Campus Life
                         </h3>
                         <p className="text-blue-200/70 text-sm">
                           Building futures together
@@ -244,8 +244,8 @@ const HeroSection: React.FC = () => {
               </div>
 
               {/* Decorative Elements */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-3xl animate-pulse" />
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-br from-purple-500/30 to-pink-500/30 rounded-full blur-3xl animate-pulse delay-1000" />
+              {/* Decorative accent — kept small and non-overlapping */}
+              <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl" />
             </div>
 
             {/* Carousel Indicators */}
@@ -268,10 +268,10 @@ const HeroSection: React.FC = () => {
       {/* Scroll Indicator */}
       <button
         onClick={scrollToAbout}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/60 hover:text-white transition-colors cursor-pointer z-20"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-blue-200/60 hover:text-white transition-colors cursor-pointer z-20"
       >
         <span className="text-sm font-medium">Scroll Down</span>
-        <ChevronDown className="w-5 h-5 animate-bounce" />
+        <ChevronDown className="w-5 h-5 animate-bounce text-blue-400" />
       </button>
 
       {/* NEW: Video Modal Overlay */}

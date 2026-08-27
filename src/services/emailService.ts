@@ -21,7 +21,7 @@
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || '';
 const BREVO_SENDER_EMAIL = import.meta.env.VITE_BREVO_SENDER_EMAIL || 'perrypesinocute@gmail.com';
-const BREVO_SENDER_NAME = import.meta.env.VITE_BREVO_SENDER_NAME || 'LCP Alumni Portal';
+const BREVO_SENDER_NAME = import.meta.env.VITE_BREVO_SENDER_NAME || 'BCP Alumni Portal';
 
 // Helper: get base URL of the deployed application
 const getBaseUrl = () => {
@@ -42,7 +42,7 @@ const emailHeader = (title: string, emoji: string = '🎓') => `
       <tr>
         <td style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 40px 30px; text-align: center;">
           <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">${emoji} ${title}</h1>
-          <p style="color: #bfdbfe; margin: 8px 0 0 0; font-size: 13px; letter-spacing: 0.5px;">Linker College of the Philippines</p>
+          <p style="color: #bfdbfe; margin: 8px 0 0 0; font-size: 13px; letter-spacing: 0.5px;">Bestlink College of the Philippines</p>
         </td>
       </tr>
 `;
@@ -51,10 +51,10 @@ const emailFooter = () => `
       <tr>
         <td style="background-color: #1f2937; padding: 25px 30px; text-align: center;">
           <p style="color: #9ca3af; font-size: 13px; margin: 0 0 6px 0;">
-            Linker College of the Philippines — Alumni Affairs Office
+            Bestlink College of the Philippines — Alumni Affairs Office
           </p>
           <p style="color: #6b7280; font-size: 12px; margin: 0;">
-            © ${new Date().getFullYear()} LCP Alumni Portal. All rights reserved.
+            © ${new Date().getFullYear()} BCP Alumni Portal. All rights reserved.
           </p>
           <p style="color: #4b5563; font-size: 11px; margin: 8px 0 0 0;">
             Protected under RA 10173 (Data Privacy Act of 2012)
@@ -127,7 +127,7 @@ export const EmailService = {
     temporaryPassword: string
   ): Promise<{ success: boolean; error?: string }> => {
     const loginUrl = `${getBaseUrl()}/login`;
-    const subject = '🎓 Your LCP Alumni Portal Account is Ready!';
+    const subject = '🎓 Your BCP Alumni Portal Account is Ready!';
 
     const htmlContent = `
       ${emailHeader('Your Account is Ready!', '🎓')}
@@ -138,7 +138,7 @@ export const EmailService = {
           </h2>
 
           <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
-            Ang iyong <strong>LCP Alumni Portal</strong> account ay handa na! Ang Admin team ang gumawa ng iyong account para masimulan mo nang i-access ang alumni community.
+            Ang iyong <strong>BCP Alumni Portal</strong> account ay handa na! Ang Admin team ang gumawa ng iyong account para masimulan mo nang i-access ang alumni community.
           </p>
 
           <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; border-radius: 12px; padding: 25px; margin: 0 0 25px 0;">
@@ -206,7 +206,7 @@ export const EmailService = {
     firstName: string,
     otpCode: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const subject = '🔐 Your LCP Alumni Verification Code';
+    const subject = '🔐 Your BCP Alumni Verification Code';
 
     const htmlContent = `
       ${emailHeader('Verification Code', '🔐')}

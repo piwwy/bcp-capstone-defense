@@ -23,8 +23,7 @@ const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
         return;
       }
 
-      const shouldPrompt = sessionStorage.getItem('dpa_prompt_required') === 'true';
-      setShowDPAConsent(shouldPrompt);
+      setShowDPAConsent(false);
       setDpaChecked(true);
     };
 
@@ -46,7 +45,7 @@ const AlumniLayout: React.FC<AlumniLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-blue-50/50 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900 transition-colors duration-300">
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#0a0c18] transition-colors duration-300">
       {showDPAConsent && <DPAConsentModal onAccept={handleDpaAccepted} />}
       {/* 1. The Top Navigation */}
       <AlumniNavbar />

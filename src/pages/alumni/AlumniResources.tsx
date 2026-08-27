@@ -271,7 +271,7 @@ const AlumniResources = () => {
 
                      <div className="relative z-10">
                         <div className="flex justify-between items-start mb-8">
-                           <img src="/images/Linker College Of The Philippines.png" alt="Logo" className="w-12 h-12 opacity-80" />
+                           <img src="/images/bcplogo.png" alt="Logo" className="w-12 h-12 opacity-80 object-contain" />
                            <span className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase border border-white/20 backdrop-blur-sm">Alumni ID</span>
                         </div>
 

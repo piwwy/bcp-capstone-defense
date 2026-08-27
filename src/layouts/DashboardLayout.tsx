@@ -31,9 +31,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       }
 
       const role = (user.role || '').toLowerCase();
-      const requiresDPA = ['alumni', 'admin', 'registrar', 'staff', 'superadmin'].includes(role);
-      const shouldPrompt = sessionStorage.getItem('dpa_prompt_required') === 'true';
-      setShowDPAConsent(requiresDPA && shouldPrompt);
+      setShowDPAConsent(false);
       setDpaChecked(true);
     };
 

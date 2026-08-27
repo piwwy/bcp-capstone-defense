@@ -79,6 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = async (userId: string, email: string): Promise<User | null> => {
     try {
+      const isAdminEmail = email.trim().toLowerCase() === 'admin@gmail.com';
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -93,9 +94,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return {
           id: userId,
           email,
-          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'System User',
-          role: profileData.role || 'alumni',
-          status: profileData.status,
+          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || (isAdminEmail ? 'Admin' : 'System User'),
+          role: isAdminEmail ? 'admin' : (profileData.role || 'alumni'),
+          status: profileData.status || 'verified',
           avatar: profileData.avatar_url,
           dpa_consented_at: profileData.dpa_consented_at,
           last_login: profileData.last_login
@@ -111,8 +112,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return {
         id: userId,
         email,
-        name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim() || 'System User',
-        role: metadata.role || 'alumni',
+        name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim() || (isAdminEmail ? 'Admin' : 'System User'),
+        role: isAdminEmail ? 'admin' : (metadata.role || 'alumni'),
         status: 'verified'
       };
     } catch (err) {

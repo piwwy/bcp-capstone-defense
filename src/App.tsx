@@ -214,6 +214,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     }
   }
 
+  // Security Gate: Check if Alumni requires 2FA verification
+  if (normalizedRole === 'alumni' && user.email?.toLowerCase() !== 'admin@gmail.com') {
+    const pendingOtp = sessionStorage.getItem('otp_code');
+    const lastOtpKey = `otp_verified_${user.id}`;
+    const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
+
+    if (pendingOtp || !isWithinMonth) {
+      return <Navigate to="/alumni/2fa" replace />;
+    }
+  }
+
   return <>{children}</>;
 };
 

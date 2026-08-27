@@ -254,9 +254,9 @@ const AlumniNavbar: React.FC = () => {
             {/* LEFT: Logo */}
             <div className="flex-shrink-0">
               <Link to="/alumni/dashboard" className="flex items-center gap-2">
-                <img src="/images/Linker College Of The Philippines.png" className="h-9 w-9" alt="Logo" />
+                <img src="/images/bcplogo.png" className="h-9 w-9" alt="Logo" />
                 <span className="font-bold text-xl text-blue-900 dark:text-white tracking-tight hidden sm:block">
-                  LINKER<span className="text-blue-600">ALUMNI</span>
+                 Bestlink <span className="text-blue-600">ALUMNI</span>
                 </span>
               </Link>
             </div>

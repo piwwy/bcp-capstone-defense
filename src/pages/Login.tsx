@@ -26,7 +26,7 @@ export default function Login() {
     try {
       // Clear stale auth/session state before new login attempt.
       try {
-        await supabase.auth.signOut({ scope: 'local' } as any);
+        supabase.auth.signOut({ scope: 'local' } as any);
       } catch {}
       localStorage.removeItem(SUPABASE_STORAGE_KEY);
       localStorage.removeItem('user_role');
@@ -89,19 +89,25 @@ export default function Login() {
         console.error("Critical Profile Query Failure (Bypassing...):", err);
       }
 
+      // Check if user is admin account
+      const normalizedEmail = (user.email || email).trim().toLowerCase();
+      const isAdminAccount = normalizedEmail === 'admin@gmail.com' || profile?.role === 'admin' || user.user_metadata?.role === 'admin';
+
       // EMERGENCY FALLBACK: If profile fails due to schema/500, use Auth metadata
       if (!profile) {
         console.warn("Using Auth Metadata Fallback for Role Redirection.");
         const metadata = user.user_metadata || {};
         profile = {
-          role: metadata.role || 'alumni',
+          role: isAdminAccount ? 'admin' : (metadata.role || 'alumni'),
           status: 'verified',
-          first_name: metadata.first_name || 'System',
+          first_name: metadata.first_name || (isAdminAccount ? 'Admin' : 'System'),
           last_name: metadata.last_name || 'User',
           auth_provider: 'email',
           dpa_consented_at: new Date().toISOString(),
           last_login: new Date().toISOString()
         };
+      } else if (isAdminAccount) {
+        profile.role = 'admin';
       }
 
       // Block archived accounts
@@ -125,7 +131,7 @@ export default function Login() {
       sessionStorage.setItem('dpa_prompt_required', 'true');
 
       // 4. INTELLIGENT REDIRECT (with small delay for session persistence)
-      const role = profile.role?.toLowerCase();
+      const role = isAdminAccount ? 'admin' : profile.role?.toLowerCase();
 
       // Helper: Navigate with session-safe delay
       const safeNavigate = (path: string) => {
@@ -178,10 +184,14 @@ export default function Login() {
             sessionStorage.setItem('otp_user_id', user.id);
 
             if (user.email) {
-              const { success } = await EmailService.sendOTPEmail(user.email, profile?.first_name || 'Alumni', otp);
-              if (!success) {
-                showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
-              }
+              // Run email sending as a non-blocking background promise
+              EmailService.sendOTPEmail(user.email, profile?.first_name || 'Alumni', otp).then(({ success }) => {
+                if (!success) {
+                  showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
+                }
+              }).catch(err => {
+                console.error("Failed to send OTP email:", err);
+              });
             }
             safeNavigate('/alumni/2fa');
           }
@@ -194,60 +204,63 @@ export default function Login() {
       throw new Error("Access denied: Invalid role.");
 
     } catch (err: any) {
-      await logFailedLogin(email.trim(), err?.message || 'Invalid credentials');
+      logFailedLogin(email.trim(), err?.message || 'Invalid credentials');
       showToast({ type: 'error', title: 'Login Error', message: err.message });
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 font-sans relative">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0c18] px-4 font-sans relative overflow-hidden">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="max-w-md w-full">
-
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-white/50">
+      <div className="max-w-md w-full relative z-10">
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/10">
 
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <img
-                src="/images/Linker College Of The Philippines.png"
-                alt="Logo"
+                src="/images/bcplogo.png"
+                alt="BCP Logo"
                 className="h-20 w-20 object-contain drop-shadow-sm hover:scale-105 transition-transform"
               />
             </div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">LCP Alumni Portal</h1>
-            <p className="text-sm text-gray-500 mt-2">Sign in to access your dashboard</p>
+            <h1 className="text-xl font-bold text-white tracking-tight">BCP Alumni Portal</h1>
+            <p className="text-sm text-blue-200/60 mt-1">Be trained to be the best. Be linked to success.</p>
+            <p className="text-xs text-blue-300/50 mt-1">Sign in to access your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email Address</label>
+              <label className="block text-xs font-bold text-blue-200/70 uppercase mb-1 ml-1">Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-800"
-                placeholder="student@gmail.com"
+                className="w-full p-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all text-white placeholder-gray-500"
+                placeholder="student@bcp.edu.ph"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
+              <label className="block text-xs font-bold text-blue-200/70 uppercase mb-1 ml-1">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-800 pr-10"
+                  className="w-full p-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white/10 transition-all text-white placeholder-gray-500 pr-10"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-400 transition-colors p-1"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -257,7 +270,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3.5 rounded-lg shadow-sm hover:shadow-blue-500/20 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex justify-center items-center gap-2"
             >
               {loading ? (
                 <>
@@ -274,7 +287,8 @@ export default function Login() {
 
           {/* Footer */}
           <div className="mt-8 text-center space-y-4">
-            <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+            <p className="text-xs text-blue-200/40">Bestlink College of the Philippines</p>
+            <Link to="/" className="inline-flex items-center gap-2 text-sm text-blue-300/60 hover:text-blue-300 transition-colors">
               <ArrowLeft className="w-3 h-3" /> Back to Home
             </Link>
           </div>

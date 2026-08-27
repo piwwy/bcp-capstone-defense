@@ -30,8 +30,8 @@ const InputField: React.FC<InputFieldProps> = ({
 
   return (
     <div className="space-y-1.5 min-h-[85px]">
-      <label className="text-sm font-semibold text-gray-700">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="text-sm font-semibold text-blue-200/80">
+        {label} {required && <span className="text-red-400">*</span>}
       </label>
 
       {type === 'select' ? (
@@ -41,12 +41,11 @@ const InputField: React.FC<InputFieldProps> = ({
             value={value}
             onChange={onChange}
             onBlur={onBlur}
-            className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none ${isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
-              }`}
+            className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none bg-white/5 text-white ${isError ? 'border-red-500 focus:ring-2 focus:ring-red-400/30' : 'border-white/10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}`}
           >
-            <option value="">Select {label}</option>
+            <option value="" className="bg-[#111827] text-gray-300">Select {label}</option>
             {options.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value} className="bg-[#111827] text-white">{opt.label}</option>
             ))}
           </select>
           <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
@@ -62,12 +61,11 @@ const InputField: React.FC<InputFieldProps> = ({
           onBlur={onBlur}
           placeholder={placeholder}
           maxLength={name === 'mobile' ? 11 : undefined}
-          className={`w-full p-3 border rounded-lg outline-none transition-all ${isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
-            }`}
+          className={`w-full p-3 border rounded-lg outline-none transition-all bg-white/5 text-white placeholder-gray-500 ${isError ? 'border-red-500 focus:ring-2 focus:ring-red-400/30' : 'border-white/10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}`}
         />
       )}
 
-      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`flex items-center gap-1 text-red-400 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
         <AlertCircle className="w-3 h-3" /> {error || "Error"}
       </div>
     </div>
@@ -344,37 +342,59 @@ const Register: React.FC = () => {
     // Validate all fields
     if (!validateForm()) return;
 
-    // Math Captcha Check
-    if (captchaInput !== captcha.answer) {
+    setLoading(true);
+
+    // Math Captcha Check: strict integer parsing
+    const userCaptchaAnswer = parseInt(captchaInput, 10);
+    const correctCaptchaAnswer = parseInt(captcha.answer, 10);
+    if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== correctCaptchaAnswer) {
       showToast({ type: 'error', title: 'Wrong Captcha', message: 'Please solve the math problem correctly.' });
       generateCaptcha();
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const normalizedEmail = formData.email.trim().toLowerCase();
 
     try {
-      // Step 1: Upload receipt file to Supabase Storage
+      // Step 0: Refresh session to prevent stale-session upload hangs
+      try {
+        await supabase.auth.refreshSession();
+      } catch {
+        // Continue even if refresh fails — anonymous submission is fine
+      }
+
+      // Step 1: Upload receipt file to Supabase Storage bucket (receipts)
+      // Wrapped in a 20s timeout so it never hangs the submit button forever
       let receiptUrl = '';
       if (receiptFile) {
         const fileExt = receiptFile.name.split('.').pop();
         const fileName = `subscription_receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('uploads')
-          .upload(fileName, receiptFile, { upsert: false });
+        try {
+          const uploadPromise = supabase.storage
+            .from('receipts')
+            .upload(fileName, receiptFile, { upsert: false });
 
-        if (uploadError) {
-          throw new Error(`File upload failed: ${uploadError.message}`);
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Upload timed out. Submitting without receipt URL — admin will follow up.')), 20000)
+          );
+
+          const { data: uploadData, error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
+          if (uploadError) {
+            // Non-fatal: show warning but continue submission
+            showToast({ type: 'warning', title: 'Receipt Upload Issue', message: `File could not be uploaded: ${uploadError.message}. Your application will still be submitted.` });
+          } else if (uploadData?.path) {
+            const { data: urlData } = supabase.storage
+              .from('receipts')
+              .getPublicUrl(uploadData.path);
+            receiptUrl = urlData.publicUrl;
+          }
+        } catch (uploadErr: any) {
+          // Timeout or unexpected error — warn but don't block submission
+          showToast({ type: 'warning', title: 'Receipt Upload Skipped', message: uploadErr.message || 'File upload failed. Proceeding with application.' });
         }
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('uploads')
-          .getPublicUrl(uploadData.path);
-
-        receiptUrl = urlData.publicUrl;
       }
 
       // Step 2: Insert into subscription_applications table
@@ -392,7 +412,7 @@ const Register: React.FC = () => {
         adviser_name: formData.adviserName,
         section: formData.section,
         subscription_plan: formData.subscriptionPlan,
-        receipt_url: receiptUrl,
+        receipt_url: receiptUrl || null,
         status: 'pending',
       };
 
@@ -417,20 +437,23 @@ const Register: React.FC = () => {
     }
   };
 
+
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0c18] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[500px] bg-blue-600/8 rounded-full blur-[120px] pointer-events-none" />
       <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
 
         {/* Left Side (Dark Blue Card) */}
         <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
           <div className="relative z-10 flex-1">
             <Link to="/" className="flex items-center gap-3 mb-6 md:mb-10">
-              <img src="/images/Linker College Of The Philippines.png" alt="LCP Logo" className="w-12 h-12 object-contain" />
-              <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
+              <img src="/images/bcplogo.png" alt="BCP Logo" className="w-12 h-12 object-contain" />
+              <span className="font-bold text-lg tracking-wide">BCP ALUMNI</span>
             </Link>
             <div className="mb-8 md:mb-0">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Subscribe Now.</h2>
-              <p className="text-blue-200 text-sm leading-relaxed">Join the official alumni network with a subscription plan. Fill out the form and attach your payment receipt.</p>
+              <p className="text-blue-200 text-sm leading-relaxed">Join the official BCP alumni network. Fill out the form and attach your payment receipt to get started.</p>
             </div>
 
             <div className="relative z-10 mt-6 md:mt-16 flex md:flex-col justify-between md:justify-start gap-0 md:gap-8">
@@ -455,32 +478,32 @@ const Register: React.FC = () => {
         </div>
 
         {/* Right Side: Form Area */}
-        <div className="md:w-2/3 p-6 md:p-10 bg-gray-50 flex flex-col overflow-y-auto max-h-[90vh]">
+        <div className="md:w-2/3 p-6 md:p-10 bg-[#0d1117] flex flex-col overflow-y-auto max-h-[90vh]">
           <div className="mb-6">
-            <h3 className="text-2xl font-bold text-gray-900">Subscription Application</h3>
-            <p className="text-sm text-gray-500 mt-1">Complete all fields below to submit your subscription application.</p>
+            <h3 className="text-2xl font-bold text-white">Subscription Application</h3>
+            <p className="text-sm text-blue-200/50 mt-1">Complete all fields below to submit your subscription application.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
             <div className="space-y-6">
 
               {/* ═══ SECTION 1: PERSONAL INFO ═══ */}
-              <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <User className="w-5 h-5 text-blue-600" />
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">Personal Information</h4>
+                  <User className="w-5 h-5 text-blue-400" />
+                  <h4 className="text-sm font-black text-blue-200/80 uppercase tracking-wider">Personal Information</h4>
                 </div>
 
                 {/* ñ/Ñ Helper */}
-                <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <span className="text-xs text-amber-700 font-medium">May ñ/Ñ sa name mo?</span>
-                  <button type="button" onClick={() => handleCopyChar('ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'ñ' ? 'bg-green-500 text-white' : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'}`}>
+                <div className="flex items-center gap-2 p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <span className="text-xs text-blue-300 font-medium">May ñ/Ñ sa name mo?</span>
+                  <button type="button" onClick={() => handleCopyChar('ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'ñ' ? 'bg-green-500 text-white' : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'}`}>
                     {copiedChar === 'ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'ñ'}
                   </button>
-                  <button type="button" onClick={() => handleCopyChar('Ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'Ñ' ? 'bg-green-500 text-white' : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'}`}>
+                  <button type="button" onClick={() => handleCopyChar('Ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'Ñ' ? 'bg-green-500 text-white' : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'}`}>
                     {copiedChar === 'Ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'Ñ'}
                   </button>
-                  <span className="text-[10px] text-amber-500 ml-1">Click to copy, then paste (Ctrl+V)</span>
+                  <span className="text-[10px] text-blue-300/50 ml-1">Click to copy, then paste (Ctrl+V)</span>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -502,15 +525,15 @@ const Register: React.FC = () => {
               </div>
 
               {/* ═══ SECTION 2: ACADEMIC INFO ═══ */}
-              <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <BookOpen className="w-5 h-5 text-blue-600" />
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">Academic Verification</h4>
+                  <BookOpen className="w-5 h-5 text-blue-400" />
+                  <h4 className="text-sm font-black text-blue-200/80 uppercase tracking-wider">Academic Verification</h4>
                 </div>
 
-                <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex gap-3 mb-2">
-                  <HelpCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <p className="text-xs text-blue-800 leading-relaxed">
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-3 mb-2">
+                  <HelpCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  <p className="text-xs text-blue-200/80 leading-relaxed">
                     <strong>Manual Verification:</strong> Our Registrar will check your details against the physical records.
                   </p>
                 </div>
@@ -562,10 +585,10 @@ const Register: React.FC = () => {
               </div>
 
               {/* ═══ SECTION 3: SUBSCRIPTION PLAN & RECEIPT ═══ */}
-              <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Upload className="w-5 h-5 text-blue-600" />
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">Subscription & Payment</h4>
+                  <Upload className="w-5 h-5 text-blue-400" />
+                  <h4 className="text-sm font-black text-blue-200/80 uppercase tracking-wider">Subscription &amp; Payment</h4>
                 </div>
 
                 <InputField
@@ -587,18 +610,18 @@ const Register: React.FC = () => {
 
                 {/* File Upload Area */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Payment Receipt <span className="text-red-500">*</span>
+                  <label className="text-sm font-semibold text-blue-200/80">
+                    Payment Receipt <span className="text-red-400">*</span>
                   </label>
 
                   {!receiptFile ? (
                     <label
                       htmlFor="receipt-upload"
-                      className={`flex flex-col items-center justify-center w-full p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-blue-50 hover:border-blue-400 ${errors.receiptFile ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'}`}
+                      className={`flex flex-col items-center justify-center w-full p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-blue-500/10 hover:border-blue-500/50 ${errors.receiptFile ? 'border-red-500/50 bg-red-500/10' : 'border-white/20 bg-white/5'}`}
                     >
-                      <Upload className={`w-10 h-10 mb-3 ${errors.receiptFile ? 'text-red-400' : 'text-gray-400'}`} />
-                      <p className="text-sm font-semibold text-gray-600">Click to upload your payment receipt</p>
-                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP, GIF, or PDF • Max 100MB</p>
+                      <Upload className={`w-10 h-10 mb-3 ${errors.receiptFile ? 'text-red-400' : 'text-blue-400/60'}`} />
+                      <p className="text-sm font-semibold text-blue-200/70">Click to upload your payment receipt</p>
+                      <p className="text-xs text-blue-300/40 mt-1">JPG, PNG, WebP, GIF, or PDF • Max 100MB</p>
                       <input
                         id="receipt-upload"
                         type="file"
@@ -636,7 +659,7 @@ const Register: React.FC = () => {
               </div>
 
               {/* ═══ SECTION 4: CONSENT & CAPTCHA ═══ */}
-              <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
@@ -646,11 +669,11 @@ const Register: React.FC = () => {
                     onChange={handleChange}
                     className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                   />
-                  <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
+                  <label htmlFor="terms" className="text-sm text-blue-200/70 cursor-pointer select-none">
                     I have read and agree to the <button type="button" onClick={() => {
                       setShowPrivacyModal(true);
                       showToast({ type: 'info', title: 'Policy Opened', message: 'Please review the Data Privacy Act of 2012 before checking consent.', silent: true });
-                    }} className="text-blue-600 font-semibold hover:underline">Data Privacy Policy</button>.
+                    }} className="text-blue-400 font-semibold hover:underline">Data Privacy Policy</button>.
                   </label>
                 </div>
                 <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
@@ -658,8 +681,8 @@ const Register: React.FC = () => {
                 </div>
 
                 {/* MATH CAPTCHA */}
-                <div className="pt-4 border-t border-gray-100 mt-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="pt-4 border-t border-white/10 mt-4">
+                  <label className="block text-sm font-semibold text-blue-200/80 mb-2">
                     Security Check: What is {captcha.num1} + {captcha.num2}?
                   </label>
                   <div className="flex gap-3">
@@ -667,7 +690,7 @@ const Register: React.FC = () => {
                       type="number"
                       value={captchaInput}
                       onChange={(e) => setCaptchaInput(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                      className="w-full p-3 border border-white/10 bg-white/5 text-white placeholder-gray-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50"
                       placeholder="Enter answer"
                     />
                     <button
@@ -676,7 +699,7 @@ const Register: React.FC = () => {
                         generateCaptcha();
                         showToast({ type: 'info', title: 'Captcha Refreshed', message: 'A new security challenge has been generated.', durationMs: 2200, silent: true });
                       }}
-                      className="p-3 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                      className="p-3 bg-white/10 rounded-lg text-blue-300 hover:bg-white/20 transition-colors"
                       title="Refresh Captcha"
                     >
                       <RefreshCw className="w-5 h-5" />
@@ -688,22 +711,22 @@ const Register: React.FC = () => {
 
             {/* SUBMIT BUTTON & FOOTER LINKS */}
             <div className="mt-8">
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-6 border-t border-white/10">
                 <div />
-                <button type="submit" disabled={loading} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed">
+                <button type="submit" disabled={loading} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <>Submit Application <CheckCircle className="w-4 h-4" /></>}
                 </button>
               </div>
 
-              <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+              <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-blue-200/50">
                 <div className="flex items-center gap-1">
                   Already have an account?
-                  <Link to="/login" className="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                  <Link to="/login" className="text-blue-400 font-semibold hover:underline flex items-center gap-1">
                     Log in <LogIn className="w-3 h-3" />
                   </Link>
                 </div>
 
-                <Link to="/" className="text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors">
+                <Link to="/" className="text-blue-300/40 hover:text-blue-300 flex items-center gap-1 transition-colors">
                   <Home className="w-3 h-3" /> Back to Home
                 </Link>
               </div>
@@ -732,7 +755,7 @@ const Register: React.FC = () => {
                 <strong>Republic Act No. 10173</strong>, also known as the Data Privacy Act of 2012, protects individuals from unauthorized processing of personal information.
               </p>
               <p>
-                By submitting this form, you consent to the collection, generation, use, processing, storage, and retention of your personal data by <strong>Linker College of the Philippines</strong> for the purpose of:
+                By submitting this form, you consent to the collection, generation, use, processing, storage, and retention of your personal data by <strong>Bestlink College of the Philippines</strong> for the purpose of:
               </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Alumni record verification and validation.</li>
