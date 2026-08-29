@@ -716,7 +716,7 @@ const AlumniNavbar: React.FC = () => {
 
             {/* Subtle Footer Branding */}
             <div className="px-8 pb-6 text-center">
-              <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-medium">Linker Alumni Portal Security</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-medium">BCP Alumni Portal Security</p>
             </div>
           </div>
         </div>
