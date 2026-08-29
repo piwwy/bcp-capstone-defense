@@ -14,16 +14,16 @@ interface Course {
 }
 
 const courses: Course[] = [
-  { name: 'BS Information Technology', shortName: 'BSIT', icon: <Monitor className="w-8 h-8" />, color: 'from-blue-500 to-cyan-500', image: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Computer Science', shortName: 'BSCS', icon: <Monitor className="w-8 h-8" />, color: 'from-purple-500 to-indigo-500', image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Business Administration', shortName: 'BSBA', icon: <Building2 className="w-8 h-8" />, color: 'from-emerald-500 to-teal-500', image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Hospitality Management', shortName: 'BSHM', icon: <Hotel className="w-8 h-8" />, color: 'from-orange-500 to-amber-500', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Tourism Management', shortName: 'BSTM', icon: <Plane className="w-8 h-8" />, color: 'from-sky-500 to-blue-500', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Office Administration', shortName: 'BSOA', icon: <FileText className="w-8 h-8" />, color: 'from-pink-500 to-rose-500', image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Criminology', shortName: 'BSCrim', icon: <Shield className="w-8 h-8" />, color: 'from-red-500 to-orange-500', image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Education', shortName: 'BSEd', icon: <GraduationCap className="w-8 h-8" />, color: 'from-green-500 to-emerald-500', image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Psychology', shortName: 'BSPsych', icon: <Brain className="w-8 h-8" />, color: 'from-violet-500 to-purple-500', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Accountancy', shortName: 'BSA', icon: <Calculator className="w-8 h-8" />, color: 'from-yellow-500 to-orange-500', image: 'https://images.unsplash.com/photo-1554224155-98406f58d044?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Information Technology', shortName: 'BSIT', icon: <Monitor className="w-8 h-8 text-white" />, color: 'from-blue-600 to-sky-600', image: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Computer Science', shortName: 'BSCS', icon: <Monitor className="w-8 h-8 text-white" />, color: 'from-blue-700 to-blue-500', image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Business Administration', shortName: 'BSBA', icon: <Building2 className="w-8 h-8 text-white" />, color: 'from-sky-600 to-blue-700', image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Hospitality Management', shortName: 'BSHM', icon: <Hotel className="w-8 h-8 text-white" />, color: 'from-blue-600 to-cyan-600', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Tourism Management', shortName: 'BSTM', icon: <Plane className="w-8 h-8 text-white" />, color: 'from-blue-700 to-sky-500', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Office Administration', shortName: 'BSOA', icon: <FileText className="w-8 h-8 text-white" />, color: 'from-sky-700 to-blue-600', image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Criminology', shortName: 'BSCrim', icon: <Shield className="w-8 h-8 text-white" />, color: 'from-blue-800 to-blue-600', image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Education', shortName: 'BSEd', icon: <GraduationCap className="w-8 h-8 text-white" />, color: 'from-blue-600 to-sky-600', image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Psychology', shortName: 'BSPsych', icon: <Brain className="w-8 h-8 text-white" />, color: 'from-blue-700 to-sky-600', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=600&auto=format&fit=crop' },
+  { name: 'BS Accountancy', shortName: 'BSA', icon: <Calculator className="w-8 h-8 text-white" />, color: 'from-sky-600 to-blue-800', image: 'https://images.unsplash.com/photo-1554224155-98406f58d044?q=80&w=600&auto=format&fit=crop' },
 ];
 
 const CoursesSection: React.FC = () => {
@@ -34,21 +34,22 @@ const CoursesSection: React.FC = () => {
   const duplicatedCourses = [...courses, ...courses];
 
   return (
-    <section id="courses" className="relative py-24 bg-dark-700 overflow-hidden">
+    <section id="courses" className="relative py-24 bg-transparent overflow-hidden">
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-b from-dark-900/50 to-transparent" />
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full border border-purple-500/20 mb-6">
-            <GraduationCap className="w-4 h-4 text-purple-300" />
-            <span className="text-sm text-purple-300 font-medium">Academic Programs</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
+            <GraduationCap className="w-4 h-4 text-blue-300" />
+            <span className="text-sm text-blue-300 font-medium">Academic Programs</span>
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Courses Attended by
-            <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
               Our Alumni
             </span>
           </h2>
@@ -127,7 +128,7 @@ const CoursesSection: React.FC = () => {
 
         {/* View All Button CTA Fix */}
         <div className="text-center mt-12">
-          <Link to="/login" className="inline-block px-8 py-3 border-2 border-blue-400/50 text-blue-300 font-semibold rounded-full hover:bg-blue-400/10 hover:border-blue-400 transform hover:scale-105 transition-all duration-300">
+          <Link to="/login" className="inline-block px-8 py-3.5 border border-blue-400/40 text-blue-300 font-semibold rounded-lg hover:bg-blue-400/10 hover:border-blue-400 hover:text-blue-200 transition-all duration-200">
             View All Programs
           </Link>
         </div>

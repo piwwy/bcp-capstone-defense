@@ -23,7 +23,18 @@ const LandingPage: React.FC = () => {
       case 'admin':
       case 'registrar': return <Navigate to="/admin/dashboard" replace />;
       case 'staff': return <Navigate to="/staff/dashboard" replace />;
-      case 'alumni': return <Navigate to="/alumni/dashboard" replace />;
+      case 'alumni': {
+        const pendingOtp = sessionStorage.getItem('otp_code');
+        const lastOtpKey = `otp_verified_${user.id}`;
+        const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
+        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+        const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
+
+        if (pendingOtp || !isWithinMonth) {
+          return <Navigate to="/alumni/2fa" replace />;
+        }
+        return <Navigate to="/alumni/dashboard" replace />;
+      }
       default: break;
     }
   }

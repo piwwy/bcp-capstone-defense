@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, Lock, AlertTriangle, XCircle, Ban } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Lock, AlertTriangle, XCircle, Ban, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EmailService from '../services/emailService';
 import { supabase } from '../services/supabaseClient';
@@ -22,7 +22,47 @@ const Alumni2FA: React.FC = () => {
     ? storedEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     : '***@***.com';
 
-// HARD BYPASS FOR ADMIN: Auto-redirect immediately without checking OTP
+  const handleCancelLogin = async () => {
+    sessionStorage.removeItem('otp_code');
+    sessionStorage.removeItem('otp_expiry');
+    sessionStorage.removeItem('otp_email');
+    sessionStorage.removeItem('otp_user_id');
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    navigate('/login', { replace: true });
+  };
+
+  // Prevent bypass via browser back button
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = async () => {
+      sessionStorage.removeItem('otp_code');
+      sessionStorage.removeItem('otp_expiry');
+      sessionStorage.removeItem('otp_email');
+      sessionStorage.removeItem('otp_user_id');
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      navigate('/login', { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timer]);
+
+  // HARD BYPASS FOR ADMIN & INITIAL ALUMNI OTP SEND
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -32,25 +72,41 @@ const Alumni2FA: React.FC = () => {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+      const userEmail = (session.user.email || '').trim().toLowerCase();
+      const metadataRole = session.user.user_metadata?.role?.toLowerCase();
 
-      // Kapag admin, i-clear ang storage at ilipat agad sa /admin
-      if (profile?.role === 'admin') {
+      let profileRole: string | null = null;
+      let firstName: string = 'Alumni';
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, first_name')
+          .eq('id', session.user.id)
+          .single();
+        profileRole = profile?.role?.toLowerCase() || null;
+        if (profile?.first_name) {
+          firstName = profile.first_name;
+        }
+      } catch {
+        /* no-op */
+      }
+
+      const effectiveRole = profileRole || metadataRole;
+      const isAdmin = userEmail === 'admin@gmail.com' || effectiveRole === 'admin' || effectiveRole === 'superadmin' || effectiveRole === 'registrar';
+
+      // Kapag admin, i-clear ang storage at ilipat agad sa /admin/dashboard
+      if (isAdmin) {
         sessionStorage.removeItem('otp_code');
         sessionStorage.removeItem('otp_expiry');
         sessionStorage.removeItem('otp_email');
         sessionStorage.removeItem('otp_user_id');
-        navigate('/admin', { replace: true });
+        navigate('/admin/dashboard', { replace: true });
         return;
       }
 
-      // Pag alumni, dito papasok ang lumang logic
+      // Pag alumni, dito papasok ang logic
       const otpCode = sessionStorage.getItem('otp_code');
-      if (!otpCode && profile?.role === 'alumni' && session.user.email) {
+      if (!otpCode && (effectiveRole === 'alumni' || !effectiveRole) && session.user.email) {
         const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
         const newExpiry = Date.now() + 90 * 1000;
         sessionStorage.setItem('otp_code', newOtp);
@@ -59,24 +115,64 @@ const Alumni2FA: React.FC = () => {
         sessionStorage.setItem('otp_user_id', session.user.id);
 
         try {
-          const { success } = await EmailService.sendOTPEmail(
+          const { success, error: emailError } = await EmailService.sendOTPEmail(
             session.user.email,
-            'Alumni',
+            firstName,
             newOtp
           );
           if (!success) {
-            setError('Could not send verification code. Please click "Resend Code" below.');
+            setError(`Could not send verification code: ${emailError || 'Please try clicking Resend Code'}`);
           }
-        } catch {
-          /* no-op */
+        } catch (err: any) {
+          setError(`Email service error: ${err.message || err}`);
         }
       }
     };
 
     checkSession();
   }, [navigate]);
-  
-  
+
+  const handleResend = async () => {
+    setResending(true);
+    setError('');
+
+    // Generate new OTP
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const newExpiry = Date.now() + 90 * 1000; // 1 minute and 30 seconds
+    sessionStorage.setItem('otp_code', newOtp);
+    sessionStorage.setItem('otp_expiry', newExpiry.toString());
+
+    try {
+      let firstName = 'Alumni';
+      if (storedUserId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name')
+          .eq('id', storedUserId)
+          .single();
+        if (profile?.first_name) {
+          firstName = profile.first_name;
+        }
+      }
+
+      // Send new OTP via email directly to the stored address
+      const { success, error: emailError } = await EmailService.sendOTPEmail(storedEmail, firstName, newOtp);
+      if (!success) {
+        setError(`Failed to send code: ${emailError || 'Unknown error'}`);
+      } else {
+        setTimer(60);
+        setCode(['', '', '', '', '', '']);
+      }
+    } catch (err: any) {
+      setError(`Failed to send code: ${err.message || err}`);
+    }
+
+    setResending(false);
+
+    const firstInput = document.getElementById('otp-0');
+    firstInput?.focus();
+  };
+
   // Focus management
   const handleChange = (index: number, value: string) => {
     if (value.length > 1) return;
@@ -175,75 +271,24 @@ const Alumni2FA: React.FC = () => {
     }, 800);
   };
 
-  const handleResend = async () => {
-    setResending(true);
-    setError('');
-
-    // Generate new OTP
-    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const newExpiry = Date.now() + 90 * 1000; // 1 minute and 30 seconds
-    sessionStorage.setItem('otp_code', newOtp);
-    sessionStorage.setItem('otp_expiry', newExpiry.toString());
-
-    // Send new OTP via email only if user is alumni
-    try {
-      let role: string | null = null;
-      if (storedUserId) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', storedUserId)
-          .single();
-        role = profile?.role || null;
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          role = profile?.role || null;
-        }
-      }
-      if (role === 'alumni') {
-        const { success, error: emailError } = await EmailService.sendOTPEmail(storedEmail, 'Alumni', newOtp);
-        if (!success) {
-          setError(`Failed to resend code: ${emailError || 'Unknown error'}`);
-        } else {
-          setTimer(60);
-          setCode(['', '', '', '', '', '']);
-        }
-      }
-    } catch {
-      /* no-op */
-    }
-
-    setResending(false);
-
-    const firstInput = document.getElementById('otp-0');
-    firstInput?.focus();
-  };
-
-  // Timer countdown
-  useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
-      return () => clearInterval(interval);
-    }
-  }, [timer]);
-
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
-      {/* Security Badge */}
-      <div className="mb-8 p-4 bg-blue-500/10 rounded-full border border-blue-500/20 animate-pulse">
-        <ShieldCheck className="w-12 h-12 text-blue-400" />
+    <div className="min-h-screen bg-[#0a0c18] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* BCP Logo */}
+      <div className="mb-6 flex justify-center relative z-10">
+        <img
+          src="/images/bcplogo.png"
+          alt="BCP Logo"
+          className="h-20 w-20 object-contain drop-shadow-sm hover:scale-105 transition-transform"
+        />
       </div>
 
-      <div className="w-full max-w-md bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-8 shadow-2xl">
+      <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl relative z-10">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-white mb-2">Two-Factor Authentication</h2>
-          <p className="text-slate-400 text-sm">
+          <p className="text-blue-200/60 text-sm">
             For your security, we've sent a 6-digit code to <span className="text-blue-400 font-mono">{maskedEmail}</span>
           </p>
         </div>
@@ -266,7 +311,7 @@ const Alumni2FA: React.FC = () => {
           <div className="mb-4 flex justify-center">
             <div className="flex gap-1">
               {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full ${i < attempts ? 'bg-red-500' : 'bg-slate-600'}`} />
+                <div key={i} className={`w-2 h-2 rounded-full ${i < attempts ? 'bg-red-500' : 'bg-white/20'}`} />
               ))}
             </div>
           </div>
@@ -284,8 +329,7 @@ const Alumni2FA: React.FC = () => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className={`w-12 h-14 bg-slate-900 border rounded-lg text-center text-xl font-bold text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${error ? 'border-red-500/50' : 'border-slate-600'
-                  }`}
+                className={`w-12 h-14 bg-white/5 border rounded-lg text-center text-xl font-bold text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${error ? 'border-red-500/50' : 'border-white/10'}`}
               />
             ))}
           </div>
@@ -293,7 +337,7 @@ const Alumni2FA: React.FC = () => {
           <button
             type="submit"
             disabled={loading || lockedOut || code.some(c => !c)}
-            className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="animate-pulse">Verifying...</span>
@@ -306,10 +350,10 @@ const Alumni2FA: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-blue-200/50">
             Didn't receive the code?{' '}
             {timer > 0 ? (
-              <span className="text-slate-400 font-mono">Resend in 00:{timer < 10 ? `0${timer}` : timer}</span>
+              <span className="text-blue-300/40 font-mono">Resend in 00:{timer < 10 ? `0${timer}` : timer}</span>
             ) : (
               <button
                 onClick={handleResend}
@@ -321,9 +365,20 @@ const Alumni2FA: React.FC = () => {
             )}
           </p>
         </div>
+
+        <div className="mt-6 pt-4 border-t border-white/10 text-center">
+          <button
+            type="button"
+            onClick={handleCancelLogin}
+            className="inline-flex items-center gap-1.5 text-xs text-blue-300/60 hover:text-blue-300 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Cancel & Back to Login
+          </button>
+        </div>
       </div>
 
-      <div className="mt-8 flex items-center gap-2 text-slate-500 text-xs">
+      <div className="mt-8 flex items-center gap-2 text-blue-300/40 text-xs">
         <Lock className="w-3 h-3" />
         <span>Secured by Bestlink College IT Department</span>
       </div>

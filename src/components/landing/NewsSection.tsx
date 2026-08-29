@@ -5,8 +5,8 @@ import { Newspaper, Calendar, ArrowRight, User } from 'lucide-react';
 const newsItems = [
   {
     id: 1,
-    title: 'LCP Alumni Association Launches New Scholarship Fund',
-    excerpt: 'Giving back to the next generation of Linkers through our new endowment program.',
+    title: 'BCP Alumni Association Launches New Scholarship Fund',
+    excerpt: 'Giving back to the next generation of Bestlinkers through our new endowment program for deserving students.',
     date: 'Jan 20, 2026',
     author: 'Alumni Board',
     category: 'Community',
@@ -15,8 +15,8 @@ const newsItems = [
   },
   {
     id: 2,
-    title: 'Tech Summit 2025: Highlights and Key Takeaways',
-    excerpt: 'Industry leaders from Accenture and Google shared insights at our annual summit.',
+    title: 'BCP Tech Summit 2025: Highlights and Key Takeaways',
+    excerpt: 'Industry leaders from Accenture and Converge ICT shared insights with BCP IT alumni at our annual summit.',
     date: 'Jan 15, 2026',
     author: 'Sarah Jenkins',
     category: 'Technology',
@@ -25,8 +25,8 @@ const newsItems = [
   },
   {
     id: 3,
-    title: 'New Campus Wing Named After Distinguished Alumnus',
-    excerpt: 'Celebrating the legacy of Dr. Cruz with the opening of the Innovation Center.',
+    title: 'BCP Innovation Center Opens at Novaliches Campus',
+    excerpt: 'Bestlink unveils its state-of-the-art Innovation Center, expanding computer labs and AI research facilities for BSIT and BSCS students.',
     date: 'Jan 10, 2026',
     author: 'Campus News',
     category: 'Campus Life',
@@ -42,17 +42,20 @@ const NewsSection: React.FC = () => {
   };
 
   return (
-    <section id="news" className="relative py-24 bg-dark-800 overflow-hidden">
+    <section id="news" className="relative py-24 bg-transparent overflow-hidden">
+      {/* Background Glows */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 rounded-full border border-orange-500/20 mb-6">
-            <Newspaper className="w-4 h-4 text-orange-300" />
-            <span className="text-sm text-orange-300 font-medium">Latest Updates</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
+            <Newspaper className="w-4 h-4 text-blue-300" />
+            <span className="text-sm text-blue-300 font-medium">Latest Updates</span>
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Alumni
-            <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
               {' '}News
             </span>
           </h2>
@@ -61,7 +64,7 @@ const NewsSection: React.FC = () => {
         {/* News Grid */}
         <div className="grid md:grid-cols-3 gap-8">
           {newsItems.map((item) => (
-            <div key={item.id} className="group flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-orange-500/30 transition-all duration-300 h-full">
+            <div key={item.id} className="group flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-300 h-full">
               {/* Image Container */}
               <div className="relative aspect-[16/10] overflow-hidden bg-dark-900">
                 <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs text-white font-medium border border-white/10">
@@ -83,14 +86,14 @@ const NewsSection: React.FC = () => {
               <div className="flex flex-col flex-grow p-6">
                 <div className="flex items-center gap-4 text-xs text-blue-200/60 mb-3">
                   <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> {item.date}
+                    <Calendar className="w-3 h-3 text-blue-400" /> {item.date}
                   </span>
                   <span className="flex items-center gap-1">
-                    <User className="w-3 h-3" /> {item.author}
+                    <User className="w-3 h-3 text-blue-400" /> {item.author}
                   </span>
                 </div>
                 
-                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors line-clamp-2">
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors line-clamp-2">
                   {item.title}
                 </h3>
                 <p className="text-blue-200/70 text-sm mb-6 line-clamp-3 flex-grow">
@@ -100,7 +103,7 @@ const NewsSection: React.FC = () => {
                 <div className="mt-auto pt-4 border-t border-white/5">
                   <Link 
                     to="/login" 
-                    className="inline-flex items-center gap-2 text-orange-400 font-semibold text-sm hover:gap-3 transition-all group-hover:text-orange-300"
+                    className="inline-flex items-center gap-2 text-blue-400 font-semibold text-sm hover:gap-3 transition-all group-hover:text-sky-300"
                   >
                     Read Full Story <ArrowRight className="w-4 h-4" />
                   </Link>

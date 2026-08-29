@@ -52,14 +52,14 @@ const Navbar: React.FC = () => {
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="relative">
               <img
-                src="/images/Linker College Of The Philippines.png"
-                alt="LCP Logo"
+                src="/images/bcplogo.png"
+                alt="BCP Logo"
                 // SECRET TRIGGER: Double click to go to Admin Login
                 onDoubleClick={() => navigate('/admin/login')}
                 title="Double click for Admin Access"
                 className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-110 select-none"
               />
-              <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </div>
 
             <Link to="/" className="block">
@@ -67,7 +67,7 @@ const Navbar: React.FC = () => {
                 ALUMNI PORTAL
               </h1>
               <p className="text-[10px] sm:text-xs text-blue-300/80">
-                Linker College Of The Philippines
+                Bestlink College Of The Philippines
               </p>
             </Link>
           </div>
@@ -89,7 +89,7 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             <Link
               to="/login"
-              className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-blue-500/25"
+              className="px-6 py-2.5 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all duration-200 shadow-sm hover:shadow-blue-500/20"
             >
               Log In
             </Link>
@@ -130,7 +130,7 @@ const Navbar: React.FC = () => {
             <div className="border-t border-white/10 mt-2 pt-4 flex flex-col gap-2">
               <Link
                 to="/login"
-                className="w-full px-4 py-3 text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold"
+                className="w-full px-4 py-3 text-center bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all duration-300 shadow-md shadow-blue-500/20"
               >
                 Log In
               </Link>

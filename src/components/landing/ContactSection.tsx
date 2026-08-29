@@ -97,10 +97,10 @@ const ContactSection: React.FC = () => {
   ];
 
   return (
-    <section id="contact" className="relative py-24 bg-dark-800 overflow-hidden">
+    <section id="contact" className="relative py-24 bg-transparent overflow-hidden">
       {/* Background Effects */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
@@ -112,7 +112,7 @@ const ContactSection: React.FC = () => {
 
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Connect With
-            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
               {' '}Our Team
             </span>
           </h2>
@@ -132,13 +132,13 @@ const ContactSection: React.FC = () => {
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setFormTab('general')}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${formTab === 'general' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-white/5 text-blue-200/70 hover:bg-white/10'}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${formTab === 'general' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'bg-white/5 text-blue-200/70 hover:bg-white/10'}`}
                 >
                   <Users className="w-4 h-4" /> General Inquiry
                 </button>
                 <button
                   onClick={() => setFormTab('company')}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${formTab === 'company' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg' : 'bg-white/5 text-blue-200/70 hover:bg-white/10'}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${formTab === 'company' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'bg-white/5 text-blue-200/70 hover:bg-white/10'}`}
                 >
                   <Building2 className="w-4 h-4" /> Company / Employer Inquiry
                 </button>
@@ -160,50 +160,50 @@ const ContactSection: React.FC = () => {
                     <label className="block text-sm font-medium text-blue-200/80 mb-2">Your Message</label>
                     <textarea name="message" value={formData.message} onChange={handleChange} rows={5} placeholder="Tell us what's on your mind..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none" required />
                   </div>
-                  <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-blue-500/30 disabled:opacity-70 disabled:cursor-not-allowed">
+                  <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transform hover:scale-[1.02] transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-70 disabled:cursor-not-allowed">
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} {submitting ? 'Sending...' : 'Send Message'}
                   </button>
                 </form>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Admin verification badge */}
-                  <div className="flex items-center gap-3 p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
-                    <ShieldCheck className="w-8 h-8 text-cyan-400 flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <ShieldCheck className="w-8 h-8 text-blue-400 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-cyan-300">Admin-Verified Inquiries</p>
-                      <p className="text-xs text-cyan-200/60 mt-0.5">All company inquiries are reviewed by our admin team to ensure legitimacy before connecting with alumni.</p>
+                      <p className="text-sm font-semibold text-blue-300">Admin-Verified Inquiries</p>
+                      <p className="text-xs text-blue-200/70 mt-0.5">All company inquiries are reviewed by our admin team to ensure legitimacy before connecting with alumni.</p>
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-blue-200/80 mb-2">Company Name</label>
-                      <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="e.g. Acme Corp" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300" required />
+                      <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="e.g. Acme Corp" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-blue-200/80 mb-2">Contact Person</label>
-                      <input type="text" name="contactPerson" value={formData.contactPerson} onChange={handleChange} placeholder="Full Name" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300" required />
+                      <input type="text" name="contactPerson" value={formData.contactPerson} onChange={handleChange} placeholder="Full Name" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" required />
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-blue-200/80 mb-2">Company Email</label>
-                      <input type="email" name="companyEmail" value={formData.companyEmail} onChange={handleChange} placeholder="hr@company.com" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300" required />
+                      <input type="email" name="companyEmail" value={formData.companyEmail} onChange={handleChange} placeholder="hr@company.com" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-blue-200/80 mb-2">Phone Number</label>
-                      <input type="tel" name="companyPhone" value={formData.companyPhone} onChange={handleChange} placeholder="(02) 1234-5678" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300" />
+                      <input type="tel" name="companyPhone" value={formData.companyPhone} onChange={handleChange} placeholder="(02) 1234-5678" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-blue-200/80 mb-2">Position(s) You're Hiring For</label>
-                    <input type="text" name="positionOffered" value={formData.positionOffered} onChange={handleChange} placeholder="e.g. Software Engineer, Data Analyst" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300" required />
+                    <input type="text" name="positionOffered" value={formData.positionOffered} onChange={handleChange} placeholder="e.g. Software Engineer, Data Analyst" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-blue-200/80 mb-2">Additional Details</label>
-                    <textarea name="companyMessage" value={formData.companyMessage} onChange={handleChange} rows={4} placeholder="Tell us about your company and what you're looking for in candidates..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300 resize-none" />
+                    <textarea name="companyMessage" value={formData.companyMessage} onChange={handleChange} rows={4} placeholder="Tell us about your company and what you're looking for in candidates..." className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none" />
                   </div>
-                  <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transform hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-cyan-500/30 disabled:opacity-70 disabled:cursor-not-allowed">
+                  <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transform hover:scale-[1.02] transition-all duration-300 shadow-xl shadow-blue-500/25 disabled:opacity-70 disabled:cursor-not-allowed">
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} {submitting ? 'Submitting...' : 'Submit Company Inquiry'}
                   </button>
                 </form>
@@ -215,7 +215,7 @@ const ContactSection: React.FC = () => {
           <div className="space-y-6">
             {/* Office Info Card */}
             <div className="p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
-              <h3 className="text-lg font-semibold text-white mb-4">LCP Main Campus</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">BCP Main Campus</h3>
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -224,13 +224,13 @@ const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Address</p>
-                    <p className="text-sm text-blue-200/70">Quezon City</p>
+                    <p className="text-sm text-blue-200/70">1071 Quirino Highway, Brgy. Kaligayahan,<br />Novaliches, Quezon City</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-purple-400" />
+                  <div className="w-10 h-10 bg-sky-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-sky-400" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Office Hours</p>
@@ -239,18 +239,18 @@ const ContactSection: React.FC = () => {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-pink-400" />
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Email</p>
-                    <p className="text-sm text-blue-200/70">lcp.admission@gmail.com</p>
+                    <p className="text-sm text-blue-200/70">bcp-inquiry@bcp.edu.ph</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">Phone</p>
@@ -261,25 +261,25 @@ const ContactSection: React.FC = () => {
             </div>
 
             {/* How It Works Card */}
-            <div className="p-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 backdrop-blur-sm rounded-2xl border border-cyan-500/20">
+            <div className="p-6 bg-gradient-to-br from-blue-500/10 to-sky-500/10 backdrop-blur-sm rounded-2xl border border-blue-500/20">
               <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-cyan-400" /> For Companies
+                <ShieldCheck className="w-5 h-5 text-blue-400" /> For Companies
               </h3>
               <div className="space-y-3">
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-200/70">Submit your inquiry via the Company form</p>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-200/70">Admin reviews & verifies your company</p>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-200/70">Job postings go live on the Alumni Job Board</p>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-200/70">Connect directly with qualified alumni</p>
                 </div>
               </div>
@@ -297,7 +297,7 @@ const ContactSection: React.FC = () => {
                   <Twitter className="w-5 h-5 text-sky-400 group-hover:scale-110 transition-transform duration-300" />
                 </a>
                 <a href="#" className="w-12 h-12 bg-blue-700/20 hover:bg-blue-700/30 rounded-xl flex items-center justify-center transition-all duration-300 group">
-                  <Linkedin className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+                  <Linkedin className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
                 </a>
               </div>
             </div>
@@ -313,7 +313,7 @@ const ContactSection: React.FC = () => {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="LCP Location"
+                  title="BCP Location - Novaliches, Quezon City"
                   className="grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-500"
                 />
               </div>
@@ -324,9 +324,9 @@ const ContactSection: React.FC = () => {
         {/* Partners Section with Contact Info */}
         <div className="border-t border-white/10 pt-16">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full border border-purple-500/20 mb-4">
-              <Briefcase className="w-4 h-4 text-purple-300" />
-              <span className="text-sm text-purple-300 font-medium">Industry Partners</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20 mb-4">
+              <Briefcase className="w-4 h-4 text-blue-300" />
+              <span className="text-sm text-blue-300 font-medium">Industry Partners</span>
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Our Industry Linkages & Partners</h3>
             <p className="text-blue-200/60 text-sm max-w-xl mx-auto">Working together to build better opportunities for our alumni. Contact our partners directly or reach them through the alumni office.</p>
@@ -339,11 +339,11 @@ const ContactSection: React.FC = () => {
                 className="group p-6 bg-white/5 rounded-2xl border border-white/5 hover:border-blue-500/30 hover:bg-white/10 transition-all duration-300"
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                  <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
                     {partner.type === 'Government' || partner.type === 'LGU' ? (
                       <Globe className="w-6 h-6 text-blue-400" />
                     ) : (
-                      <Building2 className="w-6 h-6 text-purple-400" />
+                      <Building2 className="w-6 h-6 text-sky-400" />
                     )}
                   </div>
                   <div>
@@ -358,11 +358,11 @@ const ContactSection: React.FC = () => {
                     <span className="truncate">{partner.email}</span>
                   </div>
                   <div className="flex items-center gap-2 text-blue-200/60">
-                    <Phone className="w-3.5 h-3.5 text-green-400/60 flex-shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-sky-400/60 flex-shrink-0" />
                     <span>{partner.phone}</span>
                   </div>
                   <div className="flex items-center gap-2 text-blue-200/60">
-                    <Globe className="w-3.5 h-3.5 text-purple-400/60 flex-shrink-0" />
+                    <Globe className="w-3.5 h-3.5 text-blue-400/60 flex-shrink-0" />
                     <span className="truncate">{partner.contact}</span>
                   </div>
                 </div>

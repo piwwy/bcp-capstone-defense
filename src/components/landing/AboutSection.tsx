@@ -62,7 +62,7 @@ const StatItem: React.FC<StatItemProps> = ({ icon, value, suffix = '', label, de
       ref={ref}
       className="group p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-blue-500/50 hover:bg-white/10 transition-all duration-500"
     >
-      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+      <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-sky-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-blue-500/25">
         {icon}
       </div>
       <h3 className="text-3xl font-bold text-white mb-1">
@@ -77,11 +77,11 @@ const AboutSection: React.FC = () => {
   return (
     <section
       id="about"
-      className="relative py-24 bg-gradient-to-b from-dark-900 to-dark-800 overflow-hidden"
+      className="relative py-24 bg-transparent overflow-hidden"
     >
       {/* Background Decorations */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -89,10 +89,10 @@ const AboutSection: React.FC = () => {
           <div className="relative">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
               {/* Main Image */}
-              <div className="aspect-[4/3] bg-gradient-to-br from-blue-600/20 to-purple-600/20 relative">
+              <div className="aspect-[4/3] bg-gradient-to-br from-blue-600/20 to-sky-600/20 relative">
                 <img
                   src="/images/g1.jpg"
-                  alt="LCP Campus"
+                  alt="BCP Campus"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
@@ -104,12 +104,12 @@ const AboutSection: React.FC = () => {
               {/* Floating Card */}
               <div className="absolute -bottom-6 -right-6 p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-sky-400 rounded-full flex items-center justify-center">
                     <Award className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="text-white font-semibold">30+ Years</h4>
-                    <p className="text-sm text-blue-200/70">Of Excellence</p>
+                    <h4 className="text-white font-semibold">Since 2002</h4>
+                    <p className="text-sm text-blue-200/70">23+ Years of Excellence</p>
                   </div>
                 </div>
               </div>
@@ -117,7 +117,7 @@ const AboutSection: React.FC = () => {
 
             {/* Decorative Elements */}
             <div className="absolute -top-6 -left-6 w-24 h-24 border-2 border-blue-500/30 rounded-2xl" />
-            <div className="absolute -bottom-6 -left-12 w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-2xl" />
+            <div className="absolute -bottom-6 -left-12 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl" />
           </div>
 
           {/* Right Side - Content */}
@@ -127,23 +127,23 @@ const AboutSection: React.FC = () => {
             </div>
 
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-              About the LCP
-              <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              About the BCP
+              <span className="block bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
                 Alumni Portal
               </span>
             </h2>
 
             <p className="text-lg text-blue-100/80 mb-6 leading-relaxed">
-              The Linker College of the Philippines Alumni Portal connects graduates,
-              faculty, and partners in one digital community. It's designed to help
-              alumni track their career growth, access job opportunities, and stay
-              engaged with LCP's legacy of excellence.
+              The Bestlink College of the Philippines (BCP) Alumni Portal connects graduates,
+              faculty, and industry partners in one powerful digital community. Founded in 2002
+              by Dr. Maria M. Vicente, BCP's mission is to provide quality, affordable education
+              — "Be trained to be the best. Be linked to success."
             </p>
 
             <p className="text-blue-200/70 mb-8 leading-relaxed">
-              Our mission is to foster lifelong connections among LCP alumni,
-              providing resources for professional development, networking opportunities,
-              and ways to give back to the community that shaped their futures.
+              Our alumni portal fosters lifelong connections among BCP graduates,
+              offering career tools, job opportunities, and professional networking to help
+              every Bestlinker thrive — from Novaliches, Quezon City to wherever success takes them.
             </p>
 
             {/* Features List */}
@@ -157,14 +157,14 @@ const AboutSection: React.FC = () => {
                 'News & Updates',
               ].map((feature, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" />
+                  <div className="w-2 h-2 bg-blue-400 rounded-full shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
                   <span className="text-blue-100/80 text-sm">{feature}</span>
                 </div>
               ))}
             </div>
 
-            <Link to="/login" className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-blue-500/30 inline-block">
-              Learn More About LCP
+            <Link to="/login" className="px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-blue-500/20 inline-block">
+              Learn More About BCP
             </Link>
           </div>
         </div>
@@ -173,14 +173,14 @@ const AboutSection: React.FC = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-20">
           <StatItem
             icon={<Users className="w-7 h-7 text-white" />}
-            value={30000}
+            value={45000}
             suffix="+"
-            label="Graduates Connected"
+            label="Students & Graduates"
             delay={0}
           />
           <StatItem
             icon={<Award className="w-7 h-7 text-white" />}
-            value={30}
+            value={23}
             suffix="+"
             label="Years of Excellence"
             delay={200}
@@ -188,7 +188,7 @@ const AboutSection: React.FC = () => {
           <StatItem
             icon={<Building className="w-7 h-7 text-white" />}
             value={10}
-            label="Departments & Programs"
+            label="Academic Programs"
             delay={400}
           />
           <StatItem

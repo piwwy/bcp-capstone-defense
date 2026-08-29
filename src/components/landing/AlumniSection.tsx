@@ -39,7 +39,7 @@ const alumniStories: AlumniStory[] = [
     name: 'Sto. Domingo, James Robert Delos Santos',
     course: 'Bachelor of Science in Information Technology',
     year: 'Class of 2025',
-    quote: 'LCP molded me to serve with integrity, humility, and passion.',
+    quote: 'BCP molded me to serve with integrity, humility, and passion.',
     position: 'Systems Analyst',
     company: 'Enterprise Systems Corp.',
     image: '/images/alumni/4.jpg',
@@ -49,7 +49,7 @@ const alumniStories: AlumniStory[] = [
     name: 'Magsadia, John Cedric Roco',
     course: 'Bachelor of Science in Information Technology',
     year: 'Class of 2025',
-    quote: 'Proud to carry the values and legacy of Linker wherever I go.',
+    quote: 'Proud to carry the values and legacy of Bestlink wherever I go.',
     position: 'IT Consultant',
     company: 'Global Tech Partners',
     image: '/images/alumni/5.jpg',
@@ -58,7 +58,7 @@ const alumniStories: AlumniStory[] = [
 
 const AlumniSection: React.FC = () => {
   return (
-    <section id="alumni" className="relative py-24 bg-gradient-to-b from-dark-800 to-dark-900 overflow-hidden">
+    <section id="alumni" className="relative py-24 bg-transparent overflow-hidden">
       
       {/* CSS Animation for Panning Effect (Left to Right Loop) */}
       <style>{`
@@ -75,25 +75,25 @@ const AlumniSection: React.FC = () => {
 
       {/* Background Effects */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/20 mb-6">
-            <Quote className="w-4 h-4 text-green-300" />
-            <span className="text-sm text-green-300 font-medium">Success Stories</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
+            <Quote className="w-4 h-4 text-blue-300" />
+            <span className="text-sm text-blue-300 font-medium">Success Stories</span>
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
             Alumni
-            <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
               {' '}Success Stories
             </span>
           </h2>
           
           <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            Celebrating Linker graduates who exemplify dedication, excellence, 
+            Celebrating Bestlink graduates who exemplify dedication, excellence,
             and service in their chosen fields.
           </p>
         </div>
@@ -106,7 +106,7 @@ const AlumniSection: React.FC = () => {
               className="group relative h-[450px]"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="relative w-full h-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500 flex flex-col hover:border-green-500/50 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+              <div className="relative w-full h-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500 flex flex-col hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]">
                 
                 {/* 1. AUTOMATIC BACKGROUND ANIMATION */}
                 {/* Updated: Opacity is now 20% by default (visible) and runs continuously */}
@@ -126,7 +126,7 @@ const AlumniSection: React.FC = () => {
                   
                   {/* 2. STATIC IMAGE (Thumbnail) with OVERLAPPING ICON */}
                   <div className="relative w-full h-32 mb-6 group-hover:scale-105 transition-transform duration-500">
-                     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 group-hover:border-green-400/50 shadow-2xl relative">
+                     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 group-hover:border-blue-400/50 shadow-2xl relative">
                         {alumni.image ? (
                           <img
                             src={alumni.image}
@@ -140,19 +140,18 @@ const AlumniSection: React.FC = () => {
                         )}
                      </div>
 
-                     {/* UPDATED: Green Icon Overlap Logic */}
-                     {/* Positioned absolute relative to the image container to overlap the corner */}
-                     <div className="absolute -bottom-3 -right-3 w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg scale-0 group-hover:scale-100 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) z-20">
+                     {/* Overlap Quote Icon */}
+                     <div className="absolute -bottom-3 -right-3 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 scale-0 group-hover:scale-100 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) z-20">
                         <Quote className="w-5 h-5 text-white" />
                      </div>
                   </div>
 
                   {/* Name & Course */}
                   <div className="text-center mb-2">
-                    <h3 className="text-lg font-bold text-white leading-tight group-hover:text-green-300 transition-colors duration-300">
+                    <h3 className="text-lg font-bold text-white leading-tight group-hover:text-blue-300 transition-colors duration-300">
                       {alumni.name}
                     </h3>
-                    <p className="text-xs text-green-400/90 mt-2 font-medium tracking-wide uppercase">
+                    <p className="text-xs text-sky-400/90 mt-2 font-medium tracking-wide uppercase">
                       {alumni.year}
                     </p>
                   </div>
@@ -165,7 +164,7 @@ const AlumniSection: React.FC = () => {
                   </div>
 
                   {/* Divider */}
-                  <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-4 group-hover:via-green-500/50 transition-colors duration-300" />
+                  <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-4 group-hover:via-blue-500/50 transition-colors duration-300" />
 
                   {/* Position Info */}
                   {alumni.position && (
@@ -195,7 +194,7 @@ const AlumniSection: React.FC = () => {
         <div className="text-center mt-12">
           <Link 
             to="/login" 
-            className="inline-block px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-full hover:from-green-700 hover:to-emerald-700 transform hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-green-500/30"
+            className="inline-block px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-blue-500/20"
           >
             View All Alumni Stories
           </Link>
