@@ -93,7 +93,7 @@ const Alumni2FA: React.FC = () => {
       }
 
       const effectiveRole = profileRole || metadataRole;
-      const isAdmin = userEmail === 'admin@gmail.com' || effectiveRole === 'admin' || effectiveRole === 'superadmin' || effectiveRole === 'registrar';
+      const isAdmin = effectiveRole === 'admin' || effectiveRole === 'superadmin' || effectiveRole === 'registrar';
 
       // Kapag admin, i-clear ang storage at ilipat agad sa /admin/dashboard
       if (isAdmin) {

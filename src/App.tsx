@@ -230,7 +230,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   // Security Gate: Check if Alumni requires 2FA verification
-  if (normalizedRole === 'alumni' && user.email?.toLowerCase() !== 'admin@gmail.com') {
+  if (normalizedRole === 'alumni') {
     const pendingOtp = sessionStorage.getItem('otp_code');
     const lastOtpKey = `otp_verified_${user.id}`;
     const lastOtpTimestamp = localStorage.getItem(lastOtpKey);

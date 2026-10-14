@@ -84,40 +84,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = async (userId: string, email: string): Promise<User | null> => {
     try {
-      const isAdminEmail = email.trim().toLowerCase() === 'admin@gmail.com';
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, role, status, avatar_url, dpa_consented_at, last_login')
         .eq('id', userId)
         .single();
 
-      if (profileError) {
-        console.warn("Profile query note in AuthContext (Falling back to Auth Metadata if needed):", profileError.message);
+      if (profileError || !profileData) {
+        console.warn("Profile resolution in AuthContext:", profileError?.message);
+        return null;
       }
-
-      if (profileData) {
-        return {
-          id: userId,
-          email,
-          name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || (isAdminEmail ? 'Admin' : 'System User'),
-          role: isAdminEmail ? 'admin' : (profileData.role || 'alumni'),
-          status: profileData.status || 'verified',
-          avatar: profileData.avatar_url,
-          dpa_consented_at: profileData.dpa_consented_at,
-          last_login: profileData.last_login
-        };
-      }
-
-      // EMERGENCY FALLBACK: Use Auth Metadata if profile row is missing
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      const metadata = authUser?.user_metadata || {};
 
       return {
         id: userId,
         email,
-        name: `${metadata.first_name || ''} ${metadata.last_name || ''}`.trim() || (isAdminEmail ? 'Admin' : 'System User'),
-        role: isAdminEmail ? 'admin' : (metadata.role || 'alumni'),
-        status: 'verified'
+        name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Portal User',
+        role: profileData.role || 'alumni',
+        status: profileData.status || 'pending',
+        avatar: profileData.avatar_url,
+        dpa_consented_at: profileData.dpa_consented_at,
+        last_login: profileData.last_login
       };
     } catch (err) {
       console.error('Profile fetch error:', err);

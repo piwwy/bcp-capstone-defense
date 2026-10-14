@@ -36,176 +36,93 @@ export default function Login() {
       sessionStorage.removeItem('otp_email');
       sessionStorage.removeItem('otp_user_id');
 
-      const MAX_AUTH_ATTEMPTS = 3;
-      let authData: any = null;
-      let authError: any = null;
+      // 1. Authenticate credentials directly with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      for (let attempt = 1; attempt <= MAX_AUTH_ATTEMPTS; attempt++) {
-        const result = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        authData = result.data;
-        authError = result.error;
-
-        if (!authError) break;
-
-        // Only retry on transient database/schema errors
-        const isTransientError = authError.message?.includes('Database error') || authError.status === 500;
-
-        if (isTransientError && attempt < MAX_AUTH_ATTEMPTS) {
-          const delay = attempt * 1000; // Exponential-ish backoff (1s, 2s)
-          console.warn(`Supabase schema error (Attempt ${attempt}/${MAX_AUTH_ATTEMPTS}), retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-        break;
+      if (authError || !authData.user) {
+        throw new Error(authError?.message || "Invalid email or password.");
       }
 
-      console.log('Login attempt result:', authData, authError);
-      if (authError) throw new Error(authError.message || "Invalid email or password.");
-      const user = authData?.user;
-      if (!user) throw new Error("Authentication failed.");
+      const user = authData.user;
 
-      // Wait briefly to ensure session is persisted in localStorage
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 2. Fetch server-verified profile record
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, role, status, dpa_consented_at, first_name, last_name, auth_provider, last_login')
+        .eq('id', user.id)
+        .single();
 
-      // 2. Fetch Profile with Emergency Bypass for Schema/500 errors
-      let profile: any = null;
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, role, status, dpa_consented_at, first_name, last_name, auth_provider, last_login')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error("Profile Fetch Error (PostgREST):", error);
-        } else {
-          profile = data;
-        }
-      } catch (err: any) {
-        console.error("Critical Profile Query Failure (Bypassing...):", err);
-      }
-
-      // Check if user is admin account
-      const normalizedEmail = (user.email || email).trim().toLowerCase();
-      const isAdminAccount = normalizedEmail === 'admin@gmail.com' || profile?.role === 'admin' || user.user_metadata?.role === 'admin';
-
-      // EMERGENCY FALLBACK: If profile fails due to schema/500, use Auth metadata
-      if (!profile) {
-        console.warn("Using Auth Metadata Fallback for Role Redirection.");
-        const metadata = user.user_metadata || {};
-        profile = {
-          role: isAdminAccount ? 'admin' : (metadata.role || 'alumni'),
-          status: 'verified',
-          first_name: metadata.first_name || (isAdminAccount ? 'Admin' : 'System'),
-          last_name: metadata.last_name || 'User',
-          auth_provider: 'email',
-          dpa_consented_at: new Date().toISOString(),
-          last_login: new Date().toISOString()
-        };
-      } else if (isAdminAccount) {
-        profile.role = 'admin';
-      }
-
-      // Block archived accounts
-      if (profile?.status === 'archived') {
+      if (profileError || !profile) {
         await supabase.auth.signOut();
-        throw new Error("This account is archived. Contact admin to restore access.");
+        throw new Error("Unable to locate profile for this account. Please contact Alumni Affairs.");
       }
 
-      // 3. Update LAST_LOGIN (only if not first time, otherwise modal handles it)
-      if (profile?.last_login && profile?.dpa_consented_at) {
-        await supabase
+      // Check account statuses
+      if (profile.status === 'archived') {
+        await supabase.auth.signOut();
+        throw new Error("This account has been archived. Please contact an administrator.");
+      }
+
+      if (profile.status === 'rejected') {
+        await supabase.auth.signOut();
+        throw new Error("Your account application was declined. Please contact the Alumni Affairs Office.");
+      }
+
+      if (profile.status === 'pending_approval') {
+        await supabase.auth.signOut();
+        throw new Error("Your account registration is awaiting administrator verification. Please check back soon.");
+      }
+
+      // 3. Background non-blocking last_login update
+      if (profile.last_login && profile.dpa_consented_at) {
+        void supabase
           .from('profiles')
           .update({ last_login: new Date().toISOString() })
           .eq('id', user.id);
       }
 
-      showToast({ type: 'success', title: 'Login Successful', message: `Welcome back, ${profile?.first_name || 'User'}!` });
-      logLogin(email, 'email');
+      showToast({ type: 'success', title: 'Login Successful', message: `Welcome back, ${profile.first_name || 'User'}!` });
+      void logLogin(email.trim(), 'email');
 
-      // Require DPA prompt once per successful login session across all roles.
+      // Prompt DPA modal if not yet consented
       sessionStorage.setItem('dpa_prompt_required', 'true');
 
-      // 4. INTELLIGENT REDIRECT (with small delay for session persistence)
-      const role = isAdminAccount ? 'admin' : profile.role?.toLowerCase();
-
-      // Helper: Navigate with session-safe delay
-      const safeNavigate = (path: string) => {
-        setTimeout(() => navigate(path, { replace: true }), 300);
-      };
+      // 4. Server-verified role-based routing
+      const role = (profile.role || 'alumni').toLowerCase();
 
       if (role === 'admin' || role === 'registrar') {
-        safeNavigate('/admin/dashboard');
-        return;
-      }
-
-      if (role === 'staff') {
-        safeNavigate('/staff/dashboard');
+        navigate('/admin/dashboard', { replace: true });
         return;
       }
 
       if (role === 'superadmin') {
-        safeNavigate('/superadmin/dashboard');
+        navigate('/superadmin/dashboard', { replace: true });
+        return;
+      }
+
+      if (role === 'staff') {
+        navigate('/staff/dashboard', { replace: true });
         return;
       }
 
       if (role === 'alumni') {
-        let status = profile.status;
-        if (status === 'pending_approval') {
-          try {
-            await supabase.from('profiles').update({ status: 'verified' }).eq('id', user.id);
-          } catch {}
-          status = 'verified';
-        }
-        if (status === 'rejected') {
-          await supabase.auth.signOut();
-          throw new Error("Your registration was not approved.");
-        }
-        if (status === 'verified') {
-          const isOAuthUser = profile?.auth_provider === 'google' || profile?.auth_provider === 'linkedin';
-          const lastOtpKey = `otp_verified_${user.id}`;
-          const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
-          const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-          const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
-
-          if (isOAuthUser || isWithinMonth) {
-            safeNavigate('/alumni/dashboard');
-          } else {
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiry = Date.now() + 90 * 1000;
-
-            sessionStorage.setItem('otp_code', otp);
-            sessionStorage.setItem('otp_expiry', expiry.toString());
-            sessionStorage.setItem('otp_email', user.email || '');
-            sessionStorage.setItem('otp_user_id', user.id);
-
-            if (user.email) {
-              // Run email sending as a non-blocking background promise
-              EmailService.sendOTPEmail(user.email, profile?.first_name || 'Alumni', otp).then(({ success }) => {
-                if (!success) {
-                  showToast({ type: 'warning', title: 'OTP Delay', message: 'Verification code may take a moment.' });
-                }
-              }).catch(err => {
-                console.error("Failed to send OTP email:", err);
-              });
-            }
-            safeNavigate('/alumni/2fa');
-          }
+        if (profile.status === 'master_list') {
+          navigate('/onboarding', { replace: true });
           return;
         }
-        safeNavigate('/onboarding');
+        navigate('/alumni/dashboard', { replace: true });
         return;
       }
 
-      throw new Error("Access denied: Invalid role.");
+      throw new Error("Access denied: Unrecognized system role.");
 
     } catch (err: any) {
-      logFailedLogin(email.trim(), err?.message || 'Invalid credentials');
+      void logFailedLogin(email.trim(), err?.message || 'Invalid credentials');
       showToast({ type: 'error', title: 'Login Error', message: err.message });
+    } finally {
       setLoading(false);
     }
   };
