@@ -276,7 +276,7 @@ Copy the example file and fill in your Supabase credentials:
 cp .env.example .env
 ```
 
-Refer to [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) and [Database Architecture](docs/DATABASE_ARCHITECTURE.md) for full configuration.
+Refer to the [Capstone Defense Cheat Sheet](docs/CAPSTONE_DEFENSE_CHEATSHEET.md), [Deployment Guide](docs/DEPLOYMENT_GUIDE.md), and [Database Architecture](docs/DATABASE_ARCHITECTURE.md) for full configuration and presentation guidelines.
 
 ---
 
