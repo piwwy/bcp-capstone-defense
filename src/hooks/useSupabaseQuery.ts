@@ -341,6 +341,27 @@ export function useAdminDashboardStats() {
   return useQuery({
     queryKey: ['admin_dashboard_stats'],
     queryFn: () => executeWithTokenRefresh(async () => {
+      // 1. Attempt fast single-call RPC
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_admin_dashboard_stats');
+        if (!rpcError && rpcData) {
+          return rpcData as {
+            stats: {
+              total: number;
+              unclaimed: number;
+              verified: number;
+              rejected: number;
+              pending: number;
+              pendingApplications: number;
+            };
+            modules: { events: number; jobs: number; campaigns: number; news: number };
+          };
+        }
+      } catch {
+        /* Fallback to table queries below if RPC is not yet applied */
+      }
+
+      // 2. Fallback to batched count queries if RPC is not available
       const [
         { count: total },
         { count: unclaimed },
@@ -379,6 +400,7 @@ export function useAdminDashboardStats() {
         modules: { events: events || 0, jobs: jobs || 0, campaigns: campaigns || 0, news: news || 0 }
       };
     }),
-    refetchInterval: 30000, // Refresh every 30 seconds automatically
+    staleTime: 60_000,
+    refetchInterval: false,
   });
 }
