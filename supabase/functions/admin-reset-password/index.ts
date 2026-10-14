@@ -1,86 +1,127 @@
 // Supabase Edge Function: admin-reset-password
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateCaller } from '../_shared/auth.ts';
 
 interface ResetPayload {
-    userId: string
-    newPassword: string
+  userId: string;
+  newPassword: string;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
-    // 1. Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+  const cors = getCorsHeaders(req);
+
+  // 1. Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: cors });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error: Missing API Keys.' }),
+        { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
     }
 
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // 2. Strict caller authentication and authorization (admin/superadmin only)
+    const { user: caller, errorResponse } = await authenticateCaller(
+      req,
+      supabaseAdmin,
+      ['admin', 'superadmin', 'super_admin']
+    );
+
+    if (errorResponse) {
+      return errorResponse;
+    }
+
+    // 3. Parse and validate JSON body
+    let body: ResetPayload;
     try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-        if (!supabaseUrl || !serviceRoleKey) {
-            console.error('CRITICAL: Supabase environment variables are missing!')
-            throw new Error('Server configuration error: Missing API Keys.')
-        }
-
-        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        })
-
-        // Safe parsing of JSON body
-        let body;
-        try {
-            body = await req.json();
-        } catch (e) {
-            return new Response(
-                JSON.stringify({ error: 'Body must be a valid JSON' }),
-                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        const { userId, newPassword } = body as ResetPayload;
-
-        if (!userId || !newPassword) {
-            return new Response(
-                JSON.stringify({ error: 'userId and newPassword are required' }),
-                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        console.log(`[Admin Reset] Processing password reset for: ${userId}`)
-
-        // STEP: Update user's password in Auth
-        const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
-            userId,
-            { password: newPassword }
-        )
-
-        if (error) {
-            console.error(`[Admin Reset] Supabase Auth Error:`, error.message)
-            return new Response(
-                JSON.stringify({ error: error.message }),
-                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        console.log(`[Admin Reset] Successfully updated password for: ${data.user.email}`)
-
-        return new Response(
-            JSON.stringify({
-                success: true,
-                message: 'Password updated successfully.',
-                userId: data.user.id
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-
-    } catch (error: any) {
-        console.error('[Admin Reset] Fatal Error:', error.message)
-        return new Response(
-            JSON.stringify({ error: error.message || 'Internal server error' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Body must be valid JSON' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
     }
-})
+
+    const { userId, newPassword } = body;
+
+    if (!userId || !UUID_REGEX.test(userId)) {
+      return new Response(
+        JSON.stringify({ error: 'Valid userId (UUID) is required' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 8 characters long' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 4. Update user password in Supabase Auth
+    const { data: updatedUserData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { password: newPassword }
+    );
+
+    if (updateError || !updatedUserData.user) {
+      return new Response(
+        JSON.stringify({ error: updateError?.message || 'Failed to update user password' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 5. Write to audit_logs
+    try {
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id: caller?.id,
+        action: 'ADMIN_RESET_PASSWORD',
+        target_id: userId,
+        details: {
+          target_email: updatedUserData.user.email,
+          caller_role: caller?.role,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (auditErr) {
+      console.warn('Non-fatal audit log failure:', auditErr);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Password updated successfully.',
+        userId: updatedUserData.user.id,
+      }),
+      { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } }
+    );
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal server error' }),
+      { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } }
+    );
+  }
+});

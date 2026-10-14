@@ -1,127 +1,197 @@
 // Supabase Edge Function: create-users
 // Creates auth.users entries server-side using service_role key
-// Called from MasterListUpload.tsx via supabase.functions.invoke('create-users', { body })
+// Restricted to authenticated admin / superadmin callers only
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateCaller } from '../_shared/auth.ts';
 
 interface UserPayload {
-    student_id: string
-    first_name: string
-    last_name: string
-    middle_name?: string
-    course: string
-    batch_year: string
-    email: string
-    password: string
+  student_id: string;
+  first_name: string;
+  last_name: string;
+  middle_name?: string;
+  course: string;
+  batch_year: string;
+  email: string;
+  password?: string;
 }
 
-Deno.serve((req) => {
-    // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
+
+  // 1. Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: cors });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error: Missing API Keys.' }),
+        { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
     }
 
-    return (async () => { try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
-        // Create admin client with service role key (server-side only)
-        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false
-            }
-        })
+    // 2. Strict caller authentication and authorization (admin/superadmin only)
+    const { user: caller, errorResponse } = await authenticateCaller(
+      req,
+      supabaseAdmin,
+      ['admin', 'superadmin', 'super_admin']
+    );
 
-        const { users } = await req.json() as { users: UserPayload[] }
-
-        if (!users || !Array.isArray(users) || users.length === 0) {
-            return new Response(
-                JSON.stringify({ error: 'No users provided' }),
-                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        // Cap at 50 users per batch to avoid timeout
-        const batch = users.slice(0, 50)
-        const results: { email: string; success: boolean; error?: string; password?: string }[] = []
-
-        for (const user of batch) {
-            try {
-                // Step 1: Create auth user
-                const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-                    email: user.email,
-                    password: user.password,
-                    email_confirm: true, // Auto-confirm so they can login immediately
-                    user_metadata: {
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        student_id: user.student_id,
-                    }
-                })
-
-                if (authError) {
-                    // If user already exists, skip but don't fail
-                    if (authError.message?.includes('already been registered') || authError.message?.includes('already exists')) {
-                        results.push({ email: user.email, success: false, error: 'Already exists' })
-                        continue
-                    }
-                    throw authError
-                }
-
-                if (!authData.user) {
-                    throw new Error('User created but no user object returned')
-                }
-
-                // Step 2: Upsert profile record
-                const { error: profileError } = await supabaseAdmin
-                    .from('profiles')
-                    .upsert({
-                        id: authData.user.id,
-                        student_id: user.student_id,
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        middle_name: user.middle_name || null,
-                        course: user.course,
-                        batch_year: user.batch_year,
-                        email: user.email,
-                        role: 'alumni',
-                        status: 'master_list',
-                        auth_provider: 'email',
-                    }, { onConflict: 'id' })
-
-                if (profileError) {
-                    console.error(`Profile upsert error for ${user.email}:`, profileError)
-                }
-
-                results.push({ email: user.email, success: true, password: user.password })
-
-            } catch (err: any) {
-                console.error(`Error creating user ${user.email}:`, err)
-                results.push({ email: user.email, success: false, error: err.message || 'Unknown error' })
-            }
-        }
-
-        const successCount = results.filter(r => r.success).length
-        const failCount = results.filter(r => !r.success).length
-
-        return new Response(
-            JSON.stringify({
-                message: `Created ${successCount} users, ${failCount} skipped/failed`,
-                results,
-                successCount,
-                failCount,
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-
-    } catch (error: any) {
-        console.error('Edge function error:', error)
-        return new Response(
-            JSON.stringify({ error: error.message || 'Internal server error' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+    if (errorResponse) {
+      return errorResponse;
     }
-    })()
-})
+
+    // 3. Parse and validate JSON body
+    let body: { users: UserPayload[] };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Body must be valid JSON' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { users } = body;
+
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'No users provided. Expected an array of users.' }),
+        { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Cap at 50 users per batch to prevent execution timeout
+    const batch = users.slice(0, 50);
+    const results: { email: string; success: boolean; error?: string }[] = [];
+
+    for (const user of batch) {
+      const email = (user.email || '').trim().toLowerCase();
+      const studentId = (user.student_id || '').trim();
+      const firstName = (user.first_name || '').trim();
+      const lastName = (user.last_name || '').trim();
+      const userPassword = user.password || `${studentId}@Bcp2026!`;
+
+      if (!email || !EMAIL_REGEX.test(email)) {
+        results.push({ email: user.email || 'unknown', success: false, error: 'Invalid email format' });
+        continue;
+      }
+
+      if (!firstName || !lastName) {
+        results.push({ email, success: false, error: 'First name and last name are required' });
+        continue;
+      }
+
+      try {
+        // Step 1: Create auth user
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: userPassword,
+          email_confirm: true,
+          user_metadata: {
+            first_name: firstName,
+            last_name: lastName,
+            student_id: studentId,
+          },
+        });
+
+        if (authError) {
+          if (authError.message?.includes('already been registered') || authError.message?.includes('already exists')) {
+            results.push({ email, success: false, error: 'Account already exists' });
+            continue;
+          }
+          throw authError;
+        }
+
+        if (!authData.user) {
+          throw new Error('User creation returned empty response');
+        }
+
+        // Step 2: Upsert profile record
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .upsert(
+            {
+              id: authData.user.id,
+              student_id: studentId || null,
+              first_name: firstName,
+              last_name: lastName,
+              middle_name: user.middle_name?.trim() || null,
+              course: user.course?.trim() || 'Unassigned',
+              batch_year: user.batch_year?.toString() || new Date().getFullYear().toString(),
+              email,
+              role: 'alumni',
+              status: 'master_list',
+              auth_provider: 'email',
+            },
+            { onConflict: 'id' }
+          );
+
+        if (profileError) {
+          console.error(`Profile upsert error for ${email}:`, profileError);
+        }
+
+        results.push({ email, success: true });
+      } catch (err: any) {
+        results.push({ email, success: false, error: err.message || 'Creation failed' });
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
+
+    // Log batch creation action in audit trail
+    try {
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id: caller?.id,
+        action: 'BATCH_CREATE_USERS',
+        details: {
+          total: batch.length,
+          successCount,
+          failCount,
+          caller_role: caller?.role,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (auditErr) {
+      console.warn('Non-fatal audit log failure:', auditErr);
+    }
+
+    return new Response(
+      JSON.stringify({
+        message: `Processed ${batch.length} users: ${successCount} created, ${failCount} skipped/failed`,
+        results,
+        successCount,
+        failCount,
+      }),
+      { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } }
+    );
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal server error' }),
+      { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } }
+    );
+  }
+});
