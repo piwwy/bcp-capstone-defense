@@ -1,27 +1,8 @@
 // ================================================================
-// LCP Alumni Portal — Email Service (Brevo / Sendinblue API)
+// BCP Alumni Portal — Email Service (Dispatched via Edge Function)
 // ================================================================
-// Aligned with Admin-Provided Accounts workflow.
-// No public registration = no welcome/verification emails.
-//
-// Available Email Functions:
-//   1. sendAccountReadyEmail    — Admin creates account → notify alumni with credentials
-//   2. sendOTPEmail             — 2FA login verification code
-//   3. sendNewsletterUpdate     — Broadcast newsletter to subscribers
-//   4. sendJobAlert             — Career opportunity matching alumni course
-//   5. sendDonationMilestone    — Thank you when a campaign reaches its goal
-//   6. sendTracerSurveyEmail    — Annual tracer study / employment update
-//   7. sendPasswordResetEmail   — Password reset link
-//   8. sendPasswordResetCode    — Admin-initiated password reset OTP
-//   9. sendNewCredentialsEmail  — Admin reset password → send new creds
-//   10. sendRejectionEmail      — Account rejection (kept for legacy use)
-//   11. sendApprovalEmail       — Account approval (kept for legacy use)
-// ================================================================
+import { supabase } from './supabaseClient';
 
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || '';
-const BREVO_SENDER_EMAIL = import.meta.env.VITE_BREVO_SENDER_EMAIL || 'perrypesinocute@gmail.com';
-const BREVO_SENDER_NAME = import.meta.env.VITE_BREVO_SENDER_NAME || 'BCP Alumni Portal';
 
 // Helper: get base URL of the deployed application
 const getBaseUrl = () => {
@@ -78,45 +59,20 @@ export const EmailService = {
   // CORE: Send raw email via Brevo API
   // ============================================================
   sendEmail: async ({ to, toName, subject, htmlContent }: EmailParams): Promise<{ success: boolean; error?: string }> => {
-    if (!BREVO_API_KEY) {
-      console.error('❌ VITE_BREVO_API_KEY is missing in your .env file!');
-      return { success: false, error: 'Email service configuration missing (BREVO_API_KEY)' };
-    }
-
-    console.log(`📧 Sending email to ${to}...`);
-
     try {
-      const response = await fetch(BREVO_API_URL, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': BREVO_API_KEY,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          sender: { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL },
-          to: [{ email: to, name: toName }],
-          subject,
-          htmlContent,
-        }),
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: { to, toName, subject, htmlContent },
       });
 
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        console.error('❌ Brevo API Error:', responseData);
-        if (responseData.code === 'unauthorized' || responseData.message?.includes('not enabled')) {
-          console.warn('⚠️ [BREVO API KEY NOTICE]: Your Brevo API Key is not yet enabled or unauthorized. To receive emails in Gmail, make sure your Brevo account is activated and your sender email is verified at https://app.brevo.com');
-        }
-        return { 
-          success: false, 
-          error: responseData.message?.includes('not enabled') 
-            ? 'API Key is not enabled in Brevo' 
-            : (responseData.message || `Brevo Error: ${response.status}`) 
-        };
+      if (error) {
+        console.warn('Edge Function send-email note:', error.message);
+        return { success: false, error: error.message || 'Email delivery failed' };
       }
 
-      console.log('✅ Email sent successfully via Brevo!');
+      if (data?.error) {
+        return { success: false, error: data.error };
+      }
+
       return { success: true };
     } catch (error: any) {
       console.error('Email service catch error:', error);
