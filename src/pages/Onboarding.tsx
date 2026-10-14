@@ -189,8 +189,8 @@ const Onboarding: React.FC = () => {
         <div className="md:w-2/5 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
           <div className="relative z-10 flex-1">
             <Link to="/" className="flex items-center gap-3 mb-8">
-              <img src="/images/Linker College Of The Philippines.png" alt="LCP Logo" className="w-12 h-12 object-contain" />
-              <span className="font-bold text-lg tracking-wide">LCP ALUMNI</span>
+              <img src="/images/bcplogo.png" alt="BCP Logo" className="w-12 h-12 object-contain" />
+              <span className="font-bold text-lg tracking-wide">BCP ALUMNI</span>
             </Link>
 
             <div className="mb-8">

@@ -100,7 +100,7 @@ const AlumniResources = () => {
          const pdf = new jsPDF('l', 'mm', [canvas.width * 0.264583, canvas.height * 0.264583]);
          pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
 
-         const fileName = `LCP_AlumniID_${profileData.first_name}_${profileData.last_name}.pdf`.replace(/\s+/g, '_');
+         const fileName = `BCP_AlumniID_${profileData.first_name}_${profileData.last_name}.pdf`.replace(/\s+/g, '_');
          pdf.save(fileName);
          showToast({ title: 'Success', message: 'Digital ID saved as PDF.', type: 'success' });
       } catch (err) {

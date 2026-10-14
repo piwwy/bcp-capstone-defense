@@ -257,7 +257,7 @@ const DonationCollections = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `LCP_Audit_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `BCP_Audit_Report_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
 
     logExport('CSV', filteredDonations.length, 'Donations');
@@ -290,7 +290,7 @@ const DonationCollections = () => {
       margin: { left: 14, right: 14 },
     });
 
-    doc.save(`LCP_Donation_Collections_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`BCP_Donation_Collections_${new Date().toISOString().slice(0, 10)}.pdf`);
     logExport('PDF', filteredDonations.length, 'Donations');
     showToast({ title: 'Export Complete', message: 'PDF file has been downloaded.', type: 'success' });
   };

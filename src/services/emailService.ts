@@ -203,7 +203,7 @@ export const EmailService = {
     readMoreUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
     const portalUrl = readMoreUrl || `${getBaseUrl()}/alumni/dashboard`;
-    const subject = `📰 ${newsletterTitle} — LCP Alumni Newsletter`;
+    const subject = `📰 ${newsletterTitle} — BCP Alumni Newsletter`;
 
     const htmlContent = `
       ${emailHeader(newsletterTitle, '📰')}
@@ -214,7 +214,7 @@ export const EmailService = {
           </h2>
 
           <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
-            May bagong balita mula sa LCP Alumni Portal. Narito ang latest update:
+            May bagong balita mula sa BCP Alumni Portal. Narito ang latest update:
           </p>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin: 0 0 25px 0;">
@@ -236,7 +236,7 @@ export const EmailService = {
           </table>
 
           <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            Natatanggap mo ang email na ito dahil naka-subscribe ka sa LCP Alumni Newsletter.
+            Natatanggap mo ang email na ito dahil naka-subscribe ka sa BCP Alumni Newsletter.
           </p>
         </td>
       </tr>
@@ -258,7 +258,7 @@ export const EmailService = {
     jobUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
     const portalUrl = jobUrl || `${getBaseUrl()}/alumni/jobs`;
-    const subject = `💼 Bagong Job Opportunity: ${jobTitle} — LCP Alumni`;
+    const subject = `💼 Bagong Job Opportunity: ${jobTitle} — BCP Alumni`;
 
     const htmlContent = `
       ${emailHeader('Career Opportunity Alert', '💼')}
@@ -293,7 +293,7 @@ export const EmailService = {
           </table>
 
           <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            Nakakuha ka ng alert na ito base sa iyong course at career profile sa LCP Alumni Portal.
+            Nakakuha ka ng alert na ito base sa iyong course at career profile sa BCP Alumni Portal.
           </p>
         </td>
       </tr>
@@ -340,7 +340,7 @@ export const EmailService = {
             <p style="color: #1e40af; font-size: 14px; margin: 0; font-style: italic;">
               "${message}"
             </p>
-            <p style="color: #3b82f6; font-size: 12px; margin: 8px 0 0 0;">— LCP Alumni Affairs Office</p>
+            <p style="color: #3b82f6; font-size: 12px; margin: 8px 0 0 0;">— BCP Alumni Affairs Office</p>
           </div>
           ` : ''}
 
@@ -356,7 +356,7 @@ export const EmailService = {
           </table>
 
           <p style="color: #6b7280; font-size: 13px; text-align: center; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            Ang bawat piso mo ay malaking tulong sa LCP community. Maraming salamat! 💙
+            Ang bawat piso mo ay malaking tulong sa BCP community. Maraming salamat! 💙
           </p>
         </td>
       </tr>
@@ -375,7 +375,7 @@ export const EmailService = {
     portalUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
     const finalPortalUrl = portalUrl || getBaseUrl();
-    const subject = '📋 LCP Alumni — Kamusta ka na? Update Your Status!';
+    const subject = '📋 BCP Alumni — Kamusta ka na? Update Your Status!';
 
     const htmlContent = `
       ${emailHeader('Alumni Tracer Study', '📋')}
@@ -386,7 +386,7 @@ export const EmailService = {
           </h2>
 
           <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
-            Bilang bahagi ng aming <strong>Graduate Tracer Study</strong>, nais naming malaman ang iyong kasalukuyang kalagayan pagkatapos ng iyong pagtatapos sa LCP.
+            Bilang bahagi ng aming <strong>Graduate Tracer Study</strong>, nais naming malaman ang iyong kasalukuyang kalagayan pagkatapos ng iyong pagtatapos sa BCP.
           </p>
 
           <p style="color: #4b5563; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
@@ -422,7 +422,7 @@ export const EmailService = {
 
           <p style="color: #9ca3af; font-size: 13px; line-height: 1.6; margin: 0; border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
             Ang iyong datos ay protektado sa ilalim ng <strong>RA 10173 (Data Privacy Act of 2012)</strong>.
-            <br>Hindi ibabahagi ang iyong personal na impormasyon sa labas ng LCP.
+            <br>Hindi ibabahagi ang iyong personal na impormasyon sa labas ng BCP.
           </p>
         </td>
       </tr>
@@ -440,14 +440,14 @@ export const EmailService = {
     firstName: string,
     resetLink: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const subject = '🔐 Password Reset Request - LCP Alumni Portal';
+    const subject = '🔐 Password Reset Request - BCP Alumni Portal';
 
     const htmlContent = `
       ${emailHeader('Reset Your Password', '🔐')}
       <tr>
         <td style="padding: 40px 30px; text-align: center;">
           <p style="color: #4b5563; font-size: 16px; margin: 0 0 10px 0;">Hi ${firstName},</p>
-          <p style="color: #4b5563; font-size: 15px; margin: 0 0 30px 0;">We received a request to reset your password for your LCP Alumni Portal account.</p>
+          <p style="color: #4b5563; font-size: 15px; margin: 0 0 30px 0;">We received a request to reset your password for your BCP Alumni Portal account.</p>
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td align="center" style="padding: 10px 0 30px 0;">
@@ -477,7 +477,7 @@ export const EmailService = {
     code: string,
     resetUrl: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const subject = '🔐 Password Reset Code - LCP Alumni Portal';
+    const subject = '🔐 Password Reset Code - BCP Alumni Portal';
 
     const htmlContent = `
       ${emailHeader('Reset Your Password', '🔐')}
@@ -521,7 +521,7 @@ export const EmailService = {
     email: string,
     firstName: string
   ): Promise<{ success: boolean; error?: string }> => {
-    const subject = 'LCP Alumni Portal - Application Update';
+    const subject = 'BCP Alumni Portal - Application Update';
 
     const htmlContent = `
       ${emailHeader('Application Update', '📋')}
@@ -611,17 +611,17 @@ export const EmailService = {
     firstName: string
   ): Promise<{ success: boolean; error?: string }> => {
     const loginUrl = `${getBaseUrl()}/login`;
-    const subject = '🎉 Your LCP Alumni Account Has Been Approved!';
+    const subject = '🎉 Your BCP Alumni Account Has Been Approved!';
 
     const htmlContent = `
-      ${emailHeader('Welcome to LCP Alumni!', '🎉')}
+      ${emailHeader('Welcome to BCP Alumni!', '🎉')}
       <tr>
         <td style="padding: 40px 30px;">
           <h2 style="color: #1e3a8a; margin: 0 0 20px 0; font-size: 22px;">
             Congratulations, ${firstName}! 🎓
           </h2>
           <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-            Great news! Your LCP Alumni Portal account has been <strong style="color: #059669;">verified and approved</strong> by our admin team.
+            Great news! Your BCP Alumni Portal account has been <strong style="color: #059669;">verified and approved</strong> by our admin team.
           </p>
           <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
             You now have full access to:

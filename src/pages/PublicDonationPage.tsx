@@ -305,8 +305,8 @@ const PublicDonationPage = () => {
 
 
         <div className="flex items-center gap-2">
-          <img src="/images/Linker College Of The Philippines.png" className="w-8 h-8" alt="Logo" />
-          <span className="font-bold tracking-tight">LCP GIVING</span>
+          <img src="/images/bcplogo.png" className="w-8 h-8 object-contain" alt="BCP Logo" />
+          <span className="font-bold tracking-tight">BCP GIVING</span>
         </div>
       </header>
 

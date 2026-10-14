@@ -731,7 +731,7 @@ const DonationManager = () => {
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Campaign Title</label>
                 <input
                   className="w-full border border-gray-100 bg-gray-50 p-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-gray-800"
-                  placeholder="e.g., LCP Scholarship Fund 2026"
+                  placeholder="e.g., BCP Scholarship Fund 2026"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
                 />

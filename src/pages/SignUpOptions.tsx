@@ -28,11 +28,11 @@ const SignUpOptions: React.FC = () => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-8 text-center">
         <div className="flex justify-center mb-6">
-          <img src="/images/Linker College Of The Philippines.png" alt="Logo" className="w-16 h-16 object-contain" />
+          <img src="/images/bcplogo.png" alt="BCP Logo" className="w-16 h-16 object-contain" />
         </div>
 
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-        <p className="text-gray-500 text-sm mb-8">Join the official LCP Alumni Network to connect with batchmates.</p>
+        <p className="text-gray-500 text-sm mb-8">Join the official BCP Alumni Network to connect with batchmates.</p>
 
         <div className="space-y-3">
           {/* GOOGLE BUTTON */}

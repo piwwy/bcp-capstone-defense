@@ -120,7 +120,7 @@ const AlumniDonations = () => {
             <h1 className="text-4xl font-black text-white tracking-tighter mb-2 flex items-center gap-3">
               <Heart className="w-9 h-9 fill-white/20" /> Alumni Giving Hub
             </h1>
-            <p className="text-rose-100 text-sm font-medium max-w-lg">Track your impact and support new LCP initiatives. Every contribution makes a difference.</p>
+            <p className="text-rose-100 text-sm font-medium max-w-lg">Track your impact and support new BCP initiatives. Every contribution makes a difference.</p>
           </div>
           <Heart className="absolute right-12 bottom-6 w-32 h-32 text-white/5" strokeWidth={1} />
         </div>
