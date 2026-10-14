@@ -7,6 +7,7 @@ import { useAlumniDirectory, useConnections } from '../../hooks/useSupabaseQuery
 import { useQueryClient } from '@tanstack/react-query';
 import { AlumniCardSkeleton } from '../../components/ui/Skeleton';
 import PageTransition from '../../components/ui/PageTransition';
+import { EmptyState } from '../../components/ui/EmptyState';
 import {
   Search, MapPin, Users, Briefcase,
   GraduationCap, Globe, X, MessageCircle, UserPlus, UserCheck, Eye, Mail
@@ -203,8 +204,8 @@ const AlumniDirectory = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <span className="bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Alumni Network</span>
                 </div>
-                <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Link With Alumni</h1>
-                <p className="text-blue-100 text-sm font-medium max-w-md">Browse and connect with fellow alumni from Linker College of the Philippines.</p>
+                <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Connect With Alumni</h1>
+                <p className="text-blue-100 text-sm font-medium max-w-md">Browse and connect with fellow alumni from Bestlink College of the Philippines.</p>
               </div>
               <div className="hidden md:flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3">
                 <Users className="w-6 h-6 text-white" />
@@ -365,11 +366,23 @@ const AlumniDirectory = () => {
           </div>
 
           {filteredAlumni.length === 0 ? (
-            <div className="bg-white dark:bg-dark-800 rounded-[2.5rem] border border-slate-100 dark:border-gray-700 p-16 text-center transition-colors">
-              <Users className="w-16 h-16 text-slate-200 dark:text-gray-700 mx-auto mb-4" />
-              <h3 className="text-lg font-black text-slate-400 dark:text-gray-500">No Alumni Found</h3>
-              <p className="text-sm text-slate-300 dark:text-gray-600 mt-2">Try adjusting your search or filters.</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No Alumni Found"
+              description="No registered alumni match your current search query, batch, or course filters."
+              action={
+                searchQuery || batchFilter !== 'All' || courseFilter !== 'All'
+                  ? {
+                      label: 'Reset Filters',
+                      onClick: () => {
+                        setSearchQuery('');
+                        setBatchFilter('All');
+                        setCourseFilter('All');
+                      },
+                    }
+                  : undefined
+              }
+            />
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredAlumni.map(alum => (

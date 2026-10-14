@@ -6,6 +6,7 @@ import { useEvents } from '../../hooks/useSupabaseQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { HeroSkeleton, CardGridSkeleton } from '../../components/ui/Skeleton';
 import PageTransition from '../../components/ui/PageTransition';
+import { EmptyState } from '../../components/ui/EmptyState';
 import {
   Calendar, MapPin, Clock, Image as ImageIcon,
   Users, CheckCircle2, CalendarPlus, Share2,
@@ -73,7 +74,13 @@ const AlumniEvents = () => {
     }
 
     return isSelectedFeatured;
-  }, [events]);
+  }, [events, upcomingEvents]);
+
+  const filteredUpcomingEvents = useMemo(() => {
+    return upcomingEvents
+      .filter((e: any) => e.id !== featuredEvent?.id)
+      .filter((e: any) => activeCategory === 'All' || e.category === activeCategory);
+  }, [upcomingEvents, featuredEvent, activeCategory]);
 
   const categories = useMemo(() => {
     const cats = events.map(e => e.category).filter(Boolean);
@@ -235,11 +242,24 @@ const AlumniEvents = () => {
 
 
         {/* 3. EVENT GRID (LinkedIn Style Cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {upcomingEvents
-            .filter(e => e.id !== featuredEvent?.id) // Exclude the featured hero event
-            .filter(e => activeCategory === 'All' || e.category === activeCategory)
-            .map((event) => {
+        {filteredUpcomingEvents.length === 0 ? (
+          <EmptyState
+            icon={Calendar}
+            title="No Upcoming Events Found"
+            description={
+              activeCategory === 'All'
+                ? "There are currently no additional events on the calendar. Check back soon for future campus gatherings and alumni reunions!"
+                : `No events currently match the "${activeCategory}" category.`
+            }
+            action={
+              activeCategory !== 'All'
+                ? { label: 'View All Categories', onClick: () => setActiveCategory('All') }
+                : undefined
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredUpcomingEvents.map((event) => {
               const isRegistered = event.event_attendees?.some((att: any) => att.alumni_id === user?.id);
               const count = event.event_attendees?.length || 0;
 
@@ -326,7 +346,8 @@ const AlumniEvents = () => {
                 </div>
               );
             })}
-        </div>
+          </div>
+        )}
 
         {/* 4. PAST EVENTS GALLERY (Polished UI) */}
         <div className="bg-slate-50 dark:bg-dark-900/50 rounded-[3rem] p-8 md:p-12 border border-slate-100 dark:border-gray-800 shadow-inner">

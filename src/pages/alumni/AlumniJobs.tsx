@@ -7,6 +7,7 @@ import { useJobs, useMyApplications, useAppliedJobIds, useSavedJobIds } from '..
 import { useQueryClient } from '@tanstack/react-query';
 import { JobListSkeleton } from '../../components/ui/Skeleton';
 import PageTransition from '../../components/ui/PageTransition';
+import { EmptyState } from '../../components/ui/EmptyState';
 import {
   Search, MapPin, Briefcase, Clock, Send, X,
   Sparkles, CheckCircle,
@@ -302,10 +303,23 @@ const AlumniJobs: React.FC = () => {
                 {loading ? (
                   <JobListSkeleton count={5} />
                 ) : displayJobs.length === 0 ? (
-                  <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-                    <Briefcase className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                    <p className="text-slate-400 font-bold">{feedTab === 'saved' ? 'No saved jobs yet.' : 'No opportunities match your filters.'}</p>
-                  </div>
+                  <EmptyState
+                    icon={Briefcase}
+                    title={feedTab === 'saved' ? 'No Saved Jobs Yet' : 'No Opportunities Found'}
+                    description={
+                      feedTab === 'saved'
+                        ? 'You haven’t saved any job opportunities yet. Click the heart icon on any listing to bookmark it here.'
+                        : 'No active job opportunities match your selected course or search criteria. Try clearing your filters.'
+                    }
+                    action={
+                      feedTab === 'saved'
+                        ? { label: 'Explore Opportunities', onClick: () => setFeedTab('all') }
+                        : filterCourse !== 'All' || searchKeyword.trim()
+                        ? { label: 'Clear Filters', onClick: () => { setFilterCourse('All'); setSearchKeyword(''); } }
+                        : undefined
+                    }
+                    compact
+                  />
                 ) : displayJobs.map(job => {
                   const isApplied = appliedJobIds.has(job.id);
                   const isSaved = savedJobIds.has(job.id);
