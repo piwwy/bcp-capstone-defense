@@ -135,10 +135,20 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   // Title Logic
   const getHeaderTitle = () => {
-    switch (user?.role) {
-      case "superadmin": return "Super Admin Portal";
-      case "admin": return "Admin Dashboard";
+    const role = (user?.role || '').toLowerCase().trim();
+    switch (role) {
+      case "superadmin":
+      case "super_admin": return "Super Admin Portal";
+      case "admin":
+      case "registrar": return "Admin Dashboard";
       case "staff": return "Staff Portal";
+      case "job_officer": return "Career & Job Officer Portal";
+      case "finance_manager":
+      case "finance_officer":
+      case "finance": return "Finance & Donations Portal";
+      case "event_officer": return "Event Officer Portal";
+      case "alumni_manager":
+      case "alumni_officer": return "Alumni Relations Portal";
       case "alumni": return "Alumni Portal";
       default: return "Dashboard";
     }
@@ -197,10 +207,13 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {showDPAConsent && <DPAConsentModal onAccept={handleDpaAccepted} />}
 
       <aside className="h-full z-30 relative flex-shrink-0">
-        {user?.role === 'admin' || user?.role === 'registrar' ? <AdminSidebar /> :
-          user?.role === 'staff' ? <StaffSidebar /> :
-            user?.role === 'alumni' ? <AlumniSidebar /> :
-              user?.role === 'superadmin' ? <SuperAdminSidebar /> : null}
+        {(() => {
+          const role = (user?.role || '').toLowerCase().trim();
+          if (role === 'superadmin' || role === 'super_admin') return <SuperAdminSidebar />;
+          if (role === 'alumni') return <AlumniSidebar />;
+          if (role === 'staff') return <StaffSidebar />;
+          return <AdminSidebar />;
+        })()}
       </aside>
 
       {/* 2. RIGHT: Main Content Area */}

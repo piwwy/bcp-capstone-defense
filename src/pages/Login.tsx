@@ -98,13 +98,24 @@ export default function Login() {
         return;
       }
 
-      if (role === 'superadmin') {
+      if (role === 'superadmin' || role === 'super_admin') {
         navigate('/superadmin/dashboard', { replace: true });
         return;
       }
 
-      if (role === 'staff') {
-        navigate('/staff/dashboard', { replace: true });
+      const officerRoles = [
+        'staff',
+        'job_officer',
+        'finance_manager',
+        'finance_officer',
+        'finance',
+        'alumni_manager',
+        'alumni_officer',
+        'event_officer'
+      ];
+
+      if (officerRoles.includes(role)) {
+        navigate('/admin/dashboard', { replace: true });
         return;
       }
 

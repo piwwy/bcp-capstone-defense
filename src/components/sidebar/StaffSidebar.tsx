@@ -22,39 +22,39 @@ const StaffSidebar: React.FC = () => {
     const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
 
     const menuItems: MenuItem[] = [
-        { name: "Dashboard", icon: LayoutDashboard, path: "/staff/dashboard" },
+        { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
         {
             name: "Alumni & Records", icon: Users, subItems: [
-                { name: "Records", path: "/staff/records", icon: Database },
-                { name: "Alumni Tracker", path: "/staff/career-tracking", icon: Briefcase },
+                { name: "Records", path: "/admin/records", icon: Database },
+                { name: "Alumni Tracker", path: "/admin/tracking/career", icon: Briefcase },
             ]
         },
         {
             name: "Career & Jobs", icon: Briefcase, subItems: [
-                { name: "Job Posting", path: "/staff/jobs/board", icon: Briefcase },
-                { name: "New Inquiries", path: "/staff/partner-inquiries", icon: FileText },
+                { name: "Job Posting", path: "/admin/jobs/board", icon: Briefcase },
+                { name: "New Inquiries", path: "/admin/partner-inquiries", icon: FileText },
             ]
         },
         {
             name: "Events & Reunions", icon: Calendar, subItems: [
-                { name: "Event Calendar", path: "/staff/events/calendar", icon: CalendarDays },
-                { name: "Batch Reunions", path: "/staff/batch-reunions", icon: PartyPopper },
+                { name: "Event Calendar", path: "/admin/events/calendar", icon: CalendarDays },
+                { name: "Batch Reunions", path: "/admin/events/calendar", icon: PartyPopper },
             ]
         },
         {
             name: "Communication", icon: Mail, subItems: [
-                { name: "News Feed", path: "/staff/news/manage", icon: Newspaper },
-                { name: "Alumni Community", path: "/staff/community", icon: Users },
+                { name: "News Feed", path: "/admin/news/manage", icon: Newspaper },
+                { name: "Alumni Community", path: "/admin/community", icon: Users },
             ]
         },
         {
             name: "Engagement", icon: MessageSquare, subItems: [
-                { name: "Feedback & Surveys", path: "/staff/feedback", icon: MessageSquare },
+                { name: "Feedback & Surveys", path: "/admin/feedback", icon: MessageSquare },
             ]
         },
         {
             name: "Donation & Finance", icon: DollarSign, subItems: [
-                { name: "Financial Collections", path: "/staff/collections", icon: DollarSign },
+                { name: "Financial Collections", path: "/admin/collections", icon: DollarSign },
             ]
         },
     ];

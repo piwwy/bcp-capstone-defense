@@ -78,9 +78,9 @@ const AdminSidebar: React.FC = () => {
   ];
 
   const filteredMenuItems = useMemo(() => {
-    const role = user?.role || 'staff';
+    const role = (user?.role || 'staff').toLowerCase().trim();
 
-    if (['super_admin', 'admin'].includes(role)) return menuItems;
+    if (['super_admin', 'superadmin', 'admin', 'registrar'].includes(role)) return menuItems;
 
     return menuItems.filter(item => {
       // Role-based filtering logic
@@ -89,13 +89,13 @@ const AdminSidebar: React.FC = () => {
       if (role === 'event_officer') {
         return ["Events", "Communication & Updates"].includes(item.name);
       }
-      if (role === 'finance_officer') {
+      if (role === 'finance_manager' || role === 'finance_officer' || role === 'finance') {
         return ["Donation & Campaign Tools", "Advanced Tools"].includes(item.name);
       }
       if (role === 'job_officer') {
         return ["Career & Jobs"].includes(item.name);
       }
-      if (role === 'alumni_officer') {
+      if (role === 'alumni_manager' || role === 'alumni_officer') {
         return ["Alumni & Records", "Engagement", "Communication & Updates"].includes(item.name);
       }
 

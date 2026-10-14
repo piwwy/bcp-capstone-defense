@@ -102,12 +102,12 @@ const normalizeRole = (role?: string) => {
 
 const DashboardSwitcher = () => {
   const { user } = useAuth();
-  const role = (user?.role || 'staff').toLowerCase();
+  const role = normalizeRole(user?.role) || 'staff';
 
-  if (role === 'super_admin') return <DashboardSuperAdmin />;
-  if (role === 'admin') return <DashboardAdmin />;
+  if (role === 'superadmin') return <DashboardSuperAdmin />;
+  if (role === 'admin' || role === 'registrar') return <DashboardAdmin />;
   if (role === 'job_officer') return <JobOfficerDashboard />;
-  if (role === 'finance_manager' || role === 'finance') return <FinanceManagerDashboard />;
+  if (role === 'finance_manager' || role === 'finance' || role === 'finance_officer') return <FinanceManagerDashboard />;
   if (role === 'alumni_manager' || role === 'alumni_officer') return <AlumniManagerDashboard />;
   if (role === 'event_officer') return <EventOfficerDashboard />;
 
@@ -265,7 +265,7 @@ function AppRoutes() {
       ADMIN PORTAL
      ========================================================= */}
         <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['admin', 'staff', 'job_officer', 'finance_manager', 'alumni_manager', 'event_officer']}>
+          <ProtectedRoute allowedRoles={['superadmin', 'admin', 'registrar', 'staff', 'job_officer', 'finance_manager', 'finance_officer', 'finance', 'alumni_manager', 'alumni_officer', 'event_officer']}>
             <DashboardLayout>
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
@@ -385,6 +385,7 @@ function AppRoutes() {
         } />
 
         {/* Redundant specialized portals removed — everything is now routed via /admin/dashboard */}
+        <Route path="/staff/*" element={<Navigate to="/admin/dashboard" replace />} />
 
         {/* =========================================================
       ALUMNI PORTAL (Using New Upwork-Style Layout)
