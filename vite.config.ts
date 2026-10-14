@@ -20,7 +20,7 @@ export default defineConfig({
           supabase: ['@supabase/supabase-js'],
           charts: ['recharts'],
           leaflet: ['leaflet', 'react-leaflet'],
-          ui: ['lucide-react', 'html2canvas', 'dompurify'],
+          ui: ['lucide-react', 'framer-motion'],
         },
       },
     },
