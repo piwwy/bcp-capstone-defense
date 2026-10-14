@@ -49,19 +49,43 @@ const StaffDashboard: React.FC = () => {
         try {
             setLoading(true);
 
-            const [
-                { count: total },
-                { count: unclaimed },
-                { count: verified },
-                { count: rejected },
-            ] = await Promise.all([
-                supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
-                supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
-                supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-                supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
-            ]);
-
-            setStats({ total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 });
+            try {
+                const { data: rpcData, error: rpcError } = await supabase.rpc('get_admin_dashboard_stats');
+                if (!rpcError && rpcData?.stats) {
+                    setStats({
+                        total: rpcData.stats.total || 0,
+                        unclaimed: rpcData.stats.unclaimed || 0,
+                        verified: rpcData.stats.verified || 0,
+                        rejected: rpcData.stats.rejected || 0,
+                    });
+                } else {
+                    const [
+                        { count: total },
+                        { count: unclaimed },
+                        { count: verified },
+                        { count: rejected },
+                    ] = await Promise.all([
+                        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
+                        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
+                        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+                        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+                    ]);
+                    setStats({ total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 });
+                }
+            } catch {
+                const [
+                    { count: total },
+                    { count: unclaimed },
+                    { count: verified },
+                    { count: rejected },
+                ] = await Promise.all([
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni'),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'master_list'),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+                ]);
+                setStats({ total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 });
+            }
 
             // Module and employment stats are provided by hooks
 
