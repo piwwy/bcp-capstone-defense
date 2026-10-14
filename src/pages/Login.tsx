@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
 import { Eye, EyeOff, Loader2, LogIn, ArrowLeft } from 'lucide-react';
-import EmailService from '../services/emailService';
 import { useToast } from '../context/ToastContext';
 import { logLogin, logFailedLogin } from '../services/auditLogger';
 

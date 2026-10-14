@@ -4,8 +4,8 @@ import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
 import {
   FileText, Send, Clock, CheckCircle2, AlertCircle, Truck, Building,
-  Search, RefreshCw, XCircle, ArrowRight, ShieldCheck, Download,
-  HelpCircle, Calendar, User, BookOpen, AlertTriangle
+  Search, RefreshCw, XCircle, ArrowRight, ShieldCheck,
+  HelpCircle
 } from 'lucide-react';
 
 interface DocumentRequest {

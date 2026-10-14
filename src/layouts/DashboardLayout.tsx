@@ -30,7 +30,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         return;
       }
 
-      const role = (user.role || '').toLowerCase();
       setShowDPAConsent(false);
       setDpaChecked(true);
     };

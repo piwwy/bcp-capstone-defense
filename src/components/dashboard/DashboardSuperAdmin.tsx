@@ -6,8 +6,8 @@ import { useToast } from '../../context/ToastContext';
 import { useEmploymentStats } from '../../hooks/useSupabaseQuery';
 import {
   Users, Shield, Activity, ArrowRight, Calendar, Loader2,
-  Crown, Database, BarChart3, AlertTriangle, Briefcase, Heart, Newspaper,
-  Repeat, X, Lock, Clock, History, Cpu
+  Crown, Database, BarChart3, Briefcase, Heart, Newspaper,
+  Repeat, X, Lock, History, Cpu
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell

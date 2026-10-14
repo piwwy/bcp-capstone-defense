@@ -5,7 +5,7 @@ import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import { 
   Users, Search, Loader2, Plus, CheckCircle2, XCircle, 
-  Trash2, Mail, Linkedin, Briefcase, Award, X, Save
+  Trash2, Mail, Linkedin, X, Save
 } from 'lucide-react';
 
 interface MentorRecord {
@@ -111,10 +111,9 @@ const ManageMentorship: React.FC = () => {
 
       if (error) throw error;
 
-      await logAudit({
-        action: AUDIT_ACTIONS.UPDATE,
+      await logAudit(AUDIT_ACTIONS.RECORD_UPDATED, {
         module: 'Alumni Mentorship',
-        details: `${nextStatus ? 'Approved' : 'Deactivated'} mentor listing for ${mentor.full_name}`,
+        message: `${nextStatus ? 'Approved' : 'Deactivated'} mentor listing for ${mentor.full_name}`,
       }).catch(() => {});
 
       showToast({

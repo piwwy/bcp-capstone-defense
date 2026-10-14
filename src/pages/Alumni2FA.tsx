@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ArrowRight, Lock, AlertTriangle, XCircle, Ban, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Lock, AlertTriangle, XCircle, Ban, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EmailService from '../services/emailService';
 import { supabase } from '../services/supabaseClient';
 import { logAudit, AUDIT_ACTIONS } from '../services/auditLogger';
 
 const MAX_ATTEMPTS = 5;
+void AUDIT_ACTIONS;
 
 const Alumni2FA: React.FC = () => {
   const navigate = useNavigate();
@@ -74,7 +75,6 @@ const Alumni2FA: React.FC = () => {
         return;
       }
 
-      const userEmail = (session.user.email || '').trim().toLowerCase();
       const metadataRole = session.user.user_metadata?.role?.toLowerCase();
 
       let profileRole: string | null = null;

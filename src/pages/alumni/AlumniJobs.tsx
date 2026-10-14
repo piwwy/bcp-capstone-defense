@@ -313,9 +313,9 @@ const AlumniJobs: React.FC = () => {
                     }
                     action={
                       feedTab === 'saved'
-                        ? { label: 'Explore Opportunities', onClick: () => setFeedTab('all') }
-                        : filterCourse !== 'All' || searchKeyword.trim()
-                        ? { label: 'Clear Filters', onClick: () => { setFilterCourse('All'); setSearchKeyword(''); } }
+                        ? { label: 'Explore Opportunities', onClick: () => setFeedTab('my-feed') }
+                        : selectedDept !== 'All' || searchTerm.trim()
+                        ? { label: 'Clear Filters', onClick: () => { setSelectedDept('All'); setSearchTerm(''); } }
                         : undefined
                     }
                     compact

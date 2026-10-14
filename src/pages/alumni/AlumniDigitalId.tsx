@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import {
   CreditCard, Download, ShieldCheck, QrCode, RefreshCw,
-  CheckCircle, Sparkles, AlertCircle, Share2, Copy, Eye, RotateCw,
-  School, GraduationCap, Calendar, User, ExternalLink
+  CheckCircle, Sparkles, Copy, RotateCw,
+  School, GraduationCap
 } from 'lucide-react';
 
 const AlumniDigitalId: React.FC = () => {
@@ -186,6 +186,21 @@ const AlumniDigitalId: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleCopyId}
+            className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2"
+            title="Copy Alumni ID Number"
+          >
+            {copied ? (
+              <>
+                <CheckCircle className="w-4 h-4 text-emerald-600" /> Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 text-slate-500" /> Copy ID
+              </>
+            )}
+          </button>
           <button
             onClick={() => setIsFlipped(!isFlipped)}
             className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2"

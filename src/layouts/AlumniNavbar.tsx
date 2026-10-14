@@ -9,7 +9,7 @@ import {
   Search, Users, MessageSquare, Settings,
   Info, Calendar as CalendarIcon,
   Newspaper, TrendingUp, Heart, ClipboardList,
-  Mail, FolderOpen, Sun, Moon, Monitor, Loader2,
+  Mail, Sun, Moon, Monitor, Loader2,
   CreditCard, FileText
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';

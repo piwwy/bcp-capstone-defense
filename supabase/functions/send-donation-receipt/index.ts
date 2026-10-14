@@ -47,14 +47,32 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch campaign title
-    const { data: campaignData } = await supabase
-      .from('donation_campaign_records')
-      .select('title')
-      .eq('id', record.campaign_id)
-      .single();
+    let actualCampaignTitle = 'BCP Alumni Giving Fund';
+    if (record.campaign_id) {
+      const { data: campaignData } = await supabase
+        .from('donation_campaigns')
+        .select('title')
+        .eq('id', record.campaign_id)
+        .single();
+      if (campaignData?.title) {
+        actualCampaignTitle = campaignData.title;
+      }
+    }
 
-    const actualCampaignTitle = campaignData?.title || 'BCP Alumni Giving Fund';
-    const recipientEmail = record.guest_email || record.donor_email;
+    let recipientEmail = record.guest_email || record.donor_email;
+    let recipientName = record.guest_name || record.donor_name || 'Generous Donor';
+
+    if (!recipientEmail && record.profile_id) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .eq('id', record.profile_id)
+        .single();
+      if (profileData?.email) {
+        recipientEmail = profileData.email;
+        recipientName = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || recipientName;
+      }
+    }
 
     if (!recipientEmail) {
       return new Response(
@@ -80,7 +98,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         sender: { name: senderName, email: senderEmail },
-        to: [{ email: recipientEmail, name: record.guest_name || 'Generous Donor' }],
+        to: [{ email: recipientEmail, name: recipientName }],
         subject: `Contribution Verified: ${actualCampaignTitle}`,
         htmlContent: `
           <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;">
@@ -89,7 +107,7 @@ Deno.serve(async (req) => {
               <p style="margin-top: 8px; font-size: 14px; opacity: 0.9;">Thank you for your generous contribution.</p>
             </div>
             <div style="padding: 32px; background-color: #ffffff;">
-              <p style="font-size: 16px; color: #1e293b;">Dear <b>${record.guest_name || 'Donor'}</b>,</p>
+              <p style="font-size: 16px; color: #1e293b;">Dear <b>${recipientName}</b>,</p>
               <p style="font-size: 14px; color: #475569; line-height: 1.6;">
                 Your contribution to the <b>${actualCampaignTitle}</b> has been officially verified by the Alumni Affairs Office.
               </p>

@@ -6,7 +6,7 @@ import {
   MapPin, Briefcase, GraduationCap, Mail, Phone,
   Edit2, Save, X, Globe, Camera, Plus, Trash2,
   Building2, Calendar, Users, ChevronRight, Clock,
-  Share2, CheckCircle, ExternalLink, Lock, Eye, EyeOff, Shield, Loader2, TrendingUp
+  Share2, CheckCircle, ExternalLink, Loader2, TrendingUp
 } from 'lucide-react';
 
 const EMPLOYMENT_STATUS_OPTIONS = [
@@ -41,13 +41,6 @@ const AlumniProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [skillInput, setSkillInput] = useState('');
   const [course, setCourse] = useState('');
-  const [authProvider, setAuthProvider] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [passwordSet, setPasswordSet] = useState(false);
   const [showPublicView, setShowPublicView] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -108,7 +101,6 @@ const AlumniProfile = () => {
 
       if (mainProfile) {
         setCourse(mainProfile.course || '');
-        setAuthProvider(mainProfile.auth_provider || '');
         // Extract section from verification_answer if available
         const va = mainProfile.verification_answer || '';
         const secMatch = va.match(/Section:\s*(.+)/i);
@@ -392,39 +384,6 @@ const AlumniProfile = () => {
     } finally { setSavingSection(false); }
   };
 
-  const handleSetPassword = async () => {
-    if (!newPassword || !confirmPassword) {
-      showToast({ title: 'Error', message: 'Please fill in both password fields.', type: 'error' });
-      return;
-    }
-    if (newPassword.length < 8) {
-      showToast({ title: 'Error', message: 'Password must be at least 8 characters.', type: 'error' });
-      return;
-    }
-    if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      showToast({ title: 'Error', message: 'Password must contain at least 1 uppercase letter and 1 number.', type: 'error' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast({ title: 'Error', message: 'Passwords do not match.', type: 'error' });
-      return;
-    }
-
-    setSavingPassword(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordSet(true);
-      showToast({ title: 'Success', message: 'Password set successfully! You can now log in with email & password.', type: 'success' });
-    } catch (error: any) {
-      showToast({ title: 'Error', message: error.message || 'Failed to set password.', type: 'error' });
-    } finally {
-      setSavingPassword(false);
-    }
-  };
 
   const completeness = getProfileCompleteness();
   const statusCfg = getStatusConfig(profile.employment_status);

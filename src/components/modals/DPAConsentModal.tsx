@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, CheckCircle, ScrollText, AlertTriangle, Loader2, Key, Eye, EyeOff } from 'lucide-react';
+import { Shield, CheckCircle, ScrollText, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';

@@ -3,8 +3,8 @@ import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { 
-  X, Users, Search, Mail, Linkedin, Sparkles, PlusCircle, 
-  Loader2, CheckCircle2, Briefcase, Award, ExternalLink
+  X, Users, Search, Mail, Linkedin, PlusCircle, 
+  Loader2, CheckCircle2, Briefcase, Award
 } from 'lucide-react';
 
 interface AlumniMentorshipModalProps {

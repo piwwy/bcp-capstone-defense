@@ -8,7 +8,10 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  first_name?: string;
+  last_name?: string;
   avatar?: string;
+  avatar_url?: string;
   status?: string;
   dpa_consented_at?: string;
   last_login?: string;
@@ -64,9 +67,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: userId,
         email,
         name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Portal User',
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
         role: profileData.role || 'alumni',
         status: profileData.status || 'pending',
         avatar: profileData.avatar_url,
+        avatar_url: profileData.avatar_url,
         dpa_consented_at: profileData.dpa_consented_at,
         last_login: profileData.last_login,
       };

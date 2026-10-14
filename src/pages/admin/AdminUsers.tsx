@@ -8,7 +8,7 @@ import CreateUserModal from '../../components/modals/CreateUserModal';
 import EmailService from '../../services/emailService';
 import {
     Users, Loader2, Search, Calendar, GraduationCap, Filter, RefreshCw,
-    Eye, UserPlus, MoreHorizontal, Shield, Key, Trash2, Archive, History,
+    Eye, UserPlus, MoreHorizontal, Shield, Key, Archive, History,
     Clock, X, UserCheck, CheckCircle
 } from 'lucide-react';
 

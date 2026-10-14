@@ -5,8 +5,8 @@ import { useToast } from '../../context/ToastContext';
 import AdminPageLayout from './AdminPageLayout';
 import {
   Mail, Loader2, Send, Search, CheckCircle2, AlertTriangle,
-  Users, Filter, Target, Zap, GraduationCap, Clock, UserCheck,
-  ArrowRight, X, BarChart2
+  Users, Target, GraduationCap, Clock, UserCheck,
+  ArrowRight
 } from 'lucide-react';
 
 interface AlumniRecord {

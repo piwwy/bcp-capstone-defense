@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -7,8 +7,8 @@ import AdminResourceCard from './AdminResourceCard';
 import {
   Plus, Calendar as CalendarIcon, MapPin, X, Loader2, Timer,
   UploadCloud, Download, ChevronLeft, ChevronRight, LayoutGrid,
-  Clock, Archive, History, Search, Users, CalendarCheck, Crown,
-  CheckCircle2, XCircle, Eye, MessageSquare, RefreshCw
+  Clock, Archive, History, Search, Users, CalendarCheck,
+  CheckCircle2, XCircle, MessageSquare
 } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 import jsPDF from 'jspdf';
@@ -67,10 +67,6 @@ const ManageEvents = () => {
   const [approvalFilterStatus, setApprovalFilterStatus] = useState<'all' | 'pending_approval' | 'approved' | 'rejected'>('pending_approval');
   const [approvalSearchQuery, setApprovalSearchQuery] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
-  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
-  const [approvalNotes, setApprovalNotes] = useState('');
 
   const combineDateAndTime = (d: string, tp: { hour: string; minute: string; ampm: string }) => {
     if (!d) return '';
@@ -345,55 +341,7 @@ const ManageEvents = () => {
     } finally { setLoading(false); }
   };
 
-  // --- APPROVAL HANDLERS ---
-  const openApprovalModal = (event: any, action: 'approve' | 'reject') => {
-    setSelectedEvent(event);
-    setApprovalAction(action);
-    setApprovalNotes('');
-    setIsApprovalModalOpen(true);
-  };
 
-  const handleApproval = async () => {
-    if (!selectedEvent) return;
-    setProcessing(selectedEvent.id);
-    try {
-      const newStatus = approvalAction === 'approve' ? 'approved' : 'rejected';
-      const { error } = await supabase
-        .from('alumni_events')
-        .update({
-          status: newStatus,
-          approval_notes: approvalNotes,
-          approved_by: user?.id,
-          approved_at: new Date().toISOString(),
-        })
-        .eq('id', selectedEvent.id);
-      if (error) throw error;
-      showToast({
-        title: approvalAction === 'approve' ? 'Event Approved!' : 'Event Rejected',
-        message: `"${selectedEvent.title}" has been ${approvalAction === 'approve' ? 'approved' : 'rejected'}.`,
-        type: approvalAction === 'approve' ? 'success' : 'warning'
-      });
-
-      await logAudit(approvalAction === 'approve' ? AUDIT_ACTIONS.EVENT_APPROVED : AUDIT_ACTIONS.EVENT_REJECTED, {
-        module: 'Events',
-        message: `${approvalAction === 'approve' ? 'Approved' : 'Rejected'} event: ${selectedEvent.title}`,
-        eventId: selectedEvent.id,
-        notes: approvalNotes,
-        ...buildFieldDiff(
-          { status: selectedEvent.status, approval_notes: selectedEvent.approval_notes || null },
-          { status: newStatus, approval_notes: approvalNotes || null },
-          ['status', 'approval_notes']
-        )
-      });
-
-      setIsApprovalModalOpen(false);
-      fetchData();
-    } catch (error: any) {
-      showToast({ title: 'Error', message: error.message, type: 'error' });
-    } finally {
-      setProcessing(null);
-    }
-  };
 
   const publishEvent = async (event: any) => {
     setProcessing(event.id);
@@ -1178,67 +1126,6 @@ const ManageEvents = () => {
         </div>
       )}
 
-      {/* 7. MODAL: APPROVAL / REJECTION */}
-      {isApprovalModalOpen && selectedEvent && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[140] p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${approvalAction === 'approve' ? 'bg-green-100' : 'bg-red-100'}`}>
-              {approvalAction === 'approve' ? (
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
-              ) : (
-                <XCircle className="w-8 h-8 text-red-600" />
-              )}
-            </div>
-
-            <h3 className="text-xl font-black text-center text-gray-900 mb-2">
-              {approvalAction === 'approve' ? 'Approve Event' : 'Reject Event'}
-            </h3>
-            <p className="text-center text-gray-500 mb-6">
-              {approvalAction === 'approve'
-                ? `Are you sure you want to approve "${selectedEvent.title}"?`
-                : `Are you sure you want to reject "${selectedEvent.title}"?`
-              }
-            </p>
-
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                {approvalAction === 'approve' ? 'Approval Notes (Optional)' : 'Rejection Reason *'}
-              </label>
-              <textarea
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
-                placeholder={approvalAction === 'approve'
-                  ? 'Add any notes for this approval...'
-                  : 'Please provide a reason for rejection...'
-                }
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                required={approvalAction === 'reject'}
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsApprovalModalOpen(false)}
-                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApproval}
-                disabled={processing === selectedEvent.id || (approvalAction === 'reject' && !approvalNotes.trim())}
-                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${approvalAction === 'approve'
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-red-600 text-white hover:bg-red-700'
-                  }`}
-              >
-                {processing === selectedEvent.id && <Loader2 className="w-4 h-4 animate-spin" />}
-                {approvalAction === 'approve' ? 'Approve' : 'Reject'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </AdminPageLayout>
   );

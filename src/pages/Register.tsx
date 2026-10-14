@@ -4,7 +4,7 @@ import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import {
   User, BookOpen, Lock, ChevronRight, ChevronLeft,
-  CheckCircle, HelpCircle, AlertCircle, Shield, Home, LogIn, CheckCircle2, Loader2, RefreshCw, Eye, EyeOff, Check, ExternalLink
+  CheckCircle, HelpCircle, AlertCircle, Home, LogIn, CheckCircle2, Loader2, RefreshCw, Eye, EyeOff, Check, ExternalLink
 } from 'lucide-react';
 
 // Types for validation errors
@@ -451,7 +451,6 @@ const Register: React.FC = () => {
 
       // Step 2: Register with Supabase Auth (with graceful fallback on rate limits)
       let authUserId: string | null = null;
-      let hitRateLimit = false;
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,

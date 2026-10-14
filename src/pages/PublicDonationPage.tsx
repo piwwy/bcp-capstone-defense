@@ -165,8 +165,12 @@ const PublicDonationPage = () => {
     setRefNumber(generatedRef);
 
     try {
+      const { data: authSession } = await supabase.auth.getSession();
+      const currentUserId = authSession?.session?.user?.id || null;
+
       const { error } = await supabase.from('donations').insert([{
         campaign_id: selectedCampaign.id,
+        profile_id: currentUserId,
         amount: normalizedAmount,
         payment_method: form.method,
         guest_name: form.name,

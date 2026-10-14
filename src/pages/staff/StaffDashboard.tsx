@@ -21,7 +21,7 @@ const StaffDashboard: React.FC = () => {
         total: 0, unclaimed: 0, verified: 0, rejected: 0
     });
 
-    const { data: moduleCounts } = useModuleCounts({ activeOnly: true });
+    const { data: moduleCounts = { events: 0, jobs: 0, campaigns: 0, news: 0 } } = useModuleCounts({ activeOnly: true });
 
     const { data: employmentStats } = useEmploymentStats();
 

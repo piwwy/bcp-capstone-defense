@@ -204,7 +204,7 @@ const AlumniDashboard: React.FC = () => {
                 <Rocket className="w-5 h-5 text-blue-200" /> Getting Started Checklist
               </h2>
               <p className="text-xs text-blue-100/80 mt-1">
-                Complete the essentials to personalize your alumni experience.
+                Complete the essentials to personalize your alumni experience ({progressPercent}% completed).
               </p>
             </div>
 

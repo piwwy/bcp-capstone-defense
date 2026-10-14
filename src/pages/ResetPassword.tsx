@@ -3,7 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../services/auditLogger';
-import { Lock, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 const ResetPassword = () => {
   const [code, setCode] = useState('');

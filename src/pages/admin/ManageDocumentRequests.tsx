@@ -5,7 +5,7 @@ import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import AdminPageLayout from './AdminPageLayout';
 import { 
   FileText, Search, Loader2, CheckCircle2, Clock, RotateCcw, 
-  AlertCircle, ChevronRight, Edit, Save, Trash2, Filter, User, GraduationCap, Building2, Eye, X
+  AlertCircle, Edit, Save, Trash2, X
 } from 'lucide-react';
 
 interface DocumentRequestRecord {
@@ -81,10 +81,9 @@ const ManageDocumentRequests: React.FC = () => {
 
       if (error) throw error;
 
-      await logAudit({
-        action: AUDIT_ACTIONS.UPDATE,
+      await logAudit(AUDIT_ACTIONS.RECORD_UPDATED, {
         module: 'Document Requests',
-        details: `Updated request for ${selectedRequest.full_name} (${selectedRequest.document_type}) to status: ${editStatus}`,
+        message: `Updated request for ${selectedRequest.full_name} (${selectedRequest.document_type}) to status: ${editStatus}`,
       }).catch(() => {});
 
       showToast({
