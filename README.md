@@ -270,23 +270,35 @@ bcp-alumni-system/
 
 ## 🔑 Environment Variables
 
-Create a `.env` file in the root directory:
+Copy the example file and fill in your Supabase credentials:
 
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```bash
+cp .env.example .env
 ```
+
+Refer to [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) and [Database Architecture](docs/DATABASE_ARCHITECTURE.md) for full configuration.
 
 ---
 
-## 🔐 Demo Credentials
+## 🔐 Verified Demo Credentials
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@gmail.com | Admin_123 |
-| Alumni | alumni@gmail.com | Alumni_123 |
+| Role | Email | Password | Access Level |
+|:---|:---|:---|:---|
+| **System Administrator** | `admin@gmail.com` | `Admin_123` | Full Admin Dashboard & System Settings |
+| **Alumni (Recommended)** | `alumni_demo@gmail.com` | `Alumni_123` | Verified Alumni Portal (2FA Enabled) |
+| **Alumni (Alternative)** | `alumni_test@gmail.com` | `Alumni_123` | Verified Alumni Portal |
 
-> ⚠️ **Note:** These are demo credentials for testing purposes only.
+> ℹ️ **2FA Note:** When logging in with an Alumni account, a test OTP is displayed directly in the 2FA UI for rapid evaluation. Click **Auto-fill Code** to proceed.
+
+---
+
+## 🧪 Automated Test Suite
+
+Run the full Vitest suite covering Security, Stability, Database, Design, Workflows, and RBAC:
+
+```bash
+npm test
+```
 
 ---
 
