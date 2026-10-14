@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCircle, UploadCloud, Eye, EyeOff, Heart, DollarSign, Users, Info } from 'lucide-react';
+import { Plus, TrendingUp, X, Loader2, Image as ImageIcon, ExternalLink, CheckCircle, UploadCloud, Eye, EyeOff, Heart, DollarSign, Users, Info, Award } from 'lucide-react';
 import AdminPageLayout from './AdminPageLayout';
 import AdminResourceCard from './AdminResourceCard';
 import { useToast } from '../../context/ToastContext';
 import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 import EmailService from '../../services/emailService';
+import { generateDonationCertificate } from '../../utils/certificateGenerator';
 
 const DonationManager = () => {
   const { showToast } = useToast();
@@ -930,9 +931,25 @@ const DonationManager = () => {
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic">{new Date(don.created_at).toLocaleDateString()}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-black text-emerald-600">₱{don.amount.toLocaleString()}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{don.payment_method}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-sm font-black text-emerald-600">₱{don.amount.toLocaleString()}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{don.payment_method}</p>
+                            </div>
+                            <button
+                              onClick={() => generateDonationCertificate({
+                                donorName: don.profiles?.first_name ? `${don.profiles.first_name} ${don.profiles.last_name || ''}`.trim() : (don.guest_name || 'Alumni Contributor'),
+                                amount: don.amount,
+                                campaignTitle: selectedCampaignForDetails.title,
+                                donationId: don.id,
+                                datePaid: new Date(don.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                                paymentMethod: don.payment_method,
+                              })}
+                              className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-200"
+                              title="Download Official Certificate & E-Receipt"
+                            >
+                              <Award className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       ))}

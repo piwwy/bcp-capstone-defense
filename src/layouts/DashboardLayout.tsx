@@ -193,10 +193,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-200 via-blue-100/60 to-indigo-100/50 text-gray-900 font-sans font-medium">
+    <div className="flex h-screen bg-slate-100 text-gray-900 font-sans font-medium dashboard-layout">
       {showDPAConsent && <DPAConsentModal onAccept={handleDpaAccepted} />}
 
-      <aside className="h-full z-30 shadow-xl relative">
+      <aside className="h-full z-30 relative flex-shrink-0">
         {user?.role === 'admin' || user?.role === 'registrar' ? <AdminSidebar /> :
           user?.role === 'staff' ? <StaffSidebar /> :
             user?.role === 'alumni' ? <AlumniSidebar /> :
@@ -311,8 +311,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
         </header>
 
-        {/* --- BODY CONTENT (Glass BG) --- */}
-        <main key={location.pathname} className="flex-1 overflow-y-auto p-6 relative scroll-smooth bg-gradient-to-br from-white/30 via-transparent to-blue-50/20">
+        {/* --- BODY CONTENT --- */}
+        <main key={location.pathname} className="flex-1 overflow-y-auto relative scroll-smooth bg-slate-100 custom-scrollbar">
           {children}
         </main>
       </div>

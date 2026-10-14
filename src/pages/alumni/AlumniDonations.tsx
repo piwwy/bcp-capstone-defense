@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { generateDonationCertificate } from '../../utils/certificateGenerator';
 
 const AlumniDonations = () => {
   const { user } = useAuth();
@@ -238,6 +239,7 @@ const AlumniDonations = () => {
                         <th className="p-5">Amount</th>
                         <th className="p-5">Date Paid</th>
                         <th className="p-5">Verification Status</th>
+                        <th className="p-5 text-right">Official Receipt / Certificate</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -259,6 +261,26 @@ const AlumniDonations = () => {
                               }`}>
                               {don.status}
                             </span>
+                          </td>
+                          <td className="p-5 text-right">
+                            {don.status === 'verified' ? (
+                              <button
+                                onClick={() => generateDonationCertificate({
+                                  donorName: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email?.split('@')[0] || 'Alumni Contributor',
+                                  amount: don.amount,
+                                  campaignTitle: don.donation_campaigns?.title || 'General Alumni Fund',
+                                  donationId: don.id,
+                                  datePaid: new Date(don.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                                  paymentMethod: don.payment_method,
+                                })}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-bold transition-all active:scale-95 shadow-sm"
+                                title="Download Official Certificate & E-Receipt"
+                              >
+                                <Award className="w-3.5 h-3.5 text-blue-600" /> Certificate
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Available upon verification</span>
+                            )}
                           </td>
                         </tr>
                       ))}

@@ -30,6 +30,7 @@ import PendingApproval from './pages/PendingApproval';
 // Public
 const Alumni2FA = React.lazy(() => import('./pages/Alumni2FA'));
 const PublicDonationPage = React.lazy(() => import('./pages/PublicDonationPage'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 
 // Admin pages
 const AllAlumniRecords = React.lazy(() => import('./pages/admin/AllAlumniRecords'));
@@ -52,6 +53,8 @@ const PartnerInquiries = React.lazy(() => import('./pages/admin/PartnerInquiries
 const ManageResources = React.lazy(() => import('./pages/admin/ManageResources'));
 const ManageCommunity = React.lazy(() => import('./pages/admin/ManageCommunity'));
 const VerificationSubmodule = React.lazy(() => import('./pages/admin/VerificationSubmodule'));
+const ManageDocumentRequests = React.lazy(() => import('./pages/admin/ManageDocumentRequests'));
+const ManageMentorship = React.lazy(() => import('./pages/admin/ManageMentorship'));
 
 // Alumni pages
 const AlumniDashboard = React.lazy(() => import('./components/dashboard/AlumniDashboard'));
@@ -67,6 +70,8 @@ const AlumniGraduateTracking = React.lazy(() => import('./pages/alumni/AlumniGra
 const AlumniFeedback = React.lazy(() => import('./pages/alumni/AlumniFeedback'));
 const AlumniSettings = React.lazy(() => import('./pages/alumni/AlumniSettings'));
 const AlumniMessages = React.lazy(() => import('./pages/alumni/AlumniMessages'));
+const AlumniDigitalId = React.lazy(() => import('./pages/alumni/AlumniDigitalId'));
+const AlumniDocumentRequests = React.lazy(() => import('./pages/alumni/AlumniDocumentRequests'));
 
 // Dashboards
 const DashboardAdmin = React.lazy(() => import('./components/dashboard/DashboardAdmin'));
@@ -132,6 +137,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     if (status === 'unauthenticated' && !user && hasPersistedSessionSnapshot && !persistedSessionChecked) {
       setCheckingPersistedSession(true);
       supabase.auth.getSession()
+        .then(async (res) => {
+          if (!res.data.session) {
+            await supabase.auth.refreshSession().catch(() => null);
+          }
+        })
         .catch(() => null)
         .finally(() => {
           if (!active) return;
@@ -151,21 +161,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   React.useEffect(() => {
     let active = true;
-    if (!user && status === 'unauthenticated' && !checkingPersistedSession && !graceSessionCheck) {
+    if (!user && status === 'unauthenticated' && !checkingPersistedSession && !graceSessionCheck && hasPersistedSessionSnapshot) {
       setGraceSessionCheck(true);
       supabase.auth.getSession()
+        .then(async (res) => {
+          if (!res.data.session) {
+            await supabase.auth.refreshSession().catch(() => null);
+          }
+        })
         .catch(() => null)
         .finally(() => {
           if (!active) return;
-          // tiny delay so AuthContext can settle if session is restored asynchronously
+          // Grace delay so AuthContext can settle after asynchronous refresh
           setTimeout(() => {
             if (!active) return;
             setGraceSessionCheck(false);
-          }, 400);
+          }, 450);
         });
     }
     return () => { active = false; };
-  }, [status, user, checkingPersistedSession, graceSessionCheck]);
+  }, [status, user, checkingPersistedSession, graceSessionCheck, hasPersistedSessionSnapshot]);
 
   if ((status === 'loading' || isLoading || checkingPersistedSession || graceSessionCheck) && !user) {
     return (
@@ -243,6 +258,8 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
         <Route path="/pending-approval" element={<PendingApproval />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
         {/* =========================================================
       ADMIN PORTAL
@@ -295,8 +312,10 @@ function AppRoutes() {
                   {/* Feedback & Surveys */}
                   <Route path="feedback" element={<ManageFeedback />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
-                  <Route path="collections" element={<DonationCollections />} />
 
+                  {/* Alumni Engagement Hub Management */}
+                  <Route path="document-requests" element={<ManageDocumentRequests />} />
+                  <Route path="mentorship" element={<ManageMentorship />} />
 
                   {/* Alumni Resources Management */}
                   <Route path="resources" element={<ManageResources />} />
@@ -338,15 +357,16 @@ function AppRoutes() {
                   <Route path="community" element={<ManageCommunity />} />
                   <Route path="partner-inquiries" element={<PartnerInquiries />} />
 
-                  {/* Engagement */}
+                  {/* Engagement & Hub */}
                   <Route path="feedback" element={<ManageFeedback />} />
                   <Route path="donations" element={<DonationManager />} />
                   <Route path="collections" element={<DonationCollections />} />
+                  <Route path="document-requests" element={<ManageDocumentRequests />} />
+                  <Route path="mentorship" element={<ManageMentorship />} />
 
                   {/* Advanced */}
                   <Route path="analytics" element={<ReportsAnalytics />} />
                   <Route path="tracer-survey" element={<TracerSurvey />} />
-                  <Route path="reports" element={<ReportsAnalytics />} />
                   <Route path="train-ai" element={<TrainAI />} />
                   <Route path="audit-trail" element={<AuditTrail />} />
 
@@ -396,6 +416,8 @@ function AppRoutes() {
                   {/* New Modules */}
                   <Route path="messages" element={<AlumniMessages />} />
                   <Route path="feedback" element={<AlumniFeedback />} />
+                  <Route path="digital-id" element={<AlumniDigitalId />} />
+                  <Route path="document-requests" element={<AlumniDocumentRequests />} />
 
                   {/* Catch-all - MUST be last */}
                   <Route path="*" element={<Navigate to="/alumni/dashboard" replace />} />

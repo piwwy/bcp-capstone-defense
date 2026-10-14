@@ -40,7 +40,7 @@ const LandingPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900">
+    <div className="min-h-screen bg-dark-900 landing-page">
       <Navbar />
       <main>
         <HeroSection />

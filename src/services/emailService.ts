@@ -105,7 +105,15 @@ export const EmailService = {
 
       if (!response.ok) {
         console.error('❌ Brevo API Error:', responseData);
-        return { success: false, error: responseData.message || `Brevo Error: ${response.status}` };
+        if (responseData.code === 'unauthorized' || responseData.message?.includes('not enabled')) {
+          console.warn('⚠️ [BREVO API KEY NOTICE]: Your Brevo API Key is not yet enabled or unauthorized. To receive emails in Gmail, make sure your Brevo account is activated and your sender email is verified at https://app.brevo.com');
+        }
+        return { 
+          success: false, 
+          error: responseData.message?.includes('not enabled') 
+            ? 'API Key is not enabled in Brevo' 
+            : (responseData.message || `Brevo Error: ${response.status}`) 
+        };
       }
 
       console.log('✅ Email sent successfully via Brevo!');

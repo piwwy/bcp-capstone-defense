@@ -9,7 +9,8 @@ import {
   Search, Users, MessageSquare, Settings,
   Info, Calendar as CalendarIcon,
   Newspaper, TrendingUp, Heart, ClipboardList,
-  Mail, FolderOpen, Sun, Moon, Monitor, Loader2
+  Mail, FolderOpen, Sun, Moon, Monitor, Loader2,
+  CreditCard, FileText
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
@@ -106,7 +107,8 @@ const AlumniNavbar: React.FC = () => {
       icon: Home,
       children: [
         { name: 'Overview', path: '/alumni/dashboard', icon: Home, description: 'Main dashboard & activity' },
-       // { name: 'Resources', path: '/alumni/resources', icon: FolderOpen, description: 'Alumni tools & documents' },
+        { name: 'Digital Alumni ID', path: '/alumni/digital-id', icon: CreditCard, description: 'Official verified card & QR pass' },
+        { name: 'Document Requests', path: '/alumni/document-requests', icon: FileText, description: 'TOR, diplomas & credentials' },
       ],
     },
     {

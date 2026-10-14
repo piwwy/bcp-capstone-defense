@@ -318,7 +318,7 @@ const DashboardSuperAdmin = () => {
   }
 
   return (
-    <div className="p-8 space-y-8 bg-gray-50/50 min-h-screen animate-in fade-in duration-500">
+    <div className="p-8 space-y-8 animate-in fade-in duration-500">
 
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-purple-950 via-violet-900 to-fuchsia-900 p-12 shadow-2xl">

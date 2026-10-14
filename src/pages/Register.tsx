@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import {
-  User, BookOpen, ChevronRight,
-  CheckCircle, HelpCircle, X, AlertCircle, Shield, Home, LogIn, Loader2, RefreshCw, Check, Upload, FileText, Trash2
+  User, BookOpen, Lock, ChevronRight, ChevronLeft,
+  CheckCircle, HelpCircle, AlertCircle, Shield, Home, LogIn, CheckCircle2, Loader2, RefreshCw, Eye, EyeOff, Check, ExternalLink
 } from 'lucide-react';
 
 // Types for validation errors
@@ -21,17 +21,19 @@ interface InputFieldProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => void;
   error?: string;
+  helperText?: string;
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'search' | 'none';
 }
 
 const InputField: React.FC<InputFieldProps> = ({
-  label, name, type = "text", placeholder, required = false, options = [], value, onChange, onBlur, error
+  label, name, type = "text", placeholder, required = false, options = [], value, onChange, onBlur, error, helperText, inputMode
 }) => {
   const isError = !!error;
 
   return (
     <div className="space-y-1.5 min-h-[85px]">
-      <label className="text-sm font-semibold text-blue-200/80">
-        {label} {required && <span className="text-red-400">*</span>}
+      <label className="text-sm font-semibold text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
 
       {type === 'select' ? (
@@ -41,11 +43,13 @@ const InputField: React.FC<InputFieldProps> = ({
             value={value}
             onChange={onChange}
             onBlur={onBlur}
-            className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none bg-white/5 text-white ${isError ? 'border-red-500 focus:ring-2 focus:ring-red-400/30' : 'border-white/10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}`}
+            className={`w-full p-3 border rounded-lg outline-none transition-all appearance-none ${
+              isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+            }`}
           >
-            <option value="" className="bg-[#111827] text-gray-300">Select {label}</option>
+            <option value="">Select {label}</option>
             {options.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-[#111827] text-white">{opt.label}</option>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
           <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">
@@ -60,61 +64,115 @@ const InputField: React.FC<InputFieldProps> = ({
           onChange={onChange}
           onBlur={onBlur}
           placeholder={placeholder}
-          maxLength={name === 'mobile' ? 11 : undefined}
-          className={`w-full p-3 border rounded-lg outline-none transition-all bg-white/5 text-white placeholder-gray-500 ${isError ? 'border-red-500 focus:ring-2 focus:ring-red-400/30' : 'border-white/10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50'}`}
+          inputMode={inputMode}
+          maxLength={name === 'mobile' ? 11 : name === 'birthday' ? 10 : undefined}
+          className={`w-full p-3 border rounded-lg outline-none transition-all ${
+            isError ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'
+          }`}
         />
       )}
 
-      <div className={`flex items-center gap-1 text-red-400 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
-        <AlertCircle className="w-3 h-3" /> {error || "Error"}
+      {helperText && !isError && (
+        <p className="text-[11px] text-gray-400">{helperText}</p>
+      )}
+
+      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${isError ? 'opacity-100' : 'opacity-0'}`}>
+        <AlertCircle className="w-3 h-3 flex-shrink-0" /> {error || "Error"}
       </div>
     </div>
   );
 };
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  // --- MATH CAPTCHA STATE ---
-  const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
-  const [captchaInput, setCaptchaInput] = useState('');
+  const DRAFT_KEY = 'bcp_alumni_register_draft_v2';
 
-  useEffect(() => {
-    generateCaptcha();
-  }, []);
-
-  const generateCaptcha = () => {
-    const n1 = Math.floor(Math.random() * 10) + 1;
-    const n2 = Math.floor(Math.random() * 10) + 1;
-    setCaptcha({ num1: n1, num2: n2, answer: (n1 + n2).toString() });
-    setCaptchaInput('');
-  };
-
-  // Form Data (no password fields)
-  const [formData, setFormData] = useState({
-    firstName: '', lastName: '', middleName: '', suffix: '',
-    birthday: '', email: '', mobile: '',
-    batchYear: '', course: '',
-    adviserName: '', section: '', studentId: '',
-    subscriptionPlan: '',
-    agreedToPrivacy: false,
+  // Form Data (persisted in localStorage so session never loses inputs)
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          firstName: parsed.firstName || '',
+          lastName: parsed.lastName || '',
+          middleName: parsed.middleName || '',
+          suffix: parsed.suffix || '',
+          birthday: parsed.birthday || '',
+          email: parsed.email || '',
+          mobile: parsed.mobile || '',
+          password: '',
+          confirmPassword: '',
+          batchYear: parsed.batchYear || '',
+          course: parsed.course || '',
+          adviserName: parsed.adviserName || '',
+          section: parsed.section || '',
+          studentId: parsed.studentId || '',
+          agreedToPrivacy: Boolean(parsed.agreedToPrivacy),
+        };
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      firstName: '', lastName: '', middleName: '', suffix: '',
+      birthday: '', email: '', mobile: '',
+      password: '', confirmPassword: '',
+      batchYear: '', course: '',
+      adviserName: '', section: '', studentId: '',
+      agreedToPrivacy: false,
+    };
   });
 
-  // File upload state
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState('');
+  // Auto-save form draft to localStorage (safe: no passwords)
+  useEffect(() => {
+    try {
+      const { password, confirmPassword, ...safeDraft } = formData;
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(safeDraft));
+    } catch {
+      // ignore
+    }
+  }, [formData]);
 
   const [errors, setErrors] = useState<Errors>({});
+  const [passStrength, setPassStrength] = useState(0);
+  const [passFeedback, setPassFeedback] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [copiedChar, setCopiedChar] = useState('');
   const [lastValidationToastKey, setLastValidationToastKey] = useState('');
+  const [cooldown, setCooldown] = useState(0);
 
-  // Regex patterns for strict validation
-  const NAME_REGEX = /^[A-Za-zÑñ\s.'-]*$/;  // Letters, ñ, spaces, dots, hyphens, apostrophes
+  // Live real-time cooldown countdown ticker
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  useEffect(() => {
+    const p = formData.password;
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[a-z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    setPassStrength(score);
+    if (score === 0) setPassFeedback('');
+    else if (score <= 2) setPassFeedback('Weak');
+    else if (score <= 4) setPassFeedback('Fair');
+    else setPassFeedback('Strong');
+  }, [formData.password]);
+
+  // Strict regex patterns
+  const NAME_REGEX = /^[A-Za-z\u00C0-\u024F\s.'-]*$/;
   const DIGITS_ONLY = /^[0-9]*$/;
   const EMAIL_REGEX = /\S+@\S+\.\S+/;
 
@@ -131,7 +189,8 @@ const Register: React.FC = () => {
     section: 'Section Number',
     studentId: 'Student Number',
     email: 'Email Address',
-    subscriptionPlan: 'Subscription Plan',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
     agreedToPrivacy: 'Data Privacy Consent'
   };
 
@@ -156,11 +215,21 @@ const Register: React.FC = () => {
       case 'firstName':
       case 'lastName':
         return trimmedValue ? '' : `${FIELD_LABELS[fieldName]} is required`;
-      case 'birthday':
-        return value ? '' : 'Birthday is required';
+      case 'birthday': {
+        if (!trimmedValue) return 'Birthday is required';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+          return 'Please enter birthday in YYYY-MM-DD format (e.g. 2001-10-24)';
+        }
+        const [y, m, d] = trimmedValue.split('-').map(Number);
+        const currentYear = new Date().getFullYear();
+        if (y < 1940 || y > currentYear - 15) return `Birth year must be between 1940 and ${currentYear - 15}`;
+        if (m < 1 || m > 12) return 'Invalid month (01-12)';
+        if (d < 1 || d > 31) return 'Invalid day (01-31)';
+        return '';
+      }
       case 'mobile':
         if (!trimmedValue) return 'Mobile number is required';
-        return value.length === 11 ? '' : 'Mobile number must be 11 digits';
+        return value.length === 11 ? '' : 'Mobile number must be 11 digits (09xxxxxxxxx)';
       case 'course':
         return value ? '' : 'Please select a course';
       case 'batchYear':
@@ -172,8 +241,11 @@ const Register: React.FC = () => {
       case 'email':
         if (!trimmedValue) return 'Email is required';
         return EMAIL_REGEX.test(value) ? '' : 'Invalid email format';
-      case 'subscriptionPlan':
-        return value ? '' : 'Please select a subscription plan';
+      case 'password':
+        if (!value) return 'Password is required';
+        return passStrength < 3 ? 'Password is too weak' : '';
+      case 'confirmPassword':
+        return value === formData.password ? '' : 'Passwords do not match';
       default:
         return '';
     }
@@ -200,13 +272,35 @@ const Register: React.FC = () => {
       return;
     }
 
+    // Birthday: Pure numbers typed, auto-inserts hyphens (YYYY-MM-DD)
+    if (name === 'birthday') {
+      const isDeleting = value.length < formData.birthday.length;
+      let digits = value.replace(/\D/g, '').slice(0, 8);
+
+      // If user backspaced past a hyphen, also delete the preceding number
+      if (isDeleting && formData.birthday.endsWith('-') && !value.endsWith('-')) {
+        digits = digits.slice(0, -1);
+      }
+
+      let formatted = digits;
+      if (digits.length > 4 && digits.length <= 6) {
+        formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+      } else if (digits.length > 6) {
+        formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+      }
+
+      setFormData(prev => ({ ...prev, birthday: formatted }));
+      if (errors.birthday) setErrors(prev => ({ ...prev, birthday: '' }));
+      return;
+    }
+
     // STRICT INPUT FILTERING
     // Name fields: block numbers
     if (['firstName', 'lastName', 'middleName', 'suffix', 'adviserName'].includes(name)) {
-      if (!NAME_REGEX.test(value)) return; // silently block invalid chars
+      if (!NAME_REGEX.test(value)) return;
     }
 
-    // Mobile & Section: digits only
+    // Mobile & Section & StudentId: digits only
     if (name === 'mobile' || name === 'section' || name === 'studentId') {
       if (!DIGITS_ONLY.test(value)) return;
     }
@@ -223,87 +317,57 @@ const Register: React.FC = () => {
     setTimeout(() => setCopiedChar(''), 1500);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    setFileError('');
-
-    if (!file) {
-      setReceiptFile(null);
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      setFileError('File size exceeds 100MB limit.');
-      showToast({ type: 'error', title: 'File Too Large', message: 'Receipt file must be under 100MB.' });
-      setReceiptFile(null);
-      return;
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      setFileError('Only JPG, PNG, WebP, GIF, or PDF files are accepted.');
-      showToast({ type: 'error', title: 'Invalid File Type', message: 'Only image or PDF files allowed.' });
-      setReceiptFile(null);
-      return;
-    }
-
-    setReceiptFile(file);
-    showToast({ type: 'success', title: 'File Attached', message: `${file.name} ready to upload.`, durationMs: 2200, silent: true });
-  };
-
-  const removeFile = () => {
-    setReceiptFile(null);
-    setFileError('');
-  };
-
   const checkEmailAvailability = async () => {
     if (!formData.email || !formData.email.includes('@')) return;
     try {
       const { data, error } = await supabase
-        .from('subscription_applications')
+        .from('profiles')
         .select('id')
         .eq('email', formData.email.trim().toLowerCase())
-        .eq('status', 'pending')
         .maybeSingle();
 
-      if (error) {
-        // Table may not exist yet, silently continue
-        return;
-      }
+      if (error) return;
 
       if (data) {
-        setErrors(prev => ({ ...prev, email: "You already have a pending application with this email." }));
-        showToast({ type: 'warning', title: 'Pending Application', message: 'This email already has a pending subscription application.' });
+        setErrors(prev => ({ ...prev, email: "This email is already registered." }));
+        showToast({ type: 'warning', title: 'Email Taken', message: 'This email is already linked to an account.' });
       }
-    } catch (err: any) {
-      // silently continue
+    } catch {
+      // ignore
     }
   };
 
-  const validateForm = (): boolean => {
+  const validateStep = (currentStep: number): boolean => {
     const newErrors: Errors = {};
+    let isValid = true;
 
-    // Personal info
-    if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
-    if (!formData.birthday) newErrors.birthday = 'Birthday is required';
-    if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
-    else if (formData.mobile.length !== 11) newErrors.mobile = 'Mobile number must be 11 digits';
+    if (currentStep === 1) {
+      if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
+      if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
+      if (!formData.birthday.trim()) {
+        newErrors.birthday = 'Birthday is required';
+      } else if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.birthday.trim())) {
+        newErrors.birthday = 'Please use YYYY-MM-DD format (e.g. 2001-10-24)';
+      }
+      if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
+      else if (formData.mobile.length !== 11) newErrors.mobile = 'Mobile number must be 11 digits';
+    }
 
-    // Academic info
-    if (!formData.course) newErrors.course = 'Please select a course';
-    if (!formData.batchYear) newErrors.batchYear = 'Please select a batch year';
-    if (!formData.adviserName.trim()) newErrors.adviserName = 'Adviser name is required';
-    if (!formData.section.trim()) newErrors.section = 'Section is required';
+    if (currentStep === 2) {
+      if (!formData.course) newErrors.course = 'Please select a course';
+      if (!formData.batchYear) newErrors.batchYear = 'Please select a batch year';
+      if (!formData.adviserName.trim()) newErrors.adviserName = 'Adviser name is required';
+      if (!formData.section.trim()) newErrors.section = 'Section is required';
+    }
 
-    // Account info
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!EMAIL_REGEX.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (!formData.subscriptionPlan) newErrors.subscriptionPlan = 'Please select a subscription plan';
-    if (!formData.agreedToPrivacy) newErrors.agreedToPrivacy = 'You must agree to the Data Privacy Policy';
-
-    // Receipt file
-    if (!receiptFile) newErrors.receiptFile = 'Please attach your payment receipt';
+    if (currentStep === 3) {
+      if (!formData.email.trim()) newErrors.email = 'Email is required';
+      else if (!EMAIL_REGEX.test(formData.email)) newErrors.email = 'Invalid email format';
+      if (!formData.password) newErrors.password = 'Password is required';
+      else if (passStrength < 3) newErrors.password = 'Password is too weak';
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+      if (!formData.agreedToPrivacy) newErrors.agreedToPrivacy = 'You must agree to the Data Privacy Policy';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -315,19 +379,44 @@ const Register: React.FC = () => {
             title: 'DPA 2012 Required',
             message: 'You must check the Data Privacy Act of 2012 consent before submitting.'
           });
-        } else if (firstErrorField === 'receiptFile') {
-          showToast({
-            type: 'error',
-            title: 'Receipt Required',
-            message: 'Please attach your payment receipt before submitting.'
-          });
         } else {
           triggerValidationToast(firstErrorField, newErrors[firstErrorField]);
         }
       }
-      return false;
+      isValid = false;
     }
-    return true;
+    return isValid;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep((prev) => prev + 1);
+      showToast({
+        type: 'info',
+        title: 'Step Updated',
+        message: `Moved to Step ${step + 1}.`,
+        durationMs: 2200,
+        silent: true
+      });
+      return;
+    }
+
+    showToast({
+      type: 'error',
+      title: 'Cannot Continue',
+      message: `Please complete required fields in Step ${step} before proceeding.`
+    });
+  };
+
+  const handleBack = () => {
+    setStep((prev) => prev - 1);
+    showToast({
+      type: 'info',
+      title: 'Step Updated',
+      message: `Returned to Step ${Math.max(1, step - 1)}.`,
+      durationMs: 2200,
+      silent: true
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -339,110 +428,171 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Validate all fields
-    if (!validateForm()) return;
+    // Validate Step 3 first
+    if (!validateStep(3)) return;
 
     setLoading(true);
-
-    // Math Captcha Check: strict integer parsing
-    const userCaptchaAnswer = parseInt(captchaInput, 10);
-    const correctCaptchaAnswer = parseInt(captcha.answer, 10);
-    if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== correctCaptchaAnswer) {
-      showToast({ type: 'error', title: 'Wrong Captcha', message: 'Please solve the math problem correctly.' });
-      generateCaptcha();
-      setLoading(false);
-      return;
-    }
-
     const normalizedEmail = formData.email.trim().toLowerCase();
 
     try {
-      // Step 0: Refresh session to prevent stale-session upload hangs
-      try {
-        await supabase.auth.refreshSession();
-      } catch {
-        // Continue even if refresh fails — anonymous submission is fine
+      // Step 1: Check if a profile with this email already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('email, auth_provider, status')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (existingProfile) {
+        if (existingProfile.auth_provider === 'google' || existingProfile.auth_provider === 'linkedin') {
+          throw new Error(`This email is already linked to a ${existingProfile.auth_provider === 'google' ? 'Google' : 'LinkedIn'} account. Please log in using that provider instead.`);
+        }
+        throw new Error("This email is already registered. Please log in instead.");
       }
 
-      // Step 1: Upload receipt file to Supabase Storage bucket (receipts)
-      // Wrapped in a 20s timeout so it never hangs the submit button forever
-      let receiptUrl = '';
-      if (receiptFile) {
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `subscription_receipts/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Step 2: Register with Supabase Auth (with graceful fallback on rate limits)
+      let authUserId: string | null = null;
+      let hitRateLimit = false;
 
-        try {
-          const uploadPromise = supabase.storage
-            .from('receipts')
-            .upload(fileName, receiptFile, { upsert: false });
-
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Upload timed out. Submitting without receipt URL — admin will follow up.')), 20000)
-          );
-
-          const { data: uploadData, error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
-
-          if (uploadError) {
-            // Non-fatal: show warning but continue submission
-            showToast({ type: 'warning', title: 'Receipt Upload Issue', message: `File could not be uploaded: ${uploadError.message}. Your application will still be submitted.` });
-          } else if (uploadData?.path) {
-            const { data: urlData } = supabase.storage
-              .from('receipts')
-              .getPublicUrl(uploadData.path);
-            receiptUrl = urlData.publicUrl;
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
           }
-        } catch (uploadErr: any) {
-          // Timeout or unexpected error — warn but don't block submission
-          showToast({ type: 'warning', title: 'Receipt Upload Skipped', message: uploadErr.message || 'File upload failed. Proceeding with application.' });
+        }
+      });
+
+      if (authError) {
+        if (authError.message?.includes('already registered') || (authError as any).status === 422) {
+          throw new Error('This email already has an account. Please log in instead.');
+        }
+
+        // Supabase Auth rate limiting (e.g. "For security purposes, you can only request this after XX seconds")
+        if (
+          authError.message?.includes('security purposes') ||
+          authError.message?.includes('rate limit') ||
+          authError.message?.includes('after') ||
+          (authError as any).status === 429
+        ) {
+          const match = authError.message.match(/after\s+(\d+)\s+seconds/i);
+          const seconds = match ? parseInt(match[1], 10) : 15;
+          setCooldown(seconds);
+          throw new Error(`Security Cooldown: May security cooldown ang pag-submit. Paki-antay ng ${seconds} segundo (makikita sa button) bago mag-submit muli.`);
+        } else {
+          throw authError;
         }
       }
 
-      // Step 2: Insert into subscription_applications table
-      const applicationPayload = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        middle_name: formData.middleName || null,
-        suffix: formData.suffix || null,
-        birthday: formData.birthday,
-        email: normalizedEmail,
-        mobile_number: formData.mobile,
-        batch_year: String(formData.batchYear),
-        course: formData.course,
-        student_id: formData.studentId || null,
-        adviser_name: formData.adviserName,
-        section: formData.section,
-        subscription_plan: formData.subscriptionPlan,
-        receipt_url: receiptUrl || null,
-        status: 'pending',
-      };
-
-      const { error: insertError } = await supabase
-        .from('subscription_applications')
-        .insert([applicationPayload]);
-
-      if (insertError) {
-        throw new Error(`Submission Error: ${insertError.message}`);
+      if (!authData?.user) {
+        throw new Error('Unable to create user account. Please try again.');
       }
 
-      showToast({ type: 'success', title: 'Application Submitted', message: 'Your subscription application has been sent and is now pending admin approval.' });
-      navigate('/pending-approval', {
+      authUserId = authData.user.id;
+
+      // Step 3: Upsert into profiles table (Official source of truth for Alumni Verification & Admin Dashboard)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const profilePayload = {
+        id: authUserId,
+        email: normalizedEmail,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        middle_name: formData.middleName.trim() || null,
+        suffix: formData.suffix.trim() || null,
+        birthday: formData.birthday.trim(),
+        mobile_number: formData.mobile.trim(),
+        batch_year: String(formData.batchYear),
+        course: formData.course,
+        student_id: formData.studentId.trim() || null,
+        verification_answer: `Adviser: ${formData.adviserName.trim()} | Section: ${formData.section.trim()}`,
+        role: 'alumni',
+        status: 'pending_approval',
+        auth_provider: 'email',
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName)}+${encodeURIComponent(formData.lastName)}&background=random`
+      };
+
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert([profilePayload], { onConflict: 'id' });
+        if (profileError) {
+          console.warn('Profile upsert warning:', profileError.message);
+        }
+      } catch (err) {
+        console.warn('Profile upsert notice:', err);
+      }
+
+      // Step 4: Optional subscription_applications mirror (non-blocking so RLS won't fail registration)
+      try {
+        const { error: subErr } = await supabase
+          .from('subscription_applications')
+          .insert([{
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
+            middle_name: formData.middleName.trim() || null,
+            suffix: formData.suffix.trim() || null,
+            birthday: formData.birthday.trim(),
+            email: normalizedEmail,
+            mobile_number: formData.mobile.trim(),
+            batch_year: String(formData.batchYear),
+            course: formData.course,
+            student_id: formData.studentId.trim() || null,
+            adviser_name: formData.adviserName.trim(),
+            section: formData.section.trim(),
+            subscription_plan: 'Standard Alumni',
+            status: 'pending'
+          }]);
+
+        if (subErr) {
+          console.warn('Subscription application table note (RLS):', subErr.message);
+        }
+      } catch (subErr) {
+        console.warn('Subscription application table note:', subErr);
+      }
+
+      // Clear draft since submission is successful
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // ignore
+      }
+
+      // Sign out auth session so unapproved users don't access portal directly
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+
+      showToast({ 
+        type: 'success', 
+        title: 'Application Submitted', 
+        message: 'Your record was saved and is now pending admin verification.' 
+      });
+
+      navigate('/pending-approval', { 
         replace: true,
-        state: { name: `${formData.firstName} ${formData.lastName}`, email: normalizedEmail }
+        state: { name: `${formData.firstName.trim()} ${formData.lastName.trim()}`, email: normalizedEmail }
       });
 
     } catch (error: any) {
-      showToast({ type: 'error', title: 'Submission Failed', message: error.message || 'Unable to submit your application.' });
+      if (error.message?.includes('already') || error.message?.includes('linked') || error.status === 422) {
+        showToast({ type: 'error', title: 'Account Exists', message: error.message || 'This email is taken. Please Log In.' });
+      } else if (error.message?.includes('Security Cooldown')) {
+        showToast({ type: 'warning', title: 'Security Cooldown', message: error.message });
+      } else {
+        showToast({ type: 'error', title: 'Registration Failed', message: error.message || 'Unable to complete registration.' });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
-    <div className="min-h-screen bg-[#0a0c18] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[500px] bg-blue-600/8 rounded-full blur-[120px] pointer-events-none" />
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="bg-white w-full max-w-5xl min-h-[700px] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative z-10">
 
         {/* Left Side (Dark Blue Card) */}
         <div className="md:w-1/3 bg-gray-900 p-8 text-white flex flex-col relative overflow-hidden">
@@ -452,281 +602,307 @@ const Register: React.FC = () => {
               <span className="font-bold text-lg tracking-wide">BCP ALUMNI</span>
             </Link>
             <div className="mb-8 md:mb-0">
-              <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Subscribe Now.</h2>
-              <p className="text-blue-200 text-sm leading-relaxed">Join the official BCP alumni network. Fill out the form and attach your payment receipt to get started.</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-4">Welcome Home.</h2>
+              <p className="text-blue-200 text-sm leading-relaxed">Join the official alumni network. Verify your records securely.</p>
             </div>
 
             <div className="relative z-10 mt-6 md:mt-16 flex md:flex-col justify-between md:justify-start gap-0 md:gap-8">
+              <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-800 -z-10 md:w-0.5 md:h-full md:left-5 md:top-0 md:right-auto"></div>
               {[
-                { title: 'Personal Info', icon: User, desc: 'Name, birthday, contact' },
-                { title: 'Academic Info', icon: BookOpen, desc: 'Course, batch, adviser' },
-                { title: 'Plan & Receipt', icon: Upload, desc: 'Choose plan, attach proof' },
-              ].map((s, idx) => (
-                <div key={idx} className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-blue-600 border-blue-600 text-white">
-                    <s.icon className="w-5 h-5" />
+                { id: 1, title: 'Personal', icon: User },
+                { id: 2, title: 'Academic', icon: BookOpen },
+                { id: 3, title: 'Security', icon: Lock },
+              ].map((s) => {
+                const isActive = step === s.id;
+                const isCompleted = step > s.id;
+                return (
+                  <div key={s.id} className={`flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 transition-all duration-300 ${isActive ? 'md:translate-x-2' : ''}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 relative z-10 bg-gray-900 
+                       ${isActive ? 'border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-110' : isCompleted ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-700 text-gray-500'}`}>
+                      {isCompleted ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                    </div>
+                    <div className={`flex flex-col items-center md:items-start ${isActive ? 'opacity-100' : 'opacity-60'} hidden md:flex`}>
+                      <span className="text-sm font-bold uppercase tracking-wider">{s.title}</span>
+                      <span className="text-xs text-gray-400">Step {s.id}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center md:items-start hidden md:flex">
-                    <span className="text-sm font-bold uppercase tracking-wider">{s.title}</span>
-                    <span className="text-xs text-gray-400">{s.desc}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20 pointer-events-none" />
         </div>
 
         {/* Right Side: Form Area */}
-        <div className="md:w-2/3 p-6 md:p-10 bg-[#0d1117] flex flex-col overflow-y-auto max-h-[90vh]">
-          <div className="mb-6">
-            <h3 className="text-2xl font-bold text-white">Subscription Application</h3>
-            <p className="text-sm text-blue-200/50 mt-1">Complete all fields below to submit your subscription application.</p>
+        <div className="md:w-2/3 p-6 md:p-12 bg-gray-50 flex flex-col">
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-gray-900">
+              {step === 1 && "Basic Information"}
+              {step === 2 && "Verification Details"}
+              {step === 3 && "Account Security"}
+            </h3>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-            <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between">
+            <div className="space-y-4">
 
-              {/* ═══ SECTION 1: PERSONAL INFO ═══ */}
-              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <User className="w-5 h-5 text-blue-400" />
-                  <h4 className="text-sm font-black text-blue-200/80 uppercase tracking-wider">Personal Information</h4>
-                </div>
-
-                {/* ñ/Ñ Helper */}
-                <div className="flex items-center gap-2 p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                  <span className="text-xs text-blue-300 font-medium">May ñ/Ñ sa name mo?</span>
-                  <button type="button" onClick={() => handleCopyChar('ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'ñ' ? 'bg-green-500 text-white' : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'}`}>
-                    {copiedChar === 'ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'ñ'}
-                  </button>
-                  <button type="button" onClick={() => handleCopyChar('Ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'Ñ' ? 'bg-green-500 text-white' : 'bg-white/10 border border-white/20 text-blue-200 hover:bg-white/20'}`}>
-                    {copiedChar === 'Ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'Ñ'}
-                  </button>
-                  <span className="text-[10px] text-blue-300/50 ml-1">Click to copy, then paste (Ctrl+V)</span>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.firstName} required placeholder="Letters only" />
-                  <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.lastName} required placeholder="Letters only" />
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Optional (letters only)" />
-                  <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Jr., III, etc." />
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField type="date" label="Birthday" name="birthday" value={formData.birthday} onChange={handleChange} onBlur={handleFieldBlur} error={errors.birthday} required />
-                  <InputField type="tel" label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleFieldBlur} error={errors.mobile} required placeholder="09xxxxxxxxx (digits only)" />
-                </div>
-                <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} onBlur={(e) => {
-                  handleFieldBlur(e);
-                  checkEmailAvailability();
-                }} error={errors.email} required placeholder="active@email.com" />
-              </div>
-
-              {/* ═══ SECTION 2: ACADEMIC INFO ═══ */}
-              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <BookOpen className="w-5 h-5 text-blue-400" />
-                  <h4 className="text-sm font-black text-blue-200/80 uppercase tracking-wider">Academic Verification</h4>
-                </div>
-
-                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-3 mb-2">
-                  <HelpCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                  <p className="text-xs text-blue-200/80 leading-relaxed">
-                    <strong>Manual Verification:</strong> Our Registrar will check your details against the physical records.
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField
-                    type="select"
-                    label="Course"
-                    name="course"
-                    required
-                    value={formData.course}
-                    onChange={handleChange}
-                    onBlur={handleFieldBlur}
-                    error={errors.course}
-                    options={[
-                      { value: 'BSIT', label: 'BS Information Technology' },
-                      { value: 'BSCS', label: 'BS Computer Science' },
-                      { value: 'BSBA', label: 'BS Business Administration' },
-                      { value: 'BSHM', label: 'BS Hospitality Management' },
-                      { value: 'BSTM', label: 'BS Tourism Management' },
-                      { value: 'BSOA', label: 'BS Office Administration' },
-                      { value: 'BSCrim', label: 'BS Criminology' },
-                      { value: 'BSEd', label: 'BS Education' },
-                      { value: 'BSPsych', label: 'BS Psychology' },
-                      { value: 'BSA', label: 'BS Accountancy' },
-                      { value: 'BSEntrep', label: 'BS Entrepreneurship' },
-                      { value: 'BSRealEstate', label: 'BS Real Estate Management' },
-                      { value: 'BSCustoms', label: 'BS Customs Administration' },
-                    ]}
-                  />
-                  <InputField
-                    type="select"
-                    label="Year Graduated"
-                    name="batchYear"
-                    required
-                    value={formData.batchYear}
-                    onChange={handleChange}
-                    onBlur={handleFieldBlur}
-                    error={errors.batchYear}
-                    options={Array.from({ length: 31 }, (_, i) => ({ value: 2026 - i, label: 2026 - i }))}
-                  />
-                </div>
-                <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Optional — digits only (e.g. 1900123)" />
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
-                  <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} onBlur={handleFieldBlur} error={errors.section} required placeholder="Digits only (e.g. 4101)" />
-                </div>
-              </div>
-
-              {/* ═══ SECTION 3: SUBSCRIPTION PLAN & RECEIPT ═══ */}
-              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Upload className="w-5 h-5 text-blue-400" />
-                  <h4 className="text-sm font-black text-blue-200/80 uppercase tracking-wider">Subscription &amp; Payment</h4>
-                </div>
-
-                <InputField
-                  type="select"
-                  label="Subscription Plan"
-                  name="subscriptionPlan"
-                  required
-                  value={formData.subscriptionPlan}
-                  onChange={handleChange}
-                  onBlur={handleFieldBlur}
-                  error={errors.subscriptionPlan}
-                  options={[
-                    { value: 'MONTHLY', label: 'Monthly Plan' },
-                    { value: 'SEMI_ANNUAL', label: 'Semi-Annual Plan' },
-                    { value: 'ANNUAL', label: 'Annual Plan' },
-                    { value: 'LIFETIME', label: 'Lifetime Plan' },
-                  ]}
-                />
-
-                {/* File Upload Area */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-blue-200/80">
-                    Payment Receipt <span className="text-red-400">*</span>
-                  </label>
-
-                  {!receiptFile ? (
-                    <label
-                      htmlFor="receipt-upload"
-                      className={`flex flex-col items-center justify-center w-full p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-blue-500/10 hover:border-blue-500/50 ${errors.receiptFile ? 'border-red-500/50 bg-red-500/10' : 'border-white/20 bg-white/5'}`}
-                    >
-                      <Upload className={`w-10 h-10 mb-3 ${errors.receiptFile ? 'text-red-400' : 'text-blue-400/60'}`} />
-                      <p className="text-sm font-semibold text-blue-200/70">Click to upload your payment receipt</p>
-                      <p className="text-xs text-blue-300/40 mt-1">JPG, PNG, WebP, GIF, or PDF • Max 100MB</p>
-                      <input
-                        id="receipt-upload"
-                        type="file"
-                        className="hidden"
-                        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                  ) : (
-                    <div className="flex items-center gap-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                      <div className="p-3 bg-emerald-100 rounded-lg">
-                        <FileText className="w-6 h-6 text-emerald-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-emerald-800 truncate">{receiptFile.name}</p>
-                        <p className="text-xs text-emerald-600">{(receiptFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                      <button type="button" onClick={removeFile} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Remove file">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  )}
-
-                  {fileError && (
-                    <div className="flex items-center gap-1 text-red-500 text-xs">
-                      <AlertCircle className="w-3 h-3" /> {fileError}
-                    </div>
-                  )}
-                  {errors.receiptFile && !fileError && (
-                    <div className="flex items-center gap-1 text-red-500 text-xs">
-                      <AlertCircle className="w-3 h-3" /> {errors.receiptFile}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ═══ SECTION 4: CONSENT & CAPTCHA ═══ */}
-              <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    name="agreedToPrivacy"
-                    checked={formData.agreedToPrivacy}
-                    onChange={handleChange}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <label htmlFor="terms" className="text-sm text-blue-200/70 cursor-pointer select-none">
-                    I have read and agree to the <button type="button" onClick={() => {
-                      setShowPrivacyModal(true);
-                      showToast({ type: 'info', title: 'Policy Opened', message: 'Please review the Data Privacy Act of 2012 before checking consent.', silent: true });
-                    }} className="text-blue-400 font-semibold hover:underline">Data Privacy Policy</button>.
-                  </label>
-                </div>
-                <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
-                  {errors.agreedToPrivacy || "Required"}
-                </div>
-
-                {/* MATH CAPTCHA */}
-                <div className="pt-4 border-t border-white/10 mt-4">
-                  <label className="block text-sm font-semibold text-blue-200/80 mb-2">
-                    Security Check: What is {captcha.num1} + {captcha.num2}?
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="number"
-                      value={captchaInput}
-                      onChange={(e) => setCaptchaInput(e.target.value)}
-                      className="w-full p-3 border border-white/10 bg-white/5 text-white placeholder-gray-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50"
-                      placeholder="Enter answer"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        generateCaptcha();
-                        showToast({ type: 'info', title: 'Captcha Refreshed', message: 'A new security challenge has been generated.', durationMs: 2200, silent: true });
-                      }}
-                      className="p-3 bg-white/10 rounded-lg text-blue-300 hover:bg-white/20 transition-colors"
-                      title="Refresh Captcha"
-                    >
-                      <RefreshCw className="w-5 h-5" />
+              {/* STEP 1 */}
+              {step === 1 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  {/* ñ/Ñ Helper */}
+                  <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                    <span className="text-xs text-amber-700 font-medium">May ñ/Ñ sa name mo?</span>
+                    <button type="button" onClick={() => handleCopyChar('ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'ñ' ? 'bg-green-500 text-white' : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'}`}>
+                      {copiedChar === 'ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'ñ'}
                     </button>
+                    <button type="button" onClick={() => handleCopyChar('Ñ')} className={`px-2.5 py-1 rounded-md text-sm font-bold transition-all ${copiedChar === 'Ñ' ? 'bg-green-500 text-white' : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'}`}>
+                      {copiedChar === 'Ñ' ? <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Copied!</span> : 'Ñ'}
+                    </button>
+                    <span className="text-[10px] text-amber-500 ml-1">Click to copy, then paste (Ctrl+V)</span>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.firstName} required placeholder="Letters only" />
+                    <InputField label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.lastName} required placeholder="Letters only" />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Optional (letters only)" />
+                    <InputField label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Jr., III, etc." />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField
+                      type="text"
+                      inputMode="numeric"
+                      label="Birthday"
+                      name="birthday"
+                      value={formData.birthday}
+                      onChange={handleChange}
+                      onBlur={handleFieldBlur}
+                      error={errors.birthday}
+                      required
+                      placeholder="YYYY-MM-DD (hal. 2001-10-24)"
+                      helperText="Numero lang ang i-type (hal. 20011024), kusa itong maglalagay ng '-'"
+                    />
+                    <InputField type="tel" label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} onBlur={handleFieldBlur} error={errors.mobile} required placeholder="09xxxxxxxxx (digits only)" />
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* STEP 2 */}
+              {step === 2 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex gap-3 mb-2">
+                    <HelpCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <p className="text-xs text-blue-800 leading-relaxed">
+                      <strong>Manual Verification:</strong> Our Registrar will check your details against the physical records.
+                    </p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField
+                      type="select"
+                      label="Course"
+                      name="course"
+                      required
+                      value={formData.course}
+                      onChange={handleChange}
+                      onBlur={handleFieldBlur}
+                      error={errors.course}
+                      options={[
+                        { value: 'BSIT', label: 'BS Information Technology' },
+                        { value: 'BSCS', label: 'BS Computer Science' },
+                        { value: 'BSBA', label: 'BS Business Administration' },
+                        { value: 'BSHM', label: 'BS Hospitality Management' },
+                        { value: 'BSTM', label: 'BS Tourism Management' },
+                        { value: 'BSOA', label: 'BS Office Administration' },
+                        { value: 'BSCrim', label: 'BS Criminology' },
+                        { value: 'BSEd', label: 'BS Education' },
+                        { value: 'BSPsych', label: 'BS Psychology' },
+                        { value: 'BSA', label: 'BS Accountancy' },
+                        { value: 'BSEntrep', label: 'BS Entrepreneurship' },
+                        { value: 'BSRealEstate', label: 'BS Real Estate Management' },
+                        { value: 'BSCustoms', label: 'BS Customs Administration' },
+                      ]}
+                    />
+                    <InputField
+                      type="select"
+                      label="Year Graduated"
+                      name="batchYear"
+                      required
+                      value={formData.batchYear}
+                      onChange={handleChange}
+                      onBlur={handleFieldBlur}
+                      error={errors.batchYear}
+                      options={Array.from({ length: 31 }, (_, i) => ({ value: 2026 - i, label: 2026 - i }))}
+                    />
+                  </div>
+                  <InputField label="Student Number" name="studentId" value={formData.studentId} onChange={handleChange} onBlur={handleFieldBlur} placeholder="Optional — digits only (e.g. 1900123)" />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField label="Thesis Adviser" name="adviserName" value={formData.adviserName} onChange={handleChange} onBlur={handleFieldBlur} error={errors.adviserName} required placeholder="e.g. Sir Pontillas" />
+                    <InputField label="Section Number" name="section" value={formData.section} onChange={handleChange} onBlur={handleFieldBlur} error={errors.section} required placeholder="Digits only (e.g. 4101)" />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 */}
+              {step === 3 && (
+                <div className="animate-in fade-in slide-in-from-right-8 duration-300 space-y-4">
+                  <InputField type="email" label="Email Address" name="email" value={formData.email} onChange={handleChange} onBlur={(e) => {
+                    handleFieldBlur(e);
+                    checkEmailAvailability();
+                  }} error={errors.email} required placeholder="active@email.com" />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 min-h-[85px]">
+                      <label className="text-sm font-semibold text-gray-700">Password <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          onBlur={handleFieldBlur}
+                          autoComplete="new-password"
+                          className={`w-full p-3 pr-10 border rounded-lg outline-none transition-all ${errors.password ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'}`}
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${errors.password ? 'opacity-100' : 'opacity-0'}`}>
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" /> {errors.password || "Error"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 min-h-[85px]">
+                      <label className="text-sm font-semibold text-gray-700">Confirm Password <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          onBlur={handleFieldBlur}
+                          autoComplete="new-password"
+                          className={`w-full p-3 pr-10 border rounded-lg outline-none transition-all ${errors.confirmPassword ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-200' : 'border-gray-300 focus:ring-2 focus:ring-blue-600'}`}
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          title={showConfirmPassword ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <div className={`flex items-center gap-1 text-red-500 text-xs transition-opacity duration-200 ${errors.confirmPassword ? 'opacity-100' : 'opacity-0'}`}>
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" /> {errors.confirmPassword || "Error"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PASSWORD REQUIREMENTS CHECKLIST */}
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-1.5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Password Requirements</p>
+                    {[
+                      { label: 'At least 8 characters', met: formData.password.length >= 8 },
+                      { label: 'At least 1 uppercase letter (A-Z)', met: /[A-Z]/.test(formData.password) },
+                      { label: 'At least 1 lowercase letter (a-z)', met: /[a-z]/.test(formData.password) },
+                      { label: 'At least 1 number (0-9)', met: /[0-9]/.test(formData.password) },
+                      { label: 'At least 1 special character (!@#$%...)', met: /[^A-Za-z0-9]/.test(formData.password) },
+                    ].map((req, i) => (
+                      <div key={i} className={`flex items-center gap-2 text-xs font-medium transition-colors ${req.met ? 'text-green-600' : 'text-gray-400'}`}>
+                        {req.met ? <CheckCircle2 className="w-3.5 h-3.5" /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300" />}
+                        {req.label}
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200">
+                      <span className="text-xs text-gray-500 font-semibold">Strength:</span>
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-300 ${passStrength === 0 ? 'w-0' : passStrength <= 2 ? 'w-1/3 bg-red-500' : passStrength <= 4 ? 'w-2/3 bg-yellow-500' : 'w-full bg-green-500'}`} />
+                      </div>
+                      <span className={`text-xs font-bold ${passFeedback === 'Strong' ? 'text-green-600' : passFeedback === 'Weak' ? 'text-red-500' : 'text-yellow-600'}`}>{passFeedback}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 min-h-[50px]">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="terms"
+                        name="agreedToPrivacy"
+                        checked={formData.agreedToPrivacy}
+                        onChange={handleChange}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
+                        I have read and agree to the{' '}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1"
+                          title="Open full Data Privacy Policy in a new tab"
+                        >
+                          Data Privacy Policy <ExternalLink className="w-3.5 h-3.5 inline text-blue-600" />
+                        </a>.
+                      </label>
+                    </div>
+                    <div className={`ml-7 text-red-500 text-xs mt-1 transition-opacity ${errors.agreedToPrivacy ? 'opacity-100' : 'opacity-0'}`}>
+                      {errors.agreedToPrivacy || "Required"}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* SUBMIT BUTTON & FOOTER LINKS */}
-            <div className="mt-8">
-              <div className="flex items-center justify-between pt-6 border-t border-white/10">
-                <div />
-                <button type="submit" disabled={loading} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <>Submit Application <CheckCircle className="w-4 h-4" /></>}
-                </button>
+            {/* BUTTONS AND FOOTER LINKS */}
+            <div className="mt-auto">
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                {step > 1 ? (
+                  <button type="button" onClick={handleBack} className="flex items-center gap-2 text-gray-600 font-medium hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                ) : <div />}
+
+                {step < 3 ? (
+                  <button type="button" onClick={handleNext} className="flex items-center gap-2 bg-blue-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    Next Step <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading || cooldown > 0}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                    ) : cooldown > 0 ? (
+                      <><RefreshCw className="w-4 h-4 animate-spin" /> Wait {cooldown}s to Submit</>
+                    ) : (
+                      <>Submit Application <CheckCircle className="w-4 h-4" /></>
+                    )}
+                  </button>
+                )}
               </div>
 
-              <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-blue-200/50">
+              <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   Already have an account?
-                  <Link to="/login" className="text-blue-400 font-semibold hover:underline flex items-center gap-1">
+                  <Link to="/login" className="text-blue-600 font-semibold hover:underline flex items-center gap-1">
                     Log in <LogIn className="w-3 h-3" />
                   </Link>
                 </div>
 
-                <Link to="/" className="text-blue-300/40 hover:text-blue-300 flex items-center gap-1 transition-colors">
+                <Link to="/" className="text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors">
                   <Home className="w-3 h-3" /> Back to Home
                 </Link>
               </div>
@@ -735,50 +911,6 @@ const Register: React.FC = () => {
           </form>
         </div>
       </div>
-
-      {/* DATA PRIVACY MODAL */}
-      {showPrivacyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <div className="flex items-center gap-2 text-blue-900">
-                <Shield className="w-6 h-6" />
-                <h3 className="text-xl font-bold">Data Privacy Act</h3>
-              </div>
-              <button onClick={() => setShowPrivacyModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
-              <p>
-                <strong>Republic Act No. 10173</strong>, also known as the Data Privacy Act of 2012, protects individuals from unauthorized processing of personal information.
-              </p>
-              <p>
-                By submitting this form, you consent to the collection, generation, use, processing, storage, and retention of your personal data by <strong>Bestlink College of the Philippines</strong> for the purpose of:
-              </p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Alumni record verification and validation.</li>
-                <li>Communication regarding alumni events and career opportunities.</li>
-                <li>Statistical analysis and tracer studies.</li>
-              </ul>
-            </div>
-
-            <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={() => {
-                  setFormData({ ...formData, agreedToPrivacy: true });
-                  setErrors({ ...errors, agreedToPrivacy: '' });
-                  setShowPrivacyModal(false);
-                }}
-                className="w-full bg-blue-900 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition-colors"
-              >
-                I Understand & Agree
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

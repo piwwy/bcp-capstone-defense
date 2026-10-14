@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { supabase, SUPABASE_STORAGE_KEY, refreshSupabaseSessionSafely } from '../services/supabaseClient';
 import { logAudit, logLogout, AUDIT_ACTIONS } from '../services/auditLogger';
 
 // User type definition
@@ -20,12 +20,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const clearAppClientStorage = () => {
-  // Avoid wiping unrelated app cache/settings; clear only auth/session keys.
+  // Clear only auth/session keys — preserve general non-auth app caches
   try {
     localStorage.removeItem(SUPABASE_STORAGE_KEY);
     localStorage.removeItem('user_role');
@@ -39,9 +40,10 @@ const clearAppClientStorage = () => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
-  const hasInitializedRef = React.useRef(false);
-  const requestIdRef = React.useRef(0);
-  const userRef = React.useRef<User | null>(null);
+  const hasInitializedRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const userRef = useRef<User | null>(null);
+  const isRefreshingRef = useRef(false);
 
   useEffect(() => {
     userRef.current = user;
@@ -62,17 +64,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Safety net: never allow infinite loading state.
+  // Safety net: never leave the user permanently hanging in loading state
   useEffect(() => {
     if (status !== 'loading') return;
 
     const timeoutId = window.setTimeout(() => {
       if (userRef.current) {
         setStatus('authenticated');
+      } else if (hasStoredSupabaseSession()) {
+        // Session exists in storage, attempt silent background refresh rather than dropping
+        void resolveSession(null, true);
       } else {
         setStatus('unauthenticated');
       }
-    }, 5000);
+    }, 4500);
 
     return () => window.clearTimeout(timeoutId);
   }, [status]);
@@ -87,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (profileError) {
-        console.error("Profile query error in AuthContext (Metadata fallback triggered):", profileError);
+        console.warn("Profile query note in AuthContext (Falling back to Auth Metadata if needed):", profileError.message);
       }
 
       if (profileData) {
@@ -103,11 +108,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
       }
 
-      // EMERGENCY FALLBACK: Use Auth Metadata if DB fails or profile is missing
+      // EMERGENCY FALLBACK: Use Auth Metadata if profile row is missing
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const metadata = authUser?.user_metadata || {};
-
-      console.warn('Using Auth Metadata as fallback role:', metadata.role);
 
       return {
         id: userId,
@@ -123,18 +126,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const resolveSession = async (sessionUser?: { id: string; email?: string | null } | null, isSilent = false) => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
     const requestId = ++requestIdRef.current;
+
     try {
       if (!isSilent && !hasInitializedRef.current) {
         setStatus('loading');
       }
-      
-let sessionData = (await supabase.auth.getSession()).data.session;
-if (!sessionData) {
-  const refreshRes = await supabase.auth.refreshSession();
-  sessionData = refreshRes.data.session;
-}
-const currentUser = sessionUser ?? sessionData?.user;
+
+      let sessionData = (await supabase.auth.getSession()).data.session;
+      if (!sessionData) {
+        sessionData = await refreshSupabaseSessionSafely();
+      }
+
+      const currentUser = sessionUser ?? sessionData?.user;
       if (currentUser?.id && currentUser.email) {
         const nextUser = await fetchProfile(currentUser.id, currentUser.email);
         if (requestId !== requestIdRef.current) return;
@@ -142,23 +148,24 @@ const currentUser = sessionUser ?? sessionData?.user;
         if (nextUser) {
           setUser(nextUser);
           setStatus('authenticated');
-        } else {
+        } else if (!isSilent) {
           setUser(null);
           setStatus('unauthenticated');
         }
       } else {
-        // During silent checks, never drop an already authenticated UI because of a transient null session.
+        // During silent checks or background renewals, never drop an existing authenticated session!
         if (isSilent && userRef.current) {
           setStatus('authenticated');
           return;
         }
 
-        // On first boot, do a short retry window to prevent refresh race redirects.
+        // On first boot, do a multi-attempt retry window to handle asynchronous local storage hydration
         if (!hasInitializedRef.current || hasStoredSupabaseSession()) {
-          const retryDelaysMs = [200, 450, 800];
+          const retryDelaysMs = [150, 400, 800];
           for (const delay of retryDelaysMs) {
             await new Promise(resolve => setTimeout(resolve, delay));
-            const retryUser = (await supabase.auth.getSession()).data.session?.user;
+            const retrySession = (await supabase.auth.getSession()).data.session || (await refreshSupabaseSessionSafely());
+            const retryUser = retrySession?.user;
             if (retryUser?.id && retryUser.email) {
               const nextUser = await fetchProfile(retryUser.id, retryUser.email);
               if (requestId !== requestIdRef.current) return;
@@ -172,15 +179,17 @@ const currentUser = sessionUser ?? sessionData?.user;
         }
 
         if (requestId !== requestIdRef.current) return;
-        setUser(null);
-        setStatus('unauthenticated');
+        if (!userRef.current) {
+          setUser(null);
+          setStatus('unauthenticated');
+        }
       }
     } catch (err) {
-      console.error('Session sync error:', err);
+      console.warn('Session sync encountered a transient issue:', err);
       if (requestId !== requestIdRef.current) return;
 
-      // Keep existing authenticated state on transient network/auth sync failures.
-      if (isSilent && userRef.current) {
+      // Keep existing authenticated state on transient network/sync interruptions
+      if (userRef.current) {
         setStatus('authenticated');
         return;
       }
@@ -188,6 +197,7 @@ const currentUser = sessionUser ?? sessionData?.user;
       setUser(null);
       setStatus('unauthenticated');
     } finally {
+      isRefreshingRef.current = false;
       hasInitializedRef.current = true;
     }
   };
@@ -195,13 +205,15 @@ const currentUser = sessionUser ?? sessionData?.user;
   useEffect(() => {
     let mounted = true;
 
+    // Initial session resolution
     resolveSession(undefined, false);
 
+    // Active auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       if (event === 'SIGNED_OUT') {
-        // Guard against transient refresh race: if snapshot exists, try re-resolving first.
+        // Guard against transient token renewal events falsely emitting SIGNED_OUT
         if (hasStoredSupabaseSession()) {
           await resolveSession(null, true);
           return;
@@ -212,42 +224,64 @@ const currentUser = sessionUser ?? sessionData?.user;
         return;
       }
 
-      // Keep authenticated UI stable after first load; refresh silently.
-      const isSilentRefresh = hasInitializedRef.current || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED';
+      // Stable silent refresh on token renewals, initial session, and user updates
+      const isSilentRefresh =
+        hasInitializedRef.current ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED' ||
+        event === 'INITIAL_SESSION';
+
       await resolveSession(session?.user || null, isSilentRefresh);
     });
 
-    // Keep session/profile in sync across tab focus and reconnect silently.
-    const handleVisibility = () => {
+    // 1. Tab visibility listener: Re-sync immediately when returning to the tab
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        resolveSession(null, true);
+        await refreshSupabaseSessionSafely();
+        if (mounted) resolveSession(null, true);
       }
     };
-    const handleFocus = () => resolveSession(null, true);
-    const handleOnline = () => resolveSession(null, true);
-    const handleOffline = () => { void logAudit(AUDIT_ACTIONS.NETWORK_OFFLINE, { module: 'Auth', message: 'User went offline' }); };
-    const handleBackOnline = () => {
-      void logAudit(AUDIT_ACTIONS.NETWORK_ONLINE, { module: 'Auth', message: 'User reconnected' });
-      handleOnline();
+
+    // 2. Window focus listener: Keep session hot on window click/focus
+    const handleFocus = async () => {
+      await refreshSupabaseSessionSafely();
+      if (mounted) resolveSession(null, true);
     };
-    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 3. Online/Offline network listeners
+    const handleOnline = async () => {
+      void logAudit(AUDIT_ACTIONS.NETWORK_ONLINE, { module: 'Auth', message: 'Network connection restored' });
+      await refreshSupabaseSessionSafely();
+      if (mounted) resolveSession(null, true);
+    };
+
+    const handleOffline = () => {
+      void logAudit(AUDIT_ACTIONS.NETWORK_OFFLINE, { module: 'Auth', message: 'User went offline' });
+    };
+
+    // 4. Proactive Heartbeat Interval: Automatically refresh token every 8 minutes
+    // (Supabase JWTs typically expire in 60 mins; refreshing every 8 mins guarantees continuous active login)
+    const HEARTBEAT_INTERVAL_MS = 8 * 60 * 1000;
+    const heartbeatTimer = setInterval(async () => {
+      if (userRef.current || hasStoredSupabaseSession()) {
+        await refreshSupabaseSessionSafely();
+        if (mounted) resolveSession(null, true);
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('online', handleBackOnline);
-window.addEventListener('offline', handleOffline);
-// Auto refresh token every 10 minutes to avoid idle expiry
-const tokenRefreshInterval = setInterval(async () => {
-  if (document.visibilityState === 'visible' && userRef.current) {
-    await supabase.auth.refreshSession();
-  }
-}, 10 * 60 * 1000);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(heartbeatTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('online', handleBackOnline);
+      window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(tokenRefreshInterval);
     };
   }, []);
 
@@ -264,6 +298,11 @@ const tokenRefreshInterval = setInterval(async () => {
     }
   };
 
+  const refreshSession = async () => {
+    await refreshSupabaseSessionSafely();
+    await resolveSession(null, true);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -271,7 +310,8 @@ const tokenRefreshInterval = setInterval(async () => {
         status,
         isAuthenticated: status === 'authenticated' && !!user,
         isLoading: status === 'loading',
-        logout
+        logout,
+        refreshSession
       }}
     >
       {children}

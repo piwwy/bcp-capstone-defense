@@ -15,6 +15,7 @@ const Alumni2FA: React.FC = () => {
   const [resending, setResending] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [lockedOut, setLockedOut] = useState(false);
+  const [devOtp, setDevOtp] = useState<string>(() => sessionStorage.getItem('otp_code') || '');
 
   const storedEmail = sessionStorage.getItem('otp_email') || '';
   const storedUserId = sessionStorage.getItem('otp_user_id') || '';
@@ -113,6 +114,8 @@ const Alumni2FA: React.FC = () => {
         sessionStorage.setItem('otp_expiry', newExpiry.toString());
         sessionStorage.setItem('otp_email', session.user.email);
         sessionStorage.setItem('otp_user_id', session.user.id);
+        setDevOtp(newOtp);
+        console.info(`🔑 [BCP OTP Dev Code]: ${newOtp}`);
 
         try {
           const { success, error: emailError } = await EmailService.sendOTPEmail(
@@ -121,11 +124,14 @@ const Alumni2FA: React.FC = () => {
             newOtp
           );
           if (!success) {
-            setError(`Could not send verification code: ${emailError || 'Please try clicking Resend Code'}`);
+            setError(`Could not send verification code to email: ${emailError || 'Please try clicking Resend Code'}`);
           }
         } catch (err: any) {
           setError(`Email service error: ${err.message || err}`);
         }
+      } else if (otpCode) {
+        setDevOtp(otpCode);
+        console.info(`🔑 [BCP OTP Active Code]: ${otpCode}`);
       }
     };
 
@@ -141,6 +147,8 @@ const Alumni2FA: React.FC = () => {
     const newExpiry = Date.now() + 90 * 1000; // 1 minute and 30 seconds
     sessionStorage.setItem('otp_code', newOtp);
     sessionStorage.setItem('otp_expiry', newExpiry.toString());
+    setDevOtp(newOtp);
+    console.info(`🔑 [BCP Resent OTP Dev Code]: ${newOtp}`);
 
     try {
       let firstName = 'Alumni';
@@ -272,7 +280,7 @@ const Alumni2FA: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0c18] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#0a0c18] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans dark-scroll">
       {/* Background ambient glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -313,6 +321,46 @@ const Alumni2FA: React.FC = () => {
               {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
                 <div key={i} className={`w-2 h-2 rounded-full ${i < attempts ? 'bg-red-500' : 'bg-white/20'}`} />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Brevo Diagnostic / Dev Mode OTP Assistant */}
+        {devOtp && (
+          <div className="mb-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-2 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-amber-300">
+                    {error?.includes('API Key is not enabled') ? 'Brevo Key Inactive / Test Code' : 'Dev / Test OTP Code'}
+                  </span>
+                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                    Active Code
+                  </span>
+                </div>
+                <p className="text-amber-200/80 text-[11px] leading-relaxed">
+                  {error?.includes('API Key is not enabled')
+                    ? 'Hindi pa active ang Brevo API Key sa Brevo dashboard. Gamitin ang code na ito para makapasok habang inaayos ang key:'
+                    : 'Narito ang kasalukuyang OTP code para sa mabilisang testing:'}
+                </p>
+                <div className="flex items-center justify-between bg-black/40 px-3 py-1.5 rounded-lg border border-amber-500/25">
+                  <span className="font-mono text-sm font-bold text-amber-300 tracking-widest">
+                    {devOtp}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const digits = devOtp.slice(0, 6).split('');
+                      setCode(digits.concat(Array(6 - digits.length).fill('')));
+                      setError('');
+                    }}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-bold rounded transition-colors shadow-sm"
+                  >
+                    Auto-fill Code
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

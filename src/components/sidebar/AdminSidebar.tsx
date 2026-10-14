@@ -7,7 +7,7 @@ import {
   PieChart, ListPlus, CalendarDays, Newspaper, DollarSign,
   MessageSquare, List, Layers,
   Bot, Settings, MoreVertical, AlertTriangle, Loader2, RefreshCw,
-  ShieldCheck
+  ShieldCheck, FileText
 } from "lucide-react";
 import RoleSwitcherModal from "../modals/RoleSwitcherModal";
 
@@ -61,6 +61,8 @@ const AdminSidebar: React.FC = () => {
     },
     {
       name: "Engagement", icon: MessageSquare, subItems: [
+        { name: "Document Requests", path: "/admin/document-requests", icon: FileText },
+        { name: "Mentorship Directory", path: "/admin/mentorship", icon: Users },
         { name: "Feedback & Surveys", path: "/admin/feedback", icon: MessageSquare },
       ]
     },

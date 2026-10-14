@@ -37,7 +37,7 @@ const DashboardAdmin: React.FC = () => {
   const { data, isLoading: loading, isFetching } = useAdminDashboardStats();
   const { data: employmentStats } = useEmploymentStats();
   const { stats, modules: moduleCounts } = data || {
-    stats: { total: 0, unclaimed: 0, verified: 0, rejected: 0 },
+    stats: { total: 0, unclaimed: 0, verified: 0, rejected: 0, pendingApplications: 0 },
     modules: { events: 0, jobs: 0, campaigns: 0, news: 0 }
   };
 
@@ -52,6 +52,9 @@ const DashboardAdmin: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
         fetchExtraData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscription_applications' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin_dashboard_stats'] });
@@ -213,7 +216,7 @@ const DashboardAdmin: React.FC = () => {
   }
 
   return (
-    <div className="p-8 space-y-8 bg-gray-50/50 min-h-screen animate-in fade-in duration-500">
+    <div className="p-8 space-y-8 animate-in fade-in duration-500">
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-12 shadow-2xl">
         {/* Animated Background Elements */}
@@ -277,6 +280,34 @@ const DashboardAdmin: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Alert: Pending Alumni Registrations */}
+      {((stats as any)?.pendingApplications || 0) > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                New Alumni Registrations Awaiting Review
+                <span className="px-2 py-0.5 text-xs font-black bg-amber-500 text-white rounded-full">
+                  {(stats as any)?.pendingApplications} Pending
+                </span>
+              </h4>
+              <p className="text-xs text-slate-600">
+                May bagong alumni registration at payment receipt na kailangang i-review at i-verify.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/admin/verification?tab=subscriptions"
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+          >
+            Review Applications <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Stats Grid — Module Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
@@ -432,18 +463,22 @@ const DashboardAdmin: React.FC = () => {
           {/* Account Status Breakdown - kept as requested */}
           <div>
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Account Status</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                <p className="text-2xl font-extrabold text-green-700">{stats.verified}</p>
-                <p className="text-xs font-bold text-green-600 mt-1">Verified</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <Link to="/admin/verification" className="bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-xl p-3 text-center transition-colors block">
+                <p className="text-xl font-extrabold text-yellow-700">{(stats as any)?.pending || 0}</p>
+                <p className="text-[11px] font-bold text-yellow-800 mt-1">Pending</p>
+              </Link>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                <p className="text-xl font-extrabold text-green-700">{stats.verified}</p>
+                <p className="text-[11px] font-bold text-green-600 mt-1">Verified</p>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                <p className="text-2xl font-extrabold text-amber-700">{stats.unclaimed}</p>
-                <p className="text-xs font-bold text-amber-600 mt-1">Unclaimed</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                <p className="text-xl font-extrabold text-amber-700">{stats.unclaimed}</p>
+                <p className="text-[11px] font-bold text-amber-600 mt-1">Unclaimed</p>
               </div>
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
-                <p className="text-2xl font-extrabold text-red-700">{stats.rejected}</p>
-                <p className="text-xs font-bold text-red-600 mt-1">Inactive</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                <p className="text-xl font-extrabold text-red-700">{stats.rejected}</p>
+                <p className="text-[11px] font-bold text-red-600 mt-1">Inactive</p>
               </div>
             </div>
           </div>

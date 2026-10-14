@@ -298,7 +298,7 @@ const DonationCollections = () => {
   // ─── SKELETON LOADER ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="p-8 max-w-[1600px] mx-auto space-y-8 bg-gray-50/50 min-h-screen animate-pulse">
+      <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-pulse">
         <div className="flex justify-between items-center">
           <div>
             <div className="h-8 w-64 bg-slate-200 rounded-xl" />
@@ -354,7 +354,7 @@ const DonationCollections = () => {
 
   // ─── MAIN RENDER ──────────────────────────────────────────────────────────
   return (
-    <div className="p-8 max-w-[1600px] mx-auto space-y-8 bg-gray-50/50 min-h-screen">
+    <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-500">
 
       {/* Hero Banner */}
       <div className="relative h-[180px] rounded-[2.5rem] bg-gradient-to-r from-violet-700 via-purple-600 to-fuchsia-700 overflow-hidden shadow-2xl flex items-center px-10">

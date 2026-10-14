@@ -63,6 +63,8 @@ const SuperAdminSidebar: React.FC = () => {
     },
     {
       name: "Engagement", icon: MessageSquare, subItems: [
+        { name: "Document Requests", path: "/superadmin/document-requests", icon: FileText },
+        { name: "Mentorship Directory", path: "/superadmin/mentorship", icon: Users },
         { name: "Feedback & Surveys", path: "/superadmin/feedback", icon: MessageSquare },
       ]
     },

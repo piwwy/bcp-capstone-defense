@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../services/supabaseClient';
+import { supabase, executeWithTokenRefresh } from '../services/supabaseClient';
 
 // ============================================================
 // Reusable hooks for common Supabase queries
-// Uses TanStack Query for caching, deduplication, background refetch
+// Uses TanStack Query with automatic JWT refresh retry interceptor
 // ============================================================
 
 /** Employment status counts used by dashboards (deduplicated) */
 export function useEmploymentStats() {
   return useQuery({
     queryKey: ['employment_stats'],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       // Handle legacy values: self_employed and freelance => group under Self-Employed
       const [
         { count: employed },
@@ -29,7 +29,7 @@ export function useEmploymentStats() {
         unemployed: unemployed || 0,
         student: student || 0,
       };
-    },
+    }),
     staleTime: 20_000,
   });
 }
@@ -39,7 +39,7 @@ export function useModuleCounts(options?: { activeOnly?: boolean }) {
   const activeOnly = options?.activeOnly !== false; // default true
   return useQuery({
     queryKey: ['module_counts', { activeOnly }],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       const eventQuery = supabase.from('alumni_events').select('*', { count: 'exact', head: true });
       const jobsQuery = supabase.from('jobs').select('*', { count: 'exact', head: true });
       const campaignsQuery = supabase.from('donation_campaigns').select('*', { count: 'exact', head: true });
@@ -59,7 +59,7 @@ export function useModuleCounts(options?: { activeOnly?: boolean }) {
         campaigns: campaigns.count || 0,
         news: news.count || 0,
       };
-    },
+    }),
     staleTime: 20_000,
   });
 }
@@ -68,7 +68,7 @@ export function useModuleCounts(options?: { activeOnly?: boolean }) {
 export function useJobs(limit?: number) {
   return useQuery({
     queryKey: ['jobs', 'active', limit],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       let query = supabase
         .from('jobs')
         .select('*')
@@ -78,7 +78,7 @@ export function useJobs(limit?: number) {
       const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
-    },
+    }),
   });
 }
 
@@ -86,7 +86,7 @@ export function useJobs(limit?: number) {
 export function useEvents() {
   return useQuery({
     queryKey: ['alumni_events', 'active'],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       const { data, error } = await supabase
         .from('alumni_events')
         .select('*, event_attendees ( alumni_id )')
@@ -94,7 +94,7 @@ export function useEvents() {
         .order('date', { ascending: true });
       if (error) throw error;
       return data ?? [];
-    },
+    }),
   });
 }
 
@@ -102,7 +102,7 @@ export function useEvents() {
 export function useCampaigns(limit?: number) {
   return useQuery({
     queryKey: ['donation_campaigns', 'active', limit],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       let query = supabase
         .from('donation_campaigns')
         .select('*')
@@ -111,7 +111,7 @@ export function useCampaigns(limit?: number) {
       const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
-    },
+    }),
   });
 }
 
@@ -119,7 +119,7 @@ export function useCampaigns(limit?: number) {
 export function useNewsArticles() {
   return useQuery({
     queryKey: ['news_articles', 'published'],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       const { data, error } = await supabase
         .from('news_articles')
         .select('*, profiles:author_id(first_name, last_name)')
@@ -127,7 +127,7 @@ export function useNewsArticles() {
         .order('published_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
-    },
+    }),
   });
 }
 
@@ -135,7 +135,7 @@ export function useNewsArticles() {
 export function useAlumniDirectory() {
   return useQuery({
     queryKey: ['alumni_directory'],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, email, batch_year, course, avatar_url')
@@ -155,7 +155,7 @@ export function useAlumniDirectory() {
         ...p,
         ...(careerMap.get(p.id) || {}),
       }));
-    },
+    }),
     staleTime: 60_000, // Directory data is more stable, cache for 1 minute
   });
 }
@@ -164,7 +164,7 @@ export function useAlumniDirectory() {
 export function useAlumniProfile(userId: string | undefined) {
   return useQuery({
     queryKey: ['alumni_profile', userId],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       if (!userId) return null;
       const { data, error } = await supabase
         .from('alumni_profiles')
@@ -173,7 +173,7 @@ export function useAlumniProfile(userId: string | undefined) {
         .single();
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
       return data;
-    },
+    }),
     enabled: !!userId,
   });
 }
@@ -182,14 +182,14 @@ export function useAlumniProfile(userId: string | undefined) {
 export function useConnections(userId: string | undefined) {
   return useQuery({
     queryKey: ['connections', userId],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       if (!userId) return new Set<string>();
       const { data } = await supabase
         .from('alumni_connections')
         .select('following_id')
         .eq('follower_id', userId);
       return new Set((data || []).map(d => d.following_id));
-    },
+    }),
     enabled: !!userId,
   });
 }
@@ -198,7 +198,7 @@ export function useConnections(userId: string | undefined) {
 export function useMyApplications(userId: string | undefined) {
   return useQuery({
     queryKey: ['job_applications', userId],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('job_applications')
@@ -207,7 +207,7 @@ export function useMyApplications(userId: string | undefined) {
         .order('applied_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
-    },
+    }),
     enabled: !!userId,
   });
 }
@@ -216,14 +216,14 @@ export function useMyApplications(userId: string | undefined) {
 export function useAppliedJobIds(userId: string | undefined) {
   return useQuery({
     queryKey: ['applied_job_ids', userId],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       if (!userId) return new Set<string>();
       const { data } = await supabase
         .from('job_applications')
         .select('job_id')
         .eq('alumni_id', userId);
       return new Set((data || []).map(a => a.job_id));
-    },
+    }),
     enabled: !!userId,
   });
 }
@@ -232,7 +232,7 @@ export function useAppliedJobIds(userId: string | undefined) {
 export function useUpcomingEvents(limit = 3) {
   return useQuery({
     queryKey: ['upcoming_events', limit],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       // First try future events
       const { data: upcoming, error } = await supabase
         .from('alumni_events')
@@ -256,7 +256,7 @@ export function useUpcomingEvents(limit = 3) {
         .limit(limit);
       if (err2) throw err2;
       return recent ?? [];
-    },
+    }),
   });
 }
 
@@ -264,18 +264,18 @@ export function useUpcomingEvents(limit = 3) {
 export function useFeaturedEvent() {
   return useQuery({
     queryKey: ['featured_event'],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       const { data, error } = await supabase
         .from('alumni_events')
         .select('*')
         .eq('is_featured', true)
-        .or('status.eq.active,status.eq.approved') // checking both valid "live" statuses just in case
+        .or('status.eq.active,status.eq.approved')
         .limit(1)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
       return data;
-    },
+    }),
   });
 }
 
@@ -283,14 +283,14 @@ export function useFeaturedEvent() {
 export function useSavedJobIds(userId: string | undefined) {
   return useQuery({
     queryKey: ['saved_job_ids', userId],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       if (!userId) return new Set<string>();
       const { data } = await supabase
         .from('alumni_saved_jobs')
         .select('job_id')
         .eq('alumni_id', userId);
       return new Set((data || []).map(s => s.job_id));
-    },
+    }),
     enabled: !!userId,
   });
 }
@@ -299,7 +299,7 @@ export function useSavedJobIds(userId: string | undefined) {
 export function useAuditLogs(filters: { action?: string; search?: string; dateFrom?: string; dateTo?: string }) {
   return useQuery({
     queryKey: ['audit_logs', filters],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       let query = supabase
         .from('audit_logs')
         .select('id, user_id, action, details, ip_address, created_at')
@@ -331,7 +331,7 @@ export function useAuditLogs(filters: { action?: string; search?: string; dateFr
         ...l,
         profiles: l.user_id ? profileMap.get(l.user_id) : undefined
       }));
-    },
+    }),
     staleTime: 10_000, // Audit logs updated frequently
   });
 }
@@ -340,12 +340,14 @@ export function useAuditLogs(filters: { action?: string; search?: string; dateFr
 export function useAdminDashboardStats() {
   return useQuery({
     queryKey: ['admin_dashboard_stats'],
-    queryFn: async () => {
+    queryFn: () => executeWithTokenRefresh(async () => {
       const [
         { count: total },
         { count: unclaimed },
         { count: verified },
         { count: rejected },
+        pendingApprovalRes,
+        pendingAppsRes,
         { count: events },
         { count: jobs },
         { count: campaigns },
@@ -355,18 +357,28 @@ export function useAdminDashboardStats() {
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'master_list'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'verified'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'rejected'),
-        // Align module counts to active/live by default to match UI lists
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'alumni').eq('status', 'pending_approval'),
+        supabase.from('subscription_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('alumni_events').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('donation_campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('news_articles').select('*', { count: 'exact', head: true }).eq('is_published', true),
       ]);
 
+      const pendingCount = (pendingApprovalRes?.count || 0) + (pendingAppsRes?.count || 0);
+
       return {
-        stats: { total: total || 0, unclaimed: unclaimed || 0, verified: verified || 0, rejected: rejected || 0 },
+        stats: { 
+          total: total || 0, 
+          unclaimed: unclaimed || 0, 
+          verified: verified || 0, 
+          rejected: rejected || 0,
+          pending: pendingApprovalRes?.count || 0,
+          pendingApplications: pendingCount
+        },
         modules: { events: events || 0, jobs: jobs || 0, campaigns: campaigns || 0, news: news || 0 }
       };
-    },
+    }),
     refetchInterval: 30000, // Refresh every 30 seconds automatically
   });
 }

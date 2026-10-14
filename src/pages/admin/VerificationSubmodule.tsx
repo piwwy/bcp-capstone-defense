@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AdminPageLayout from './AdminPageLayout';
 import { supabase } from '../../services/supabaseClient';
 import { useToast } from '../../context/ToastContext';
@@ -61,9 +62,20 @@ interface SubscriptionApplication {
 // ─── COMPONENT ───────────────────────────────────────────────────────────
 const VerificationSubmodule: React.FC = () => {
     const { showToast } = useToast();
+    const [searchParams] = useSearchParams();
 
     // Tab state: "verification" or "subscriptions"
-    const [activeTab, setActiveTab] = useState<'verification' | 'subscriptions'>('verification');
+    const initialTab = searchParams.get('tab') === 'subscriptions' ? 'subscriptions' : 'verification';
+    const [activeTab, setActiveTab] = useState<'verification' | 'subscriptions'>(initialTab);
+
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam === 'subscriptions') {
+            setActiveTab('subscriptions');
+        } else if (tabParam === 'verification') {
+            setActiveTab('verification');
+        }
+    }, [searchParams]);
 
     // ─── Verification Tab State ──────────────────────────────────────────
     const [profiles, setProfiles] = useState<Profile[]>([]);

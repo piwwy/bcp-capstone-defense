@@ -51,7 +51,7 @@ const EventOfficerDashboard: React.FC = () => {
     }
 
     return (
-        <div className="p-8 space-y-8 bg-gray-50/50 min-h-screen animate-in fade-in duration-500">
+        <div className="p-8 space-y-8 animate-in fade-in duration-500">
             {/* Hero Banner */}
             <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-orange-900 via-amber-900 to-slate-900 p-12 shadow-2xl">
                 <div className="absolute inset-0 opacity-10">
