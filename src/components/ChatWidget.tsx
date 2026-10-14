@@ -6,6 +6,7 @@ import {
   Circle, Trash2, UserCircle, Plus, Paperclip, FileText,
   Download, Loader2
 } from 'lucide-react';
+import { validateUploadedFile, sanitizeFileName } from '../utils/fileValidation';
 
 interface Profile {
   id: string;
@@ -138,13 +139,24 @@ const ChatWidget = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { return; }
+
+    const validation = validateUploadedFile(file, { maxSizeMB: 5 });
+    if (!validation.valid) {
+      alert(validation.error || 'Invalid file');
+      return;
+    }
     setSelectedFile(file);
   };
 
   const handleFileUpload = async (file: File): Promise<{ url: string; name: string; type: string } | null> => {
+    const validation = validateUploadedFile(file, { maxSizeMB: 5 });
+    if (!validation.valid) {
+      return null;
+    }
+
     try {
-      const path = `${user?.id}/${Date.now()}_${file.name}`;
+      const safeName = sanitizeFileName(file.name);
+      const path = `${user?.id}/${Date.now()}_${safeName}`;
       const { error } = await supabase.storage.from('chat-attachments').upload(path, file);
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(path);

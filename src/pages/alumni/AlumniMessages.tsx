@@ -7,6 +7,7 @@ import {
   MessageCircle, Search, Send, X, Loader2,
   ChevronLeft, Circle, Trash2, UserCircle, Paperclip, FileText, Download
 } from 'lucide-react';
+import { validateUploadedFile, sanitizeFileName } from '../../utils/fileValidation';
 
 interface Profile {
   id: string;
@@ -169,13 +170,25 @@ const AlumniMessages = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { showToast({ title: 'Error', message: 'File size must be under 10MB', type: 'error' }); return; }
+
+    const validation = validateUploadedFile(file, { maxSizeMB: 5 });
+    if (!validation.valid) {
+      showToast({ title: 'Invalid File', message: validation.error || 'Upload error', type: 'error' });
+      return;
+    }
     setSelectedFile(file);
   };
 
   const handleFileUpload = async (file: File): Promise<{ url: string; name: string; type: string } | null> => {
+    const validation = validateUploadedFile(file, { maxSizeMB: 5 });
+    if (!validation.valid) {
+      showToast({ title: 'Upload Failed', message: validation.error || 'Invalid file', type: 'error' });
+      return null;
+    }
+
     try {
-      const path = `${user?.id}/${Date.now()}_${file.name}`;
+      const safeName = sanitizeFileName(file.name);
+      const path = `${user?.id}/${Date.now()}_${safeName}`;
 
       // Upload to chat-attachments bucket
       const { error } = await supabase.storage.from('chat-attachments').upload(path, file);
