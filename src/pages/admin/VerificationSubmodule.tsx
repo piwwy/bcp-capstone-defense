@@ -22,6 +22,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { EmailService } from '../../services/emailService';
+import { logAudit, AUDIT_ACTIONS } from '../../services/auditLogger';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────
 interface Profile {
@@ -200,6 +201,13 @@ const VerificationSubmodule: React.FC = () => {
 
             if (error) throw error;
 
+            void logAudit(AUDIT_ACTIONS.USER_STATUS_CHANGED, {
+                module: 'Verification',
+                message: `User status changed to ${newStatus}`,
+                target_user_id: id,
+                new_status: newStatus
+            });
+
             showToast({ type: 'success', title: 'Status Updated', message: `User moved to ${newStatus}` });
             setConfirmAction(null);
             fetchProfiles();
@@ -290,6 +298,15 @@ const VerificationSubmodule: React.FC = () => {
                 .eq('id', app.id);
 
             if (error) throw error;
+
+            void logAudit(action === 'approved' ? AUDIT_ACTIONS.USER_STATUS_CHANGED : AUDIT_ACTIONS.RECORD_UPDATED, {
+                module: 'Subscriptions',
+                message: `Subscription application ${action} for ${app.email}`,
+                application_id: app.id,
+                email: app.email,
+                plan: app.subscription_plan,
+                action
+            });
 
             showToast({
                 type: 'success',

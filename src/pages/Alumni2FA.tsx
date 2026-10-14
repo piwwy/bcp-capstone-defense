@@ -3,6 +3,7 @@ import { ShieldCheck, ArrowRight, Lock, AlertTriangle, XCircle, Ban, ArrowLeft }
 import { useNavigate } from 'react-router-dom';
 import EmailService from '../services/emailService';
 import { supabase } from '../services/supabaseClient';
+import { logAudit, AUDIT_ACTIONS } from '../services/auditLogger';
 
 const MAX_ATTEMPTS = 5;
 
@@ -238,6 +239,11 @@ const Alumni2FA: React.FC = () => {
         if (storedUserId) {
           localStorage.setItem(`otp_verified_${storedUserId}`, Date.now().toString());
         }
+        void logAudit('2FA_VERIFIED', {
+          module: 'Auth',
+          message: 'Alumni two-factor authentication successful',
+          userId: storedUserId || undefined
+        });
         sessionStorage.setItem('dpa_prompt_required', 'true');
 
         // Clear OTP data from session
@@ -257,6 +263,11 @@ const Alumni2FA: React.FC = () => {
         if (newAttempts >= MAX_ATTEMPTS) {
           // LOCKOUT — too many failed attempts
           setLockedOut(true);
+          void logAudit('2FA_LOCKED_OUT', {
+            module: 'Auth',
+            message: `Alumni two-factor authentication locked out after ${MAX_ATTEMPTS} failed attempts`,
+            userId: storedUserId || undefined
+          });
           setError(`Too many failed attempts (${MAX_ATTEMPTS}/${MAX_ATTEMPTS}). You have been locked out. Please log in again.`);
           // Clear session and sign out after a short delay
           setTimeout(async () => {

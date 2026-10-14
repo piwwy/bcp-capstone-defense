@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
+import { logAudit, AUDIT_ACTIONS } from '../services/auditLogger';
+import { Lock, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 
 const ResetPassword = () => {
   const [code, setCode] = useState('');
@@ -8,6 +11,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -19,41 +23,43 @@ const ResetPassword = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (loading) return;
 
     if (!code || code.length < 6) {
-      alert("Please enter a valid 6-digit verification code sent to your email.");
-      setLoading(false);
+      showToast({ type: 'warning', title: 'Invalid Code', message: 'Please enter a valid 6-digit verification code.' });
       return;
     }
 
     if (!newPassword || newPassword.length < 8) {
-      alert("Password must be at least 8 characters long.");
-      setLoading(false);
+      showToast({ type: 'warning', title: 'Password Too Short', message: 'Password must be at least 8 characters long.' });
       return;
     }
 
+    setLoading(true);
+
     try {
-      // Get current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        alert("Session expired. Please request a new password reset.");
-        setLoading(false);
+        showToast({ type: 'error', title: 'Session Expired', message: 'Your password reset session expired. Please request a new link.' });
         return;
       }
 
-      // Update password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
       if (error) throw error;
 
-      alert("Password updated successfully!");
-      navigate('/login');
+      void logAudit(AUDIT_ACTIONS.PASSWORD_CHANGED, {
+        module: 'Auth',
+        message: 'User password reset via recovery flow'
+      });
+
+      showToast({ type: 'success', title: 'Password Updated', message: 'Your password has been changed successfully. Redirecting...' });
+      setTimeout(() => navigate('/login', { replace: true }), 1500);
     } catch (error: any) {
-      alert(error.message || "Failed to update password. Please try again.");
+      showToast({ type: 'error', title: 'Update Failed', message: error.message || 'Failed to update password. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -94,11 +100,29 @@ const ResetPassword = () => {
           </div>
 
           <button
+            type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 mt-4"
+            className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
           >
-            {loading ? "Updating..." : "Update Password"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Updating Password...</span>
+              </>
+            ) : (
+              <span>Update Password</span>
+            )}
           </button>
+
+          <div className="text-center pt-2">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Sign In</span>
+            </Link>
+          </div>
         </div>
       </form>
     </div>
