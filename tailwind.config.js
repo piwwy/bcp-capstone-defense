@@ -38,10 +38,19 @@ export default {
           700: '#14172a',
           600: '#1b1f3a',
           500: '#2a3060',
-        }
+        },
+        bcp: {
+          navy: '#0f172a',
+          blue: '#1e3a8a',
+          royal: '#2563eb',
+          sky: '#38bdf8',
+          gold: '#f59e0b',
+          amber: '#d97706',
+        },
       },
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'Poppins', 'system-ui', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'Poppins', 'sans-serif'],
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
