@@ -129,4 +129,40 @@ export const PageSkeleton: React.FC = () => (
   </div>
 );
 
+/** Stats metrics cards skeleton (for admin/staff dashboards) */
+export const StatsCardSkeleton: React.FC<{ count?: number }> = ({ count = 4 }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="bg-white dark:bg-slate-800/80 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse space-y-3">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-28 bg-slate-200 dark:bg-slate-700" />
+          <Skeleton className="w-10 h-10 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+        </div>
+        <Skeleton className="h-8 w-20 bg-slate-200 dark:bg-slate-700" />
+        <Skeleton className="h-3 w-36 bg-slate-100 dark:bg-slate-700/60" />
+      </div>
+    ))}
+  </div>
+);
+
+/** Table rows skeleton for roster/audit/document tables */
+export const TableSkeleton: React.FC<{ rows?: number; cols?: number }> = ({ rows = 5, cols = 4 }) => (
+  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm animate-pulse">
+    <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex gap-4">
+      {Array.from({ length: cols }).map((_, i) => (
+        <Skeleton key={i} className="h-4 flex-1 bg-slate-200 dark:bg-slate-700" />
+      ))}
+    </div>
+    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="p-4 flex gap-4 items-center">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} className="h-4 flex-1 bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export default Skeleton;
