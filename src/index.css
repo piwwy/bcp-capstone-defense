@@ -170,9 +170,7 @@ body {
 }
 
 .dashboard-page .dashboard-hero-card {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #1e40af 100%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  /* Styled via Tailwind with luxury frosted glass and obsidian gradient */
 }
 
 /* Dark Mode Overrides */
@@ -183,11 +181,7 @@ body {
 }
 
 .dark .dashboard-page .dashboard-hero-card {
-  background:
-    linear-gradient(145deg, rgba(37, 99, 235, 0.30), rgba(15, 23, 42, 0.92)),
-    rgba(29, 78, 216, 0.22);
-  border-color: rgba(96, 165, 250, 0.48);
-  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.42), inset 0 1px 0 rgba(147, 197, 253, 0.12);
+  /* Preserved for Tailwind glassmorphism */
 }
 
 .dark .dashboard-page .dashboard-card h1,
@@ -337,3 +331,227 @@ body {
 .section-light {
   @apply bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-dark-900 dark:via-dark-800 dark:to-dark-900;
 }
+
+/* =========================================================
+   PREMIUM NAVBAR ICON MICRO-ANIMATIONS
+   ========================================================= */
+
+@keyframes navHomeBounce {
+  0% { transform: translateY(0) scale(1) rotate(0deg); }
+  30% { transform: translateY(-3.5px) scale(1.18) rotate(-5deg); }
+  60% { transform: translateY(-1px) scale(1.1) rotate(2deg); }
+  85% { transform: translateY(-2px) scale(1.12) rotate(-1deg); }
+  100% { transform: translateY(-1.5px) scale(1.12) rotate(0deg); }
+}
+
+@keyframes navUsersWiggle {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.18) rotate(-12deg) translateX(-1px); }
+  50% { transform: scale(1.18) rotate(10deg) translateX(1px); }
+  75% { transform: scale(1.12) rotate(-4deg); }
+  100% { transform: scale(1.14) rotate(0deg); }
+}
+
+@keyframes navBriefcaseSwing {
+  0% { transform: translateY(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-3px) rotate(-14deg) scale(1.15); }
+  55% { transform: translateY(-2px) rotate(10deg) scale(1.12); }
+  80% { transform: translateY(-1px) rotate(-4deg) scale(1.1); }
+  100% { transform: translateY(-1.5px) rotate(0deg) scale(1.12); }
+}
+
+@keyframes navNewsFlip {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.18) rotate(14deg) translateY(-2px); }
+  70% { transform: scale(1.1) rotate(-6deg) translateY(-1px); }
+  100% { transform: scale(1.14) rotate(0deg) translateY(-1.5px); }
+}
+
+@keyframes navChatPop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.22) rotate(-8deg) translateY(-2px); }
+  60% { transform: scale(1.08) rotate(4deg); }
+  100% { transform: scale(1.15) rotate(0deg) translateY(-1px); }
+}
+
+@keyframes navCalendarFlip {
+  0% { transform: scale(1) translateY(0); }
+  30% { transform: scale(1.16) translateY(-3.5px) rotate(-8deg); }
+  60% { transform: scale(1.1) translateY(0.5px) rotate(4deg); }
+  100% { transform: scale(1.14) translateY(-1.5px) rotate(0deg); }
+}
+
+@keyframes navCardTilt {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.18) rotate(-14deg) translateY(-2px); }
+  70% { transform: scale(1.1) rotate(4deg); }
+  100% { transform: scale(1.14) rotate(-3deg) translateY(-1px); }
+}
+
+@keyframes navFileFlutter {
+  0% { transform: scale(1) translateY(0); }
+  35% { transform: scale(1.18) translateY(-4px) rotate(7deg); }
+  70% { transform: scale(1.08) translateY(-1px) rotate(-3deg); }
+  100% { transform: scale(1.14) translateY(-2px) rotate(0deg); }
+}
+
+@keyframes navHeartbeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.26); }
+  45% { transform: scale(1.06); }
+  65% { transform: scale(1.3); }
+  85% { transform: scale(1.12); }
+  100% { transform: scale(1.18); }
+}
+
+@keyframes navMailGlide {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  35% { transform: translate(2px, -3.5px) rotate(12deg) scale(1.2); }
+  70% { transform: translate(-1px, -1.5px) rotate(-4deg) scale(1.1); }
+  100% { transform: translate(1px, -2px) rotate(4deg) scale(1.14); }
+}
+
+@keyframes navBellRing {
+  0% { transform: rotate(0); }
+  18% { transform: rotate(20deg) scale(1.15); }
+  36% { transform: rotate(-18deg) scale(1.15); }
+  54% { transform: rotate(14deg) scale(1.12); }
+  72% { transform: rotate(-8deg) scale(1.08); }
+  90% { transform: rotate(4deg) scale(1.05); }
+  100% { transform: rotate(0) scale(1.08); }
+}
+
+@keyframes navSearchScan {
+  0% { transform: scale(1) rotate(0deg); }
+  35% { transform: scale(1.22) rotate(18deg); }
+  70% { transform: scale(1.1) rotate(-8deg); }
+  100% { transform: scale(1.15) rotate(6deg); }
+}
+
+/* Hover-triggered classes */
+.group:hover .group-hover\:animate-nav-home,
+.hover-animate-nav-home:hover {
+  animation: navHomeBounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-users,
+.hover-animate-nav-users:hover {
+  animation: navUsersWiggle 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-briefcase,
+.hover-animate-nav-briefcase:hover {
+  animation: navBriefcaseSwing 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-news,
+.hover-animate-nav-news:hover {
+  animation: navNewsFlip 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-chat,
+.hover-animate-nav-chat:hover {
+  animation: navChatPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-calendar,
+.hover-animate-nav-calendar:hover {
+  animation: navCalendarFlip 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-card,
+.hover-animate-nav-card:hover {
+  animation: navCardTilt 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-file,
+.hover-animate-nav-file:hover {
+  animation: navFileFlutter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-heart,
+.hover-animate-nav-heart:hover {
+  animation: navHeartbeat 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-mail,
+.hover-animate-nav-mail:hover {
+  animation: navMailGlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-nav-bell,
+.hover-animate-nav-bell:hover {
+  animation: navBellRing 0.75s ease-in-out forwards;
+}
+
+.group:hover .group-hover\:animate-nav-search,
+.hover-animate-nav-search:hover {
+  animation: navSearchScan 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* =========================================================
+   CINEMATIC BRAND HOVER & LOGO ANIMATIONS
+   ========================================================= */
+
+@keyframes cinematicShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes logoCinematicPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.2));
+  }
+  30% {
+    transform: scale(1.15) rotate(-5deg) translateY(-2px);
+    filter: drop-shadow(0 8px 18px rgba(59, 130, 246, 0.65)) drop-shadow(0 0 12px rgba(147, 197, 253, 0.5));
+  }
+  65% {
+    transform: scale(1.08) rotate(2deg) translateY(-0.5px);
+    filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.5));
+  }
+  100% {
+    transform: scale(1.12) rotate(0deg) translateY(-1px);
+    filter: drop-shadow(0 6px 16px rgba(37, 99, 235, 0.55)) drop-shadow(0 0 10px rgba(96, 165, 250, 0.4));
+  }
+}
+
+@keyframes cinematicGlowFlare {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.35);
+  }
+}
+
+.brand-cinematic-glow {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.55) 0%, rgba(99, 102, 241, 0.3) 45%, transparent 70%);
+}
+
+.group:hover .group-hover\:animate-cinematic-shimmer,
+.animate-cinematic-shimmer {
+  background-size: 200% auto;
+  animation: cinematicShimmer 2.2s linear infinite;
+}
+
+.group:hover .group-hover\:animate-logo-cinematic,
+.hover\:animate-logo-cinematic:hover {
+  animation: logoCinematicPulse 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.group:hover .group-hover\:animate-glow-flare {
+  animation: cinematicGlowFlare 2.4s ease-in-out infinite;
+}
+
+

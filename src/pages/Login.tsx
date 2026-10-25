@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase, SUPABASE_STORAGE_KEY } from '../services/supabaseClient';
+import { supabase } from '../services/supabaseClient';
 import { Eye, EyeOff, Loader2, LogIn, ArrowLeft } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { logLogin, logFailedLogin } from '../services/auditLogger';
@@ -23,11 +23,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Clear stale auth/session state before new login attempt.
-      try {
-        supabase.auth.signOut({ scope: 'local' } as any);
-      } catch {}
-      localStorage.removeItem(SUPABASE_STORAGE_KEY);
+      // Clear stale state for new login attempt
       localStorage.removeItem('user_role');
       localStorage.removeItem('is_switched');
       sessionStorage.removeItem('otp_code');
@@ -35,11 +31,17 @@ export default function Login() {
       sessionStorage.removeItem('otp_email');
       sessionStorage.removeItem('otp_user_id');
 
-      // 1. Authenticate credentials directly with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const timeoutPromise = (ms: number, msg: string) =>
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+
+      // 1. Authenticate credentials directly with Supabase with timeout guard
+      const { data: authData, error: authError } = await Promise.race([
+        supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        }),
+        timeoutPromise(15000, "Sign in timed out. Please check your network and try again.")
+      ]);
 
       if (authError || !authData.user) {
         throw new Error(authError?.message || "Invalid email or password.");
@@ -47,12 +49,15 @@ export default function Login() {
 
       const user = authData.user;
 
-      // 2. Fetch server-verified profile record
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, role, status, dpa_consented_at, first_name, last_name, auth_provider, last_login')
-        .eq('id', user.id)
-        .single();
+      // 2. Fetch server-verified profile record with timeout guard
+      const { data: profile, error: profileError } = await Promise.race([
+        supabase
+          .from('profiles')
+          .select('id, role, status, dpa_consented_at, first_name, last_name, auth_provider, last_login')
+          .eq('id', user.id)
+          .single(),
+        timeoutPromise(10000, "Could not load profile. Please try again.")
+      ]);
 
       if (profileError || !profile) {
         await supabase.auth.signOut();
@@ -123,6 +128,17 @@ export default function Login() {
           navigate('/onboarding', { replace: true });
           return;
         }
+
+        const lastOtpKey = `otp_verified_${user.id}`;
+        const lastOtpTimestamp = localStorage.getItem(lastOtpKey);
+        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+        const isWithinMonth = lastOtpTimestamp && (Date.now() - parseInt(lastOtpTimestamp)) < THIRTY_DAYS_MS;
+
+        if (!isWithinMonth) {
+          navigate('/alumni/2fa', { replace: true });
+          return;
+        }
+
         navigate('/alumni/dashboard', { replace: true });
         return;
       }

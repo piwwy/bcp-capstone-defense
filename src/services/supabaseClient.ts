@@ -24,6 +24,10 @@ export const supabase: SupabaseClient = createClient(
       storageKey: SUPABASE_STORAGE_KEY,   // Dedicated storage key to prevent session collisions
       storage: safeLocalStorage,          // Use localStorage explicitly
       flowType: 'pkce',                   // Secure PKCE flow
+      // Prevent browser Web Locks (navigator.locks) deadlock in Chromium/Edge
+      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+        return await fn();
+      },
     },
     realtime: {
       params: {

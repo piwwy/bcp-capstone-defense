@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     void syncSession(undefined);
 
     // Single authoritative auth event listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
 
       if (event === 'SIGNED_OUT' || !session?.user) {
@@ -150,13 +150,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (event === 'TOKEN_REFRESHED') {
         // Token refreshed in background; profile data remains valid if already authenticated
         if (!userRef.current && session.user) {
-          await syncSession(session.user);
+          setTimeout(() => {
+            if (isMounted) void syncSession(session.user);
+          }, 0);
         }
         return;
       }
 
-      // Handle SIGNED_IN, INITIAL_SESSION, USER_UPDATED
-      await syncSession(session.user);
+      // Handle SIGNED_IN, INITIAL_SESSION, USER_UPDATED (defer async db queries to avoid Supabase auth deadlocks)
+      setTimeout(() => {
+        if (isMounted) void syncSession(session.user);
+      }, 0);
     });
 
     return () => {

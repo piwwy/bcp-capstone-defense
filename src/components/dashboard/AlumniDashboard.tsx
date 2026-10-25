@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { Link } from 'react-router-dom';
@@ -13,6 +13,54 @@ import {
 
 const AlumniDashboard: React.FC = () => {
   const { user } = useAuth();
+
+  // Realistic 3D Mouse Parallax Tilt for Welcome Hero Card
+  const heroCardRef = useRef<HTMLDivElement>(null);
+  const [tilt, setTilt] = useState({
+    rotateX: 0,
+    rotateY: 0,
+    glareX: 50,
+    glareY: 50,
+    isHovered: false,
+  });
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = heroCardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Relative offset from -1 (top-left) to +1 (bottom-right)
+    const normX = (x - centerX) / centerX;
+    const normY = (y - centerY) / centerY;
+
+    // Banayad at banayad na tilt (gentle luxury tilt, hindi nakakahilo)
+    const maxRotateX = 2.2; // deg
+    const maxRotateY = 3.0; // deg
+    const rotateX = -normY * maxRotateX;
+    const rotateY = normX * maxRotateY;
+
+    setTilt({
+      rotateX,
+      rotateY,
+      glareX: (x / rect.width) * 100,
+      glareY: (y / rect.height) * 100,
+      isHovered: true,
+    });
+  };
+
+  const handleHeroMouseLeave = () => {
+    setTilt({
+      rotateX: 0,
+      rotateY: 0,
+      glareX: 50,
+      glareY: 50,
+      isHovered: false,
+    });
+  };
 
   // TanStack Query cached hooks — shared across pages, instant on revisit
   const { data: jobs = [], isLoading: loadingJobs } = useJobs(3);
@@ -123,128 +171,185 @@ const AlumniDashboard: React.FC = () => {
       `}</style>
       <div className="dashboard-page p-4 sm:p-6 max-w-7xl mx-auto space-y-7">
 
-        {/* 1. UNIFIED HERO & ONBOARDING SECTION */}
-        <div className="dashboard-card dashboard-hero-card relative overflow-hidden rounded-[2rem] p-6 sm:p-8 shadow-md">
-          <div className="relative z-10 grid gap-6 xl:grid-cols-[1fr_auto] items-center">
-            <div>
-              <div className="flex items-center gap-3 mb-3 flex-wrap">
-                <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                  Welcome Home, {user?.name?.split(' ')[0]}!
-                </h1>
-                {isVerified && (
-                  <div className="flex items-center gap-1 bg-green-500 text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase shadow-lg shadow-green-500/20">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Verified
-                  </div>
-                )}
-                {subTier !== 'basic' && (
-                  <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase shadow-lg ${
-                    subTier === 'premium' ? 'bg-purple-500 text-white shadow-purple-500/20' : 'bg-amber-500 text-white shadow-amber-500/20'
-                  }`}>
-                    {subTier}
-                  </div>
-                )}
-              </div>
+        {/* 1. UNIFIED HERO & ONBOARDING SECTION WITH GENTLE BANAYAD 3D TILT */}
+        <div style={{ perspective: 2500 }} className="w-full">
+          <div
+            ref={heroCardRef}
+            onMouseMove={handleHeroMouseMove}
+            onMouseLeave={handleHeroMouseLeave}
+            style={{
+              transform: tilt.isHovered
+                ? `perspective(2500px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale3d(1.004, 1.004, 1.004)`
+                : 'perspective(2500px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+              transition: tilt.isHovered
+                ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease'
+                : 'transform 0.75s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.75s ease',
+              transformStyle: 'preserve-3d',
+              willChange: 'transform',
+              boxShadow: tilt.isHovered
+                ? `${-tilt.rotateY * 1.5}px ${tilt.rotateX * 1.5 + 20}px 45px -8px rgba(0, 0, 0, 0.4), 0 0 25px rgba(59, 130, 246, 0.08)`
+                : '0 20px 50px rgba(0,0,0,0.35)',
+            }}
+            className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-[#060D1E] via-[#0B1736] to-[#0A1227] p-8 md:p-10 select-none cursor-default"
+          >
+            {/* Dynamic 3D Glare Light Sheen tracking cursor (Subtle & Soft) */}
+            <div
+              className="pointer-events-none absolute inset-0 transition-opacity duration-300 z-20"
+              style={{
+                opacity: tilt.isHovered ? 0.7 : 0,
+                background: `radial-gradient(circle 600px at ${tilt.glareX}% ${tilt.glareY}%, rgba(255,255,255,0.08), rgba(125,211,252,0.03) 35%, transparent 70%)`,
+                mixBlendMode: 'overlay',
+              }}
+            />
 
-              {subTier !== 'basic' && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
-                  <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
-                    Member Since: {alumniProfile?.subscription_started_at ? new Date(alumniProfile.subscription_started_at).toLocaleDateString() : 'N/A'}
-                  </p>
-                  <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
-                    Expires: {alumniProfile?.subscription_expires_at ? new Date(alumniProfile.subscription_expires_at).toLocaleDateString() : 'N/A'}
-                  </p>
+            {/* Subtle Background Overlays: Constellation Grid & Radial Glow Accents */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/30 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+
+            <div
+              className="relative z-10 grid gap-8 xl:grid-cols-[1fr_auto] items-center"
+              style={{ transform: 'translateZ(8px)', transformStyle: 'preserve-3d' }}
+            >
+              {/* Left: Greeting Text & Info */}
+              <div className="space-y-3" style={{ transform: 'translateZ(4px)' }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white drop-shadow-sm">
+                    Welcome Home, {user?.name?.split(' ')[0] || 'BCP'}!
+                  </h1>
+                  {isVerified && (
+                    <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider backdrop-blur-md shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Verified
+                    </div>
+                  )}
+                  {subTier !== 'basic' && (
+                    <div className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border backdrop-blur-md shadow-sm ${
+                      subTier === 'premium'
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}>
+                      {subTier}
+                    </div>
+                  )}
                 </div>
-              )}
-              <p className="text-blue-100/90 text-sm max-w-2xl leading-relaxed">
-                Stay connected with your alma mater through career opportunities, batch networks, campus events, and alumni support programs.
-              </p>
-            </div>
 
-            {/* User Profile Avatar Card */}
-            <div className="bg-white/15 backdrop-blur-md px-5 py-4 rounded-2xl border border-white/25 flex items-center gap-4 text-white shadow-sm min-w-[260px]">
-              <div className="relative flex-shrink-0">
-                {alumniProfile?.avatar_url || user?.avatar ? (
-                  <img
-                    src={alumniProfile?.avatar_url || user?.avatar}
-                    alt={user?.name || 'User'}
-                    className="w-14 h-14 rounded-full object-cover border-2 border-white/60 shadow-md"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/60 flex items-center justify-center text-xl font-black text-white shadow-md">
-                    {user?.name?.charAt(0) || 'U'}
+                {subTier !== 'basic' && (
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Member Since: {alumniProfile?.subscription_started_at ? new Date(alumniProfile.subscription_started_at).toLocaleDateString() : 'N/A'}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Expires: {alumniProfile?.subscription_expires_at ? new Date(alumniProfile.subscription_expires_at).toLocaleDateString() : 'N/A'}
+                    </p>
                   </div>
                 )}
-                {isVerified && (
-                  <div className="absolute -bottom-1 -right-1 bg-green-500 text-white p-0.5 rounded-full border-2 border-blue-700 shadow" title="Verified Alumni">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-bold text-white truncate leading-tight">
-                  {user?.name || 'Alumni Member'}
-                </h3>
-                <p className="text-[11px] text-blue-100/80 truncate mt-0.5">
-                  {alumniProfile?.course ? `${alumniProfile.course} ${alumniProfile.batch_year ? `• Class ${alumniProfile.batch_year}` : ''}` : user?.email || 'Bestlink College of the Philippines'}
+
+                <p className="text-slate-300/90 text-sm md:text-base leading-relaxed max-w-xl">
+                  Stay connected with your alma mater through career opportunities, batch networks, campus events, and alumni support programs.
                 </p>
-                <Link
-                  to="/alumni/profile"
-                  className="text-[11px] font-bold text-white/95 hover:text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg transition-colors inline-flex items-center gap-1 border border-white/25 mt-2"
-                >
-                  View Profile <ChevronRight className="w-3 h-3" />
-                </Link>
+              </div>
+
+              {/* Right: User Profile Card (The Luxury ID Badge Look with Parallax Depth) */}
+              <div
+                style={{ transform: 'translateZ(12px)', transformStyle: 'preserve-3d' }}
+                className="bg-white/[0.05] backdrop-blur-xl rounded-2xl p-5 border border-amber-300/30 hover:border-amber-300/50 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_12px_32px_rgba(0,0,0,0.35)] flex items-center gap-4 text-white min-w-[280px] sm:min-w-[320px]"
+              >
+                <div className="relative flex-shrink-0">
+                  <div className="rounded-full ring-1 ring-amber-300/40 p-0.5 shadow-[0_0_15px_rgba(252,211,77,0.2)]">
+                    {alumniProfile?.avatar_url || user?.avatar ? (
+                      <img
+                        src={alumniProfile?.avatar_url || user?.avatar}
+                        alt={user?.name || 'User'}
+                        className="w-14 h-14 rounded-full object-cover border border-white/20 shadow-inner"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-700/60 to-slate-800/80 border border-white/20 flex items-center justify-center text-xl font-bold text-white shadow-inner">
+                        {user?.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                  </div>
+                  {isVerified && (
+                    <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-0.5 rounded-full border-2 border-[#0A1227] shadow" title="Verified Alumni">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h3 className="text-white font-semibold tracking-wide truncate text-sm md:text-base leading-tight">
+                    {user?.name || 'BCP Alumni'}
+                  </h3>
+                  <p className="text-slate-300 text-xs truncate">
+                    {alumniProfile?.course
+                      ? `${alumniProfile.course} ${alumniProfile.batch_year ? `• Class ${alumniProfile.batch_year}` : ''}`
+                      : (user?.email || 'alumni_demo@gmail.com')}
+                  </p>
+                  <div className="pt-1.5">
+                    <Link
+                      to="/alumni/profile"
+                      className="bg-white/[0.08] hover:bg-white/[0.15] text-slate-200 text-xs font-medium py-1.5 px-4 rounded-full border border-white/15 transition-all inline-flex items-center gap-1.5 group/btn shadow-sm"
+                    >
+                      <span>View Profile</span>
+                      <ChevronRight className="w-3 h-3 text-slate-300 group-hover/btn:translate-x-0.5 transition-transform" />
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Bottom Section: Getting Started Checklist */}
-          <div className="relative z-10 mt-8 pt-6 border-t border-white/25">
-            <div className="mb-5">
-              <h2 className="text-lg font-black text-white flex items-center gap-2">
-                <Rocket className="w-5 h-5 text-blue-200" /> Getting Started Checklist
-              </h2>
-              <p className="text-xs text-blue-100/80 mt-1">
-                Complete the essentials to personalize your alumni experience ({progressPercent}% completed).
-              </p>
-            </div>
+            {/* Bottom Section: Getting Started Checklist */}
+            <div
+              className="relative z-10 mt-8 pt-6 border-t border-white/10"
+              style={{ transform: 'translateZ(6px)', transformStyle: 'preserve-3d' }}
+            >
+              <div className="mb-5">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Rocket className="w-5 h-5 text-amber-300/80" /> Getting Started Checklist
+                </h2>
+                <p className="text-xs text-slate-300/80 mt-1">
+                  Complete the essentials to personalize your alumni experience ({progressPercent}% completed).
+                </p>
+              </div>
 
-            {/* Steps Grid (4 Cards with Pill Glass Effect) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
-              {onboardingSteps.map((step) => {
-                const Icon = step.icon;
-                return (
-                  <Link
-                    key={step.id}
-                    to={step.link}
-                    className="flex items-start gap-3 p-4 rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 hover:border-white/40 shadow-sm transition-all duration-200 group"
-                  >
-                    <div
-                      className={`p-2.5 rounded-xl flex-shrink-0 backdrop-blur-sm ${
-                        step.completed
-                          ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/40'
-                          : 'bg-white/20 text-white border border-white/30'
-                      }`}
+              {/* Steps Grid (4 Cards with Pill Glass Effect) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
+                {onboardingSteps.map((step) => {
+                  const Icon = step.icon;
+                  return (
+                    <Link
+                      key={step.id}
+                      to={step.link}
+                      className="flex items-start gap-3 p-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-md border border-white/10 hover:border-white/20 shadow-sm transition-all duration-300 group"
                     >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-sm font-bold text-white leading-snug">
-                          {step.title}
-                        </h4>
-                        {step.completed ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-white/80 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
-                        )}
+                      <div
+                        className={`p-2.5 rounded-xl flex-shrink-0 backdrop-blur-sm transition-transform duration-300 group-hover:scale-105 ${
+                          step.completed
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
+                            : 'bg-white/10 text-slate-200 border border-white/10'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <p className="text-[11px] text-blue-100/85 leading-relaxed mt-1">
-                        {step.desc}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-sm font-semibold text-white leading-snug group-hover:text-amber-200/90 transition-colors">
+                            {step.title}
+                          </h4>
+                          {step.completed ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:translate-x-1 group-hover:text-white transition-all" />
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-300/80 leading-relaxed mt-1">
+                          {step.desc}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

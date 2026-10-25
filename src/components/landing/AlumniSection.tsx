@@ -1,6 +1,7 @@
 import React from 'react';
-import { Quote, Linkedin, Twitter } from 'lucide-react';
+import { Quote, Linkedin, Twitter, ArrowRight, Sparkles, Building2, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SpotlightCard } from '../reactbits';
 
 interface AlumniStory {
   id: number;
@@ -11,192 +12,183 @@ interface AlumniStory {
   image?: string;
   position?: string;
   company?: string;
+  spotlightColor?: string;
 }
 
 const alumniStories: AlumniStory[] = [
   {
     id: 1,
     name: 'Bordamonte, Jobert Ken Torio',
-    course: 'Bachelor of Science in Information Technology',
+    course: 'BS Information Technology',
     year: 'Class of 2025',
-    quote: 'Unity through Education in Shaping the New Philippines.',
+    quote: 'Unity through Education in Shaping the New Philippines. Bestlink gave me the technical grit to build real-world software.',
     position: 'Software Developer',
     company: 'Tech Solutions Inc.',
-    image: '/images/alumni/2.jpg', 
+    image: '/images/alumni/2.jpg',
+    spotlightColor: 'rgba(56, 189, 248, 0.25)',
   },
   {
     id: 2,
     name: 'Galang, Rheyvin Padura',
-    course: 'Bachelor of Science in Information Technology',
+    course: 'BS Information Technology',
     year: 'Class of 2025',
-    quote: 'Excellence and perseverance are the foundation of every achievement.',
+    quote: 'Excellence and perseverance are the foundation of every achievement. Never stop learning and upgrading your stack.',
     position: 'Full Stack Developer',
     company: 'Digital Innovations',
     image: '/images/alumni/3.jpg',
+    spotlightColor: 'rgba(59, 130, 246, 0.25)',
   },
   {
     id: 3,
     name: 'Sto. Domingo, James Robert Delos Santos',
-    course: 'Bachelor of Science in Information Technology',
+    course: 'BS Information Technology',
     year: 'Class of 2025',
-    quote: 'BCP molded me to serve with integrity, humility, and passion.',
+    quote: 'BCP molded me to serve with integrity, humility, and passion. I am proud to represent Bestlink in the enterprise sector.',
     position: 'Systems Analyst',
     company: 'Enterprise Systems Corp.',
     image: '/images/alumni/4.jpg',
+    spotlightColor: 'rgba(99, 102, 241, 0.25)',
   },
   {
     id: 4,
     name: 'Magsadia, John Cedric Roco',
-    course: 'Bachelor of Science in Information Technology',
+    course: 'BS Information Technology',
     year: 'Class of 2025',
-    quote: 'Proud to carry the values and legacy of Bestlink wherever I go.',
+    quote: 'Proud to carry the values and legacy of Bestlink wherever I go. Our alumni network is our greatest professional asset.',
     position: 'IT Consultant',
     company: 'Global Tech Partners',
     image: '/images/alumni/5.jpg',
+    spotlightColor: 'rgba(168, 85, 247, 0.25)',
   },
 ];
 
 const AlumniSection: React.FC = () => {
   return (
-    <section id="alumni" className="relative py-24 bg-transparent overflow-hidden">
-      
-      {/* CSS Animation for Panning Effect (Left to Right Loop) */}
-      <style>{`
-        @keyframes pan-image {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .animate-pan {
-          background-size: 150% auto; /* Zoomed in slightly for better pan effect */
-          animation: pan-image 10s ease-in-out infinite; /* Slower, continuous animation */
-        }
-      `}</style>
-
-      {/* Background Effects */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl" />
+    <section id="alumni" className="relative py-28 bg-dark-900 overflow-hidden">
+      {/* Background ambient lighting */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
-            <Quote className="w-4 h-4 text-blue-300" />
-            <span className="text-sm text-blue-300 font-medium">Success Stories</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
+            <Sparkles className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-sky-400">
+              Alumni Hall of Fame
+            </span>
           </div>
-          
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-            Alumni
-            <span className="bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
-              {' '}Success Stories
+
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight">
+            Alumni{' '}
+            <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+              Success Stories
             </span>
           </h2>
-          
-          <p className="text-lg text-blue-100/70 max-w-2xl mx-auto">
-            Celebrating Bestlink graduates who exemplify dedication, excellence,
-            and service in their chosen fields.
+
+          <p className="text-base sm:text-lg text-blue-100/70 max-w-2xl mx-auto">
+            Celebrating Bestlink graduates who exemplify dedication, technical excellence,
+            and service across high-impact industries.
           </p>
         </div>
 
-        {/* Alumni Grid */}
+        {/* Alumni Grid with SpotlightCard */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {alumniStories.map((alumni, index) => (
-            <div
+          {alumniStories.map((alumni) => (
+            <SpotlightCard
               key={alumni.id}
-              className="group relative h-[450px]"
-              style={{ animationDelay: `${index * 100}ms` }}
+              spotlightColor={alumni.spotlightColor || 'rgba(59, 130, 246, 0.22)'}
+              className="group flex flex-col justify-between p-6 border-white/10 hover:border-blue-500/40 bg-white/[0.03] backdrop-blur-md rounded-3xl transition-all duration-300"
             >
-              <div className="relative w-full h-full bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden transition-all duration-500 flex flex-col hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]">
-                
-                {/* 1. AUTOMATIC BACKGROUND ANIMATION */}
-                {/* Updated: Opacity is now 20% by default (visible) and runs continuously */}
-                <div 
-                  className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-700 ease-in-out z-0 animate-pan"
-                  style={{ 
-                    backgroundImage: `url(${alumni.image})`,
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                />
-                
-                {/* Dark Overlay (Keeps text readable) */}
-                <div className="absolute inset-0 bg-dark-900/60 group-hover:bg-dark-900/80 transition-all duration-500 z-0" />
-
-                {/* Card Content Wrapper */}
-                <div className="relative z-10 p-6 flex flex-col h-full">
-                  
-                  {/* 2. STATIC IMAGE (Thumbnail) with OVERLAPPING ICON */}
-                  <div className="relative w-full h-32 mb-6 group-hover:scale-105 transition-transform duration-500">
-                     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 group-hover:border-blue-400/50 shadow-2xl relative">
-                        {alumni.image ? (
-                          <img
-                            src={alumni.image}
-                            alt={alumni.name}
-                            className="w-full h-full object-cover object-top"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-white/30">{alumni.name.charAt(0)}</span>
-                          </div>
-                        )}
-                     </div>
-
-                     {/* Overlap Quote Icon */}
-                     <div className="absolute -bottom-3 -right-3 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 scale-0 group-hover:scale-100 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) z-20">
-                        <Quote className="w-5 h-5 text-white" />
-                     </div>
-                  </div>
-
-                  {/* Name & Course */}
-                  <div className="text-center mb-2">
-                    <h3 className="text-lg font-bold text-white leading-tight group-hover:text-blue-300 transition-colors duration-300">
-                      {alumni.name}
-                    </h3>
-                    <p className="text-xs text-sky-400/90 mt-2 font-medium tracking-wide uppercase">
-                      {alumni.year}
-                    </p>
-                  </div>
-
-                  {/* Quote */}
-                  <div className="flex-grow flex items-center justify-center my-2">
-                    <blockquote className="text-center text-sm text-blue-100/70 italic leading-relaxed group-hover:text-white transition-colors duration-300">
-                      "{alumni.quote}"
-                    </blockquote>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-4 group-hover:via-blue-500/50 transition-colors duration-300" />
-
-                  {/* Position Info */}
-                  {alumni.position && (
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-white">{alumni.position}</p>
-                      <p className="text-xs text-blue-300/60">{alumni.company}</p>
+              <div>
+                {/* Photo Container */}
+                <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden mb-5 bg-dark-800 border border-white/10">
+                  {alumni.image ? (
+                    <img
+                      src={alumni.image}
+                      alt={alumni.name}
+                      className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-blue-900/30">
+                      <span className="text-3xl font-bold text-white/30">{alumni.name.charAt(0)}</span>
                     </div>
                   )}
 
-                  {/* Social Links */}
-                  <div className="flex justify-center gap-3 mt-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">
-                    <button className="p-2 bg-white/10 rounded-full hover:bg-blue-600 transition-colors duration-300 text-white">
-                      <Linkedin className="w-3 h-3" />
-                    </button>
-                    <button className="p-2 bg-white/10 rounded-full hover:bg-sky-500 transition-colors duration-300 text-white">
-                      <Twitter className="w-3 h-3" />
-                    </button>
-                  </div>
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-dark-900/90 via-transparent to-transparent" />
 
+                  {/* Verified Alum Badge */}
+                  <div className="absolute top-3 right-3 px-2.5 py-1 bg-black/60 backdrop-blur-md border border-white/15 rounded-full text-[10px] font-bold text-sky-300 uppercase tracking-wider">
+                    {alumni.year}
+                  </div>
+                </div>
+
+                {/* Name & Degree */}
+                <h3 className="text-lg font-bold text-white leading-snug group-hover:text-sky-300 transition-colors">
+                  {alumni.name}
+                </h3>
+                <p className="text-xs text-blue-300/80 font-medium mt-1 mb-4 line-clamp-1">
+                  {alumni.course}
+                </p>
+
+                {/* Quote Block */}
+                <div className="relative pl-6 py-2 border-l-2 border-blue-500/40 mb-5">
+                  <Quote className="absolute left-0 top-1 w-4 h-4 text-sky-400/50" />
+                  <p className="text-xs text-blue-100/80 italic leading-relaxed line-clamp-3">
+                    "{alumni.quote}"
+                  </p>
                 </div>
               </div>
-            </div>
+
+              {/* Career Meta and Actions */}
+              <div className="pt-4 border-t border-white/10 mt-auto">
+                {alumni.position && (
+                  <div className="mb-3">
+                    <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Briefcase className="w-3.5 h-3.5 text-sky-400" />
+                      {alumni.position}
+                    </p>
+                    <p className="text-[11px] text-blue-200/60 flex items-center gap-1.5 mt-0.5">
+                      <Building2 className="w-3.5 h-3.5 text-blue-400/60" />
+                      {alumni.company}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-blue-400">BCP Alum</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-blue-600 hover:text-white text-blue-300 transition-colors"
+                      aria-label="LinkedIn"
+                    >
+                      <Linkedin className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-sky-500 hover:text-white text-blue-300 transition-colors"
+                      aria-label="Twitter"
+                    >
+                      <Twitter className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SpotlightCard>
           ))}
         </div>
 
         {/* View All Button */}
         <div className="text-center mt-12">
-          <Link 
-            to="/login" 
-            className="inline-block px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-blue-500/20"
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
           >
-            View All Alumni Stories
+            <span>Explore All Alumni Stories</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>

@@ -3,15 +3,16 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
 import HeroSection from '../components/landing/HeroSection';
+import AlumniEmployerMarquee from '../components/landing/AlumniEmployerMarquee';
 import AboutSection from '../components/landing/AboutSection';
 import CoursesSection from '../components/landing/CoursesSection';
 import AlumniSection from '../components/landing/AlumniSection';
 import EventsSection from '../components/landing/EventsSection';
 import JobsSection from '../components/landing/JobsSection';
-import ContactSection from '../components/landing/ContactSection';
-import Footer from '../components/landing/Footer';
 import NewsSection from '../components/landing/NewsSection';
 import DonationSection from '../components/landing/DonationSection';
+import ContactSection from '../components/landing/ContactSection';
+import Footer from '../components/landing/Footer';
 
 const LandingPage: React.FC = () => {
   const { user } = useAuth();
@@ -40,17 +41,18 @@ const LandingPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 landing-page">
+    <div className="min-h-screen bg-dark-900 landing-page text-slate-100 selection:bg-blue-500 selection:text-white">
       <Navbar />
       <main>
         <HeroSection />
+        <AlumniEmployerMarquee />
         <AboutSection />
         <CoursesSection />
         <AlumniSection />
         <EventsSection />
+        <JobsSection />
         <NewsSection />
         <DonationSection />
-        <JobsSection />
         <ContactSection />
       </main>
       <Footer />

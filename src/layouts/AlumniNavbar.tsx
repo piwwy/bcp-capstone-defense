@@ -29,6 +29,44 @@ interface NavItem {
   children?: NavChild[];
 }
 
+const getNavIconAnimationClass = (name: string): string => {
+  const n = (name || '').toLowerCase();
+  if (n.includes('dashboard') || n.includes('overview') || n.includes('home')) {
+    return 'group-hover:animate-nav-home';
+  }
+  if (n.includes('community') || n.includes('alumni network') || n.includes('users') || n.includes('profile')) {
+    return 'group-hover:animate-nav-users';
+  }
+  if (n.includes('career') || n.includes('job') || n.includes('briefcase')) {
+    return 'group-hover:animate-nav-briefcase';
+  }
+  if (n.includes('updates') || n.includes('news') || n.includes('newspaper')) {
+    return 'group-hover:animate-nav-news';
+  }
+  if (n.includes('forum') || n.includes('feedback') || n.includes('engagement') || n.includes('chat')) {
+    return 'group-hover:animate-nav-chat';
+  }
+  if (n.includes('digital alumni id') || n.includes('card')) {
+    return 'group-hover:animate-nav-card';
+  }
+  if (n.includes('document') || n.includes('request') || n.includes('file')) {
+    return 'group-hover:animate-nav-file';
+  }
+  if (n.includes('event') || n.includes('calendar')) {
+    return 'group-hover:animate-nav-calendar';
+  }
+  if (n.includes('donation') || n.includes('heart')) {
+    return 'group-hover:animate-nav-heart';
+  }
+  if (n.includes('message') || n.includes('mail')) {
+    return 'group-hover:animate-nav-mail';
+  }
+  if (n.includes('setting')) {
+    return 'group-hover:rotate-90 group-hover:scale-110';
+  }
+  return 'group-hover:scale-110 group-hover:-translate-y-0.5';
+};
+
 const AlumniNavbar: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -253,29 +291,52 @@ const AlumniNavbar: React.FC = () => {
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-5 lg:px-6">
           <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 gap-4 xl:gap-5">
 
-            {/* LEFT: Logo */}
+            {/* LEFT: Logo & Cinematic Brand */}
             <div className="flex-shrink-0">
-              <Link to="/alumni/dashboard" className="flex items-center gap-2">
-                <img src="/images/bcplogo.png" className="h-9 w-9" alt="Logo" />
-                <span className="font-bold text-xl text-blue-900 dark:text-white tracking-tight hidden sm:block">
-                 Bestlink <span className="text-blue-600">ALUMNI</span>
-                </span>
+              <Link
+                to="/alumni/dashboard"
+                className="group relative flex items-center gap-2.5 px-2.5 py-1.5 -ml-2 rounded-2xl transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/70 hover:to-indigo-50/40 dark:hover:from-blue-950/30 dark:hover:to-slate-800/40"
+              >
+                {/* Cinematic Ambient Glow Aura behind Logo */}
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 -m-2 rounded-full brand-cinematic-glow blur-lg opacity-0 group-hover:opacity-100 group-hover:animate-glow-flare transition-all duration-500 pointer-events-none" />
+                  <img
+                    src="/images/bcplogo.png"
+                    className="relative h-9 w-9 object-contain transition-all duration-500 ease-out group-hover:animate-logo-cinematic"
+                    alt="BCP Logo"
+                  />
+                </div>
+
+                {/* Brand Text with Cinematic Shimmer & Expansion */}
+                <div className="hidden sm:flex flex-col justify-center">
+                  <span className="font-extrabold text-xl tracking-tight text-blue-950 dark:text-white transition-all duration-300 group-hover:tracking-normal flex items-center gap-1.5">
+                    <span className="relative transition-colors duration-300 group-hover:text-blue-900 dark:group-hover:text-blue-100">
+                      Bestlink
+                    </span>
+                    <span className="relative font-black bg-gradient-to-r from-blue-600 via-sky-400 via-indigo-400 to-blue-600 bg-clip-text text-transparent group-hover:animate-cinematic-shimmer transition-all duration-500">
+                      ALUMNI
+                    </span>
+                  </span>
+
+                  {/* Cinematic Underline Beam on hover */}
+                  <span className="h-[2px] w-full bg-gradient-to-r from-blue-600 via-sky-400 to-transparent rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+                </div>
               </Link>
             </div>
 
             {/* CENTER: Search & Navigation (Combined for better spacing) */}
             <div className="hidden lg:flex items-center justify-center min-w-0 gap-3 xl:gap-5">
               {/* Search Bar - Now moved to center group for better layout */}
-              <div className="relative search-container" ref={searchRef}>
+              <div className="group relative search-container" ref={searchRef}>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 group-hover:text-blue-500 group-focus-within:text-blue-500 group-hover:animate-nav-search transition-colors duration-300" />
                 </div>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="bg-gray-100 dark:bg-gray-800 border-none text-gray-900 dark:text-white text-sm rounded-full focus:ring-2 focus:ring-blue-500 block w-36 xl:w-48 pl-9 p-2 transition-all focus:w-52"
+                  className="bg-gray-100 dark:bg-gray-800 border border-transparent dark:border-transparent group-hover:border-blue-400/30 dark:group-hover:border-blue-500/30 text-gray-900 dark:text-white text-sm rounded-full focus:ring-2 focus:ring-blue-500 block w-36 xl:w-48 pl-9 p-2 transition-all focus:w-52"
                 />
 
                 {/* Search Results Dropdown */}
@@ -290,15 +351,15 @@ const AlumniNavbar: React.FC = () => {
                         <button
                           key={`${res.id}-${idx}`}
                           onClick={() => handleResultClick(res)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                          className="group w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
                         >
-                          <div className={`p-1.5 rounded-lg ${res.type === 'Alumni' ? 'bg-blue-100 text-blue-600' :
+                          <div className={`p-1.5 rounded-lg transition-transform duration-300 group-hover:scale-110 ${res.type === 'Alumni' ? 'bg-blue-100 text-blue-600' :
                             res.type === 'Job' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'
                             }`}>
-                            {res.type === 'Alumni' ? <Users className="w-3.5 h-3.5" /> :
-                              res.type === 'Job' ? <Briefcase className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}
+                            {res.type === 'Alumni' ? <Users className="w-3.5 h-3.5 group-hover:animate-nav-users" /> :
+                              res.type === 'Job' ? <Briefcase className="w-3.5 h-3.5 group-hover:animate-nav-briefcase" /> : <Calendar className="w-3.5 h-3.5 group-hover:animate-nav-calendar" />}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
                             <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{res.title}</p>
                             <p className="text-[10px] text-gray-500 truncate">{res.type} • {res.sub}</p>
                           </div>
@@ -320,13 +381,13 @@ const AlumniNavbar: React.FC = () => {
                       <Link
                         key={item.name}
                         to={item.path}
-                        className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full transition-all ${active
+                        className={`group flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-300 ${active
                           ? 'text-white bg-slate-800 dark:bg-blue-600 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white/60 dark:hover:bg-gray-700/60'
                           }`}
                       >
-                        <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-gray-400'}`} />
-                        {item.name}
+                        <item.icon className={`w-4 h-4 transition-all duration-300 origin-center ${getNavIconAnimationClass(item.name)} ${active ? 'text-white' : 'text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`} />
+                        <span>{item.name}</span>
                       </Link>
                     );
                   }
@@ -340,41 +401,43 @@ const AlumniNavbar: React.FC = () => {
                       onMouseLeave={handleMouseLeave}
                     >
                       <button
-                        className={`flex items-center gap-1.5 px-3 xl:px-4 py-1.5 text-sm font-semibold rounded-full transition-all whitespace-nowrap ${active
+                        className={`group flex items-center gap-1.5 px-3 xl:px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-300 whitespace-nowrap ${active
                           ? 'text-white bg-slate-800 dark:bg-blue-600 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white/60 dark:hover:bg-gray-700/60'
                           }`}
                       >
-                        <item.icon className={`w-4 h-4 ${active ? 'text-white' : 'text-gray-400'}`} />
-                        {item.name}
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''} ${active ? 'text-white' : 'text-gray-400'}`} />
+                        <item.icon className={`w-4 h-4 transition-all duration-300 origin-center ${getNavIconAnimationClass(item.name)} ${active ? 'text-white' : 'text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`} />
+                        <span>{item.name}</span>
+                        <ChevronDown className={`w-3.5 h-3.5 transition-all duration-300 group-hover:translate-y-0.5 ${openDropdown === item.name ? 'rotate-180' : ''} ${active ? 'text-white' : 'text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`} />
                       </button>
 
                       {/* Dropdown Panel */}
                       {openDropdown === item.name && item.children && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-white/95 dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                           {item.children.map((child) => (
                             <Link
                               key={child.path}
                               to={child.path}
                               onClick={() => setOpenDropdown(null)}
-                              className={`flex items-start gap-3 px-4 py-3 transition-all ${isChildActive(child.path)
-                                ? 'bg-slate-100 dark:bg-blue-900/20 text-slate-900 dark:text-blue-400'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              className={`group flex items-start gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-300 ${isChildActive(child.path)
+                                ? 'bg-slate-100 dark:bg-blue-900/20 text-slate-900 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-blue-50/70 dark:hover:bg-gray-700/60 hover:text-blue-600 dark:hover:text-blue-400'
                                 }`}
                             >
-                              <div className={`p-1.5 rounded-lg mt-0.5 ${isChildActive(child.path) ? 'bg-slate-800 dark:bg-blue-900/50 text-white dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                              <div className={`p-2 rounded-xl mt-0.5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-md ${isChildActive(child.path)
+                                ? 'bg-slate-800 dark:bg-blue-900/50 text-white dark:text-blue-400 shadow-sm'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 group-hover:bg-blue-600 group-hover:text-white dark:group-hover:bg-blue-500 dark:group-hover:text-white'
                                 }`}>
-                                <child.icon className="w-4 h-4" />
+                                <child.icon className={`w-4 h-4 transition-all duration-300 origin-center ${getNavIconAnimationClass(child.name)}`} />
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 transition-transform duration-300 group-hover:translate-x-1">
                                 <p className="text-sm font-semibold leading-tight">{child.name}</p>
                                 {child.description && (
                                   <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{child.description}</p>
                                 )}
                               </div>
                               {isChildActive(child.path) && (
-                                <div className="w-1.5 h-1.5 bg-slate-800 dark:bg-blue-600 rounded-full mt-2 flex-shrink-0" />
+                                <div className="w-1.5 h-1.5 bg-slate-800 dark:bg-blue-600 rounded-full mt-2.5 flex-shrink-0 animate-pulse" />
                               )}
                             </Link>
                           ))}
@@ -393,11 +456,11 @@ const AlumniNavbar: React.FC = () => {
               <div className="relative notif-dropdown">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full relative transition-colors"
+                  className="group p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/60 dark:hover:bg-gray-800 rounded-full relative transition-all duration-300"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5 transition-all duration-300 origin-top group-hover:animate-nav-bell" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full ring-2 ring-white dark:ring-dark-800">
+                    <span className="absolute top-1 right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full ring-2 ring-white dark:ring-dark-800 transition-transform duration-300 group-hover:scale-110">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -407,7 +470,7 @@ const AlumniNavbar: React.FC = () => {
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in zoom-in-95 origin-top-right">
                     <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                       <h3 className="text-sm font-bold text-gray-800 dark:text-white">Notifications</h3>
-                      <button onClick={() => setShowNotifications(false)}><X className="w-4 h-4 text-gray-400" /></button>
+                      <button onClick={() => setShowNotifications(false)}><X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors" /></button>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length === 0 ? (
@@ -420,7 +483,7 @@ const AlumniNavbar: React.FC = () => {
                             className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors group ${!n.is_read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
                           >
                             <div className="flex gap-3">
-                              <div className={`mt-1 p-1.5 rounded-full flex-shrink-0 ${getNotifColor(n.type)}`}>
+                              <div className={`mt-1 p-1.5 rounded-full flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${getNotifColor(n.type)}`}>
                                 {getNotifIcon(n.type)}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -456,18 +519,18 @@ const AlumniNavbar: React.FC = () => {
               <div className="relative ml-1 profile-dropdown">
                 <button
                   onClick={(e) => { e.stopPropagation(); setIsProfileOpen(!isProfileOpen); }}
-                  className="flex items-center gap-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 p-1 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="group flex items-center gap-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 p-1 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
                 >
                   <img
-                    className="h-8 w-8 rounded-full border border-gray-200 dark:border-gray-700 object-cover"
+                    className="h-8 w-8 rounded-full border border-gray-200 dark:border-gray-700 object-cover transition-all duration-300 group-hover:scale-105 group-hover:ring-2 group-hover:ring-blue-500/50"
                     src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}`}
                     alt=""
                   />
                   <div className="hidden md:block text-left mr-1">
-                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200 leading-none">{user?.name}</p>
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200 leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{user?.name}</p>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-none mt-1">Alumni</p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400 hidden md:block" />
+                  <ChevronDown className={`w-4 h-4 text-gray-400 hidden md:block transition-all duration-300 ${isProfileOpen ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
                 </button>
 
                 {isProfileOpen && (
@@ -477,11 +540,13 @@ const AlumniNavbar: React.FC = () => {
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
 
-                    <Link to="/alumni/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 transition-colors">
-                      <Users className="w-4 h-4" /> View Profile
+                    <Link to="/alumni/profile" onClick={() => setIsProfileOpen(false)} className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50/60 dark:hover:bg-gray-700/60 hover:text-blue-600 transition-colors">
+                      <Users className="w-4 h-4 transition-transform duration-300 group-hover:animate-nav-users text-gray-400 group-hover:text-blue-600" />
+                      <span className="transition-transform duration-300 group-hover:translate-x-0.5">View Profile</span>
                     </Link>
-                    <Link to="/alumni/settings" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 transition-colors">
-                      <Settings className="w-4 h-4" /> Settings
+                    <Link to="/alumni/settings" onClick={() => setIsProfileOpen(false)} className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50/60 dark:hover:bg-gray-700/60 hover:text-blue-600 transition-colors">
+                      <Settings className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90 group-hover:scale-110 text-gray-400 group-hover:text-blue-600" />
+                      <span className="transition-transform duration-300 group-hover:translate-x-0.5">Settings</span>
                     </Link>
 
                     <div className="px-4 py-2">
@@ -512,8 +577,9 @@ const AlumniNavbar: React.FC = () => {
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
-                      <button onClick={() => { setIsProfileOpen(false); setShowLogoutModal(true); }} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
-                        <LogOut className="w-4 h-4" /> Sign out
+                      <button onClick={() => { setIsProfileOpen(false); setShowLogoutModal(true); }} className="group w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors">
+                        <LogOut className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
+                        <span className="transition-transform duration-300 group-hover:translate-x-0.5">Sign out</span>
                       </button>
                     </div>
                   </div>
@@ -522,8 +588,8 @@ const AlumniNavbar: React.FC = () => {
 
               {/* Mobile Menu Button */}
               <div className="flex items-center lg:hidden ml-1">
-                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                  {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="group p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  {isMenuOpen ? <X className="h-6 w-6 transition-transform duration-300 group-hover:rotate-90" /> : <Menu className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />}
                 </button>
               </div>
             </div>
@@ -534,8 +600,8 @@ const AlumniNavbar: React.FC = () => {
         {isMenuOpen && (
           <div className="lg:hidden bg-white dark:bg-dark-800 border-t border-gray-100 dark:border-gray-700 pb-4 shadow-xl max-h-[80vh] overflow-y-auto duration-300">
             <div className="p-4">
-              <div className="relative search-container">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <div className="relative search-container group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 transition-colors group-focus-within:text-blue-500 group-hover:animate-nav-search" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -554,13 +620,13 @@ const AlumniNavbar: React.FC = () => {
                         <button
                           key={`mob-${res.id}-${idx}`}
                           onClick={() => { handleResultClick(res); setIsMenuOpen(false); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                          className="group w-full flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0"
                         >
-                          <div className={`p-1.5 rounded-lg ${res.type === 'Alumni' ? 'bg-blue-100 text-blue-600' :
+                          <div className={`p-1.5 rounded-lg transition-transform duration-300 group-hover:scale-110 ${res.type === 'Alumni' ? 'bg-blue-100 text-blue-600' :
                             res.type === 'Job' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'
                             }`}>
-                            {res.type === 'Alumni' ? <Users className="w-3.5 h-3.5" /> :
-                              res.type === 'Job' ? <Briefcase className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}
+                            {res.type === 'Alumni' ? <Users className="w-3.5 h-3.5 group-hover:animate-nav-users" /> :
+                              res.type === 'Job' ? <Briefcase className="w-3.5 h-3.5 group-hover:animate-nav-briefcase" /> : <Calendar className="w-3.5 h-3.5 group-hover:animate-nav-calendar" />}
                           </div>
                           <div className="text-left">
                             <p className="text-xs font-bold dark:text-white">{res.title}</p>
@@ -585,11 +651,11 @@ const AlumniNavbar: React.FC = () => {
                     <Link
                       key={item.name}
                       to={item.path}
-                      className={`flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-slate-800 dark:bg-blue-900/20 text-white dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      className={`group flex items-center gap-3 pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-slate-800 dark:bg-blue-900/20 text-white dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                     >
-                      <item.icon className={`w-5 h-5 ${active ? 'text-white dark:text-blue-400' : 'text-gray-400'}`} />
-                      {item.name}
+                      <item.icon className={`w-5 h-5 transition-all duration-300 origin-center ${getNavIconAnimationClass(item.name)} ${active ? 'text-white dark:text-blue-400' : 'text-gray-400 group-hover:text-blue-600'}`} />
+                      <span>{item.name}</span>
                     </Link>
                   );
                 }
@@ -599,12 +665,12 @@ const AlumniNavbar: React.FC = () => {
                   <div key={item.name}>
                     <button
                       onClick={() => setMobileExpanded(isExpanded ? null : item.name)}
-                      className={`w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-slate-800 dark:bg-blue-900/20 text-white dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      className={`group w-full flex items-center justify-between pl-4 pr-4 py-3 rounded-xl text-sm font-semibold transition-all ${active ? 'bg-slate-800 dark:bg-blue-900/20 text-white dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className={`w-5 h-5 ${active ? 'text-white dark:text-blue-400' : 'text-gray-400'}`} />
-                        {item.name}
+                        <item.icon className={`w-5 h-5 transition-all duration-300 origin-center ${getNavIconAnimationClass(item.name)} ${active ? 'text-white dark:text-blue-400' : 'text-gray-400 group-hover:text-blue-600'}`} />
+                        <span>{item.name}</span>
                       </div>
                       <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
                         } ${active ? 'text-white dark:text-blue-400' : 'text-gray-400'}`} />
@@ -620,13 +686,13 @@ const AlumniNavbar: React.FC = () => {
                             <Link
                               key={child.path}
                               to={child.path}
-                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${childActive
+                              className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${childActive
                                 ? 'bg-slate-100 dark:bg-blue-900/20 text-slate-900 dark:text-blue-400 font-semibold'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
-                              <child.icon className={`w-4 h-4 flex-shrink-0 ${childActive ? 'text-slate-700 dark:text-blue-400' : 'text-gray-400'}`} />
-                              <div>
+                              <child.icon className={`w-4 h-4 flex-shrink-0 transition-all duration-300 origin-center ${getNavIconAnimationClass(child.name)} ${childActive ? 'text-slate-700 dark:text-blue-400' : 'text-gray-400 group-hover:text-blue-600'}`} />
+                              <div className="transition-transform duration-300 group-hover:translate-x-0.5">
                                 <p className="leading-tight">{child.name}</p>
                                 {child.description && (
                                   <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">{child.description}</p>

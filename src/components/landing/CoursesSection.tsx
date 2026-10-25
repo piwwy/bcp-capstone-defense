@@ -1,135 +1,209 @@
 import React, { useRef, useState } from 'react';
-import { Link } from 'react-router-dom'; // Changed to Link for CTA
+import { Link } from 'react-router-dom';
 import { 
   Monitor, Building2, Hotel, Plane, FileText, Shield, 
-  GraduationCap, Brain, Calculator, Briefcase
+  GraduationCap, Brain, Calculator, ArrowRight
 } from 'lucide-react';
+import { SpotlightCard } from '../reactbits';
 
 interface Course {
   name: string;
   shortName: string;
   icon: React.ReactNode;
   color: string;
-  image: string; // Added image property
+  image: string;
+  spotlightColor: string;
 }
 
 const courses: Course[] = [
-  { name: 'BS Information Technology', shortName: 'BSIT', icon: <Monitor className="w-8 h-8 text-white" />, color: 'from-blue-600 to-sky-600', image: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Computer Science', shortName: 'BSCS', icon: <Monitor className="w-8 h-8 text-white" />, color: 'from-blue-700 to-blue-500', image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Business Administration', shortName: 'BSBA', icon: <Building2 className="w-8 h-8 text-white" />, color: 'from-sky-600 to-blue-700', image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Hospitality Management', shortName: 'BSHM', icon: <Hotel className="w-8 h-8 text-white" />, color: 'from-blue-600 to-cyan-600', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Tourism Management', shortName: 'BSTM', icon: <Plane className="w-8 h-8 text-white" />, color: 'from-blue-700 to-sky-500', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Office Administration', shortName: 'BSOA', icon: <FileText className="w-8 h-8 text-white" />, color: 'from-sky-700 to-blue-600', image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Criminology', shortName: 'BSCrim', icon: <Shield className="w-8 h-8 text-white" />, color: 'from-blue-800 to-blue-600', image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Education', shortName: 'BSEd', icon: <GraduationCap className="w-8 h-8 text-white" />, color: 'from-blue-600 to-sky-600', image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Psychology', shortName: 'BSPsych', icon: <Brain className="w-8 h-8 text-white" />, color: 'from-blue-700 to-sky-600', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=600&auto=format&fit=crop' },
-  { name: 'BS Accountancy', shortName: 'BSA', icon: <Calculator className="w-8 h-8 text-white" />, color: 'from-sky-600 to-blue-800', image: 'https://images.unsplash.com/photo-1554224155-98406f58d044?q=80&w=600&auto=format&fit=crop' },
+  { 
+    name: 'BS Information Technology', 
+    shortName: 'BSIT', 
+    icon: <Monitor className="w-6 h-6 text-white" />, 
+    color: 'from-blue-600 to-sky-600', 
+    spotlightColor: 'rgba(56, 189, 248, 0.3)',
+    image: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Computer Science', 
+    shortName: 'BSCS', 
+    icon: <Monitor className="w-6 h-6 text-white" />, 
+    color: 'from-blue-700 to-indigo-600', 
+    spotlightColor: 'rgba(99, 102, 241, 0.3)',
+    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Business Administration', 
+    shortName: 'BSBA', 
+    icon: <Building2 className="w-6 h-6 text-white" />, 
+    color: 'from-sky-600 to-blue-700', 
+    spotlightColor: 'rgba(14, 165, 233, 0.3)',
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Hospitality Management', 
+    shortName: 'BSHM', 
+    icon: <Hotel className="w-6 h-6 text-white" />, 
+    color: 'from-blue-600 to-cyan-600', 
+    spotlightColor: 'rgba(6, 182, 212, 0.3)',
+    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Tourism Management', 
+    shortName: 'BSTM', 
+    icon: <Plane className="w-6 h-6 text-white" />, 
+    color: 'from-blue-700 to-sky-500', 
+    spotlightColor: 'rgba(56, 189, 248, 0.3)',
+    image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Office Administration', 
+    shortName: 'BSOA', 
+    icon: <FileText className="w-6 h-6 text-white" />, 
+    color: 'from-sky-700 to-blue-600', 
+    spotlightColor: 'rgba(37, 99, 235, 0.3)',
+    image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Criminology', 
+    shortName: 'BSCrim', 
+    icon: <Shield className="w-6 h-6 text-white" />, 
+    color: 'from-indigo-800 to-blue-700', 
+    spotlightColor: 'rgba(79, 70, 229, 0.3)',
+    image: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Education', 
+    shortName: 'BSEd', 
+    icon: <GraduationCap className="w-6 h-6 text-white" />, 
+    color: 'from-blue-600 to-sky-600', 
+    spotlightColor: 'rgba(56, 189, 248, 0.3)',
+    image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Psychology', 
+    shortName: 'BSPsych', 
+    icon: <Brain className="w-6 h-6 text-white" />, 
+    color: 'from-indigo-700 to-sky-600', 
+    spotlightColor: 'rgba(129, 140, 248, 0.3)',
+    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=600&auto=format&fit=crop' 
+  },
+  { 
+    name: 'BS Accountancy', 
+    shortName: 'BSA', 
+    icon: <Calculator className="w-6 h-6 text-white" />, 
+    color: 'from-sky-600 to-blue-800', 
+    spotlightColor: 'rgba(14, 165, 233, 0.3)',
+    image: 'https://images.unsplash.com/photo-1554224155-98406f58d044?q=80&w=600&auto=format&fit=crop' 
+  },
 ];
 
 const CoursesSection: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  // Duplicate courses for seamless loop
   const duplicatedCourses = [...courses, ...courses];
 
   return (
-    <section id="courses" className="relative py-24 bg-transparent overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
+    <section id="courses" className="relative py-28 bg-dark-900 overflow-hidden">
+      {/* Background ambient lighting */}
+      <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
-            <GraduationCap className="w-4 h-4 text-blue-300" />
-            <span className="text-sm text-blue-300 font-medium">Academic Programs</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 rounded-full border border-blue-500/20 mb-6">
+            <GraduationCap className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-sky-400">
+              Academic Programs
+            </span>
           </div>
-          
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-            Courses Attended by
-            <span className="block bg-gradient-to-r from-blue-400 to-sky-400 bg-clip-text text-transparent">
-              Our Alumni
+
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight">
+            Degrees Completed by Our{' '}
+            <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+              Alumni
             </span>
           </h2>
+          <p className="text-base sm:text-lg text-blue-100/70 max-w-2xl mx-auto">
+            From high-demand computing fields to business leadership and public service — explore the disciplines that shaped our graduates.
+          </p>
         </div>
 
-        {/* Courses Carousel */}
+        {/* Courses Continuous Carousel with SpotlightCard */}
         <div 
-          className="relative overflow-hidden"
+          className="relative overflow-hidden py-4"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Gradient Edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-dark-700 to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-dark-700 to-transparent z-10 pointer-events-none" />
+          {/* Fading side masks for infinite continuous effect */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-dark-900 to-transparent z-20 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-dark-900 to-transparent z-20 pointer-events-none" />
 
-          {/* Scrolling Track */}
           <div
             ref={trackRef}
             className={`flex gap-6 ${isPaused ? '' : 'animate-scroll'}`}
             style={{
-              animation: isPaused ? 'none' : 'scroll 10s linear infinite', // Speed increased (20s)
+              animation: isPaused ? 'none' : 'scroll 24s linear infinite',
             }}
           >
             {duplicatedCourses.map((course, index) => (
               <div
                 key={`${course.shortName}-${index}`}
-                className="flex-shrink-0 w-72 h-96 group relative cursor-pointer" // Taller card for better image view
+                className="flex-shrink-0 w-80 h-[380px] group cursor-pointer"
               >
-                <div className="relative h-full p-6 rounded-2xl border border-white/10 overflow-hidden transition-all duration-500 hover:border-white/40 hover:scale-105 hover:shadow-2xl">
-                  
-                  {/* Background Image with Overlay */}
-                  <div className="absolute inset-0">
+                <SpotlightCard
+                  spotlightColor={course.spotlightColor}
+                  className="relative h-full p-6 rounded-3xl border-white/10 hover:border-blue-400/50 overflow-hidden flex flex-col justify-between transition-all duration-300 bg-dark-800/80"
+                >
+                  {/* Background Image */}
+                  <div className="absolute inset-0 z-0">
                     <img 
                       src={course.image} 
                       alt={course.name} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    {/* Dark Overlay - slightly lighter on hover */}
                     <div className="absolute inset-0 bg-dark-900/80 group-hover:bg-dark-900/70 transition-colors duration-500" />
-                    {/* Color Gradient Overlay on Hover */}
-                    <div className={`absolute inset-0 bg-gradient-to-b ${course.color} opacity-0 group-hover:opacity-40 transition-opacity duration-500 mix-blend-overlay`} />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${course.color} opacity-0 group-hover:opacity-30 transition-opacity duration-500 mix-blend-overlay`} />
                   </div>
-                  
-                  {/* Content (Z-Index to stay on top of image) */}
-                  <div className="relative z-10 flex flex-col h-full justify-end">
-                    
-                    {/* Icon - moves up on hover */}
-                    <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2">
-                       <div className={`w-14 h-14 bg-gradient-to-br ${course.color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                        <div className="text-white">
-                          {course.icon}
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="mt-auto">
-                      <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-white transition-colors duration-300">
-                        {course.shortName}
-                      </h3>
-                      <p className="text-sm text-blue-100/80 group-hover:text-white transition-colors duration-300">
-                        {course.name}
-                      </p>
-                      
-                      {/* Arrow CTA */}
-                      <div className="flex items-center gap-2 mt-4 text-xs font-semibold text-white/60 group-hover:text-white transition-colors">
-                         <span>Learn More</span>
-                         <Briefcase className="w-3 h-3" />
-                      </div>
+                  {/* Top Bar Icon and Short Name */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className={`w-12 h-12 bg-gradient-to-br ${course.color} rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform`}>
+                      {course.icon}
+                    </div>
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-white/90 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                      {course.shortName}
+                    </span>
+                  </div>
+
+                  {/* Bottom Text */}
+                  <div className="relative z-10">
+                    <h3 className="text-xl font-bold text-white mb-1.5 group-hover:text-sky-300 transition-colors">
+                      {course.name}
+                    </h3>
+                    <p className="text-xs text-blue-200/70 mb-4 line-clamp-2">
+                      Active alumni chapter with dedicated mentorship and corporate partners.
+                    </p>
+                    <div className="flex items-center gap-2 text-xs font-bold text-sky-400 group-hover:translate-x-1 transition-transform">
+                      <span>View Alumni in this field</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                </div>
+                </SpotlightCard>
               </div>
             ))}
           </div>
         </div>
 
-        {/* View All Button CTA Fix */}
         <div className="text-center mt-12">
-          <Link to="/login" className="inline-block px-8 py-3.5 border border-blue-400/40 text-blue-300 font-semibold rounded-lg hover:bg-blue-400/10 hover:border-blue-400 hover:text-blue-200 transition-all duration-200">
-            View All Programs
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-white/[0.05] hover:bg-white/[0.1] text-blue-200 hover:text-white font-semibold rounded-xl border border-white/15 transition-all"
+          >
+            <span>Explore All Academic Programs</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>
@@ -140,7 +214,7 @@ const CoursesSection: React.FC = () => {
           100% { transform: translateX(-50%); }
         }
         .animate-scroll {
-          animation: scroll 20s linear infinite; /* Faster animation */
+          animation: scroll 26s linear infinite;
         }
       `}</style>
     </section>
